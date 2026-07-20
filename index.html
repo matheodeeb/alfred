@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Alfred</title>
+<meta name="theme-color" content="#0e1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Alfred">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1318; --bg2:#141b22; --panel:#171f28; --panel2:#1d2731;
+    --line:#27333f; --line2:#324151;
+    --txt:#e7edf2; --muted:#8a99a8; --faint:#5d6b78;
+    --acc:#e0a13f; --blue:#3aa6c4; --green:#5fb88a; --orange:#d98a5b;
+    --purple:#b07ad8; --red:#e0685f;
+    --ok:#4ec38a; --bad:#e0685f; --warn:#f0c674;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--txt);font-family:"IBM Plex Sans",sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:42px 42px;background-color:var(--bg);
+    padding-top:env(safe-area-inset-top);
+  }
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(120% 90% at 50% -10%,rgba(224,161,63,.06),transparent 60%);pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 14px 90px}
+  header{padding:18px 0 6px}
+  .brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-family:"Archivo";font-weight:800;letter-spacing:-.02em;font-size:22px;line-height:1}
+  .logo b{color:var(--acc)}
+  .tag{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .statuspill{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:5px 10px;cursor:pointer;background:none}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.off{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+  .dot.pend{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  .dot.gray{background:var(--faint);box-shadow:none}
+  .gear{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .gear:hover{color:var(--txt);border-color:var(--acc)}
+  nav{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  nav::-webkit-scrollbar{display:none}
+  nav button{background:none;border:none;color:var(--muted);font-family:"Archivo";font-weight:700;font-size:13px;padding:11px 13px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:.15s;flex:none}
+  nav button:hover{color:var(--txt)}
+  nav button.active{color:var(--txt);border-bottom-color:var(--acc)}
+  nav button.todo{color:#ff6b6b}
+  nav button.todo.active{color:#ff8f88;border-bottom-color:#ff6b6b}
+  .navGroup{position:relative;display:inline-flex;flex:none}
+  .navGroupBtn{background:none;border:none;color:var(--muted);font-family:"Archivo";font-weight:700;font-size:13px;padding:11px 13px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+  .navGroupBtn:hover{color:var(--txt)}
+  .navGroup.open>.navGroupBtn,.navGroupBtn.on{color:var(--txt);border-bottom-color:var(--acc)}
+  .navCaret{font-size:9px;opacity:.65;transition:transform .15s}
+  .navGroup.open .navCaret{transform:rotate(180deg)}
+  .navMenu{position:fixed;z-index:300;min-width:194px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:6px;box-shadow:0 14px 34px rgba(0,0,0,.5);display:none;flex-direction:column;gap:2px}
+  .navGroup.open>.navMenu{display:flex}
+  .navMenu button{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:0!important;color:var(--muted);font-family:"Archivo";font-weight:600;font-size:13px;padding:9px 12px 9px 16px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:.12s;position:relative}
+  .navMenu button:hover{background:var(--panel2)}
+  .navMenu button.active{background:var(--panel2);color:var(--txt)}
+  .navMenu button.active::before{content:"";position:absolute;left:4px;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--acc)}
+  .page{display:none;padding-top:14px}
+  .page.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .grid{display:grid;gap:12px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+  .stat{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:14px;padding:14px 15px;position:relative;overflow:hidden}
+  .stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--acc))}
+  .stat .k{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .stat .v{font-family:"IBM Plex Mono";font-weight:600;font-size:23px;margin-top:7px;line-height:1}
+  .stat .u{font-size:11px;color:var(--faint);margin-top:5px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:14px}
+  .panel h2{font-family:"Archivo";font-weight:700;font-size:15px;display:flex;align-items:center;gap:9px}
+  .panel h2 .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .panel .hint{font-size:11.5px;color:var(--faint);margin-top:3px;margin-bottom:10px}
+  .btn{font-family:"Archivo";font-weight:700;font-size:13px;border-radius:10px;padding:10px 15px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:var(--acc);color:#fff}
+  .btn.primary{background:var(--acc);color:#1a1206;border-color:var(--acc)}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost{background:none}
+  .btn.sm{padding:6px 10px;font-size:12px}
+  .btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+  .segbar{display:inline-flex;background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:3px;gap:3px;margin:2px 0 10px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .segbar::-webkit-scrollbar{display:none}
+  .segbar button{background:none;border:none;color:var(--muted);font-family:Archivo;font-weight:700;font-size:12px;padding:6px 14px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .segbar button:hover{color:var(--txt)}
+  .segbar button.active{background:var(--acc);color:#1a1206}
+  .pill{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .pill.ok{background:rgba(78,195,138,.14);color:#4ec38a;border:1px solid rgba(78,195,138,.4)}
+  .pill.warn{background:rgba(240,198,116,.14);color:#f0c674;border:1px solid rgba(240,198,116,.4)}
+  .pill.bad{background:rgba(224,104,95,.2);color:#ff6b6b;border:1px solid rgba(224,104,95,.5)}
+  .pill.mut{background:var(--panel2);color:var(--muted);border:1px solid var(--line2)}
+  .pill.acc{background:rgba(224,161,63,.14);color:var(--acc);border:1px solid rgba(224,161,63,.4)}
+  .row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:9px;cursor:pointer;transition:.15s}
+  .row:hover{border-color:var(--acc)}
+  .row.dim{opacity:.55}
+  .chk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:transparent;transition:.15s}
+  .chk.done{background:var(--ok);border-color:var(--ok);color:#08120c}
+  .rinfo{min-width:0;flex:1}
+  .rinfo .t{font-family:Archivo;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
+  .rinfo .s{font-family:"IBM Plex Mono";font-size:11px;margin-top:2px;color:var(--muted);overflow-wrap:anywhere}
+  .rright{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+  .qtyStep{display:inline-flex;align-items:center;gap:6px}
+  .qtyBtn{width:28px;height:28px;border-radius:7px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+  .qtyBtn:hover{border-color:var(--acc);color:var(--acc)}
+  .qtyVal{min-width:28px;text-align:center;font-family:"IBM Plex Mono";font-size:14px;font-weight:600}
+  .ghead{font-family:Archivo;font-weight:700;font-size:14px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2)}
+  .ghead:first-child{margin-top:4px}
+  .ghead .gsub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);font-weight:400;margin-left:7px}
+  .empty{padding:36px 16px;text-align:center;color:var(--faint);font-size:13px;line-height:1.6}
+  .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.45);width:54px;height:54px;border-radius:16px;font-size:24px;justify-content:center;padding:0}
+  .overlay{position:fixed;inset:0;background:rgba(5,8,11,.72);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:20px 12px calc(20px + env(safe-area-inset-bottom));overflow-y:auto}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line2);border-radius:18px;width:100%;max-width:520px;padding:20px;margin:auto}
+  .modal h3{font-family:"Archivo";font-weight:800;font-size:18px}
+  .modal .close{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .frow.one{grid-template-columns:1fr}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:10.5px;color:var(--muted);font-family:"IBM Plex Mono";letter-spacing:.03em;text-transform:uppercase}
+  .field input,.field textarea,.field select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);padding:9px 10px;font-family:"IBM Plex Mono";font-size:14px;width:100%;-webkit-appearance:none}
+  .field textarea{min-height:74px;resize:vertical;font-family:"IBM Plex Sans";line-height:1.5}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
+  .modal .foot{display:flex;gap:10px;margin-top:18px}
+  .modal .foot .spacer{flex:1}
+  input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.85;cursor:pointer}
+  .note{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.55}
+  /* menu grid */
+  .menuGrid{display:grid;grid-template-columns:74px 1fr 1fr;gap:7px;margin-top:10px}
+  .menuGrid .mh{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);align-self:center}
+  .menuGrid .mday{font-family:Archivo;font-weight:700;font-size:12.5px;color:var(--txt);align-self:center}
+  .menuGrid .mday .md{font-family:"IBM Plex Mono";font-size:9.5px;color:var(--faint);font-weight:400;display:block}
+  .menuCell{background:var(--bg2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);padding:9px 10px;font-family:"IBM Plex Sans";font-size:13.5px;width:100%;min-height:44px;resize:none;line-height:1.4;overflow:hidden}
+  .menuCell:focus{outline:none;border-color:var(--acc)}
+  .menuCell.today{border-color:rgba(224,161,63,.55)}
+  /* lock screen */
+  #lock{position:fixed;inset:0;z-index:2000;background:var(--bg);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:42px 42px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:20px}
+  #lock.show{display:flex}
+  #lock .llogo{font-family:Archivo;font-weight:800;font-size:30px;letter-spacing:-.02em}
+  #lock .llogo b{color:var(--acc)}
+  #lock .lmsg{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .dots{display:flex;gap:14px}
+  .pdot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line2);transition:.12s}
+  .pdot.on{background:var(--acc);border-color:var(--acc);box-shadow:0 0 10px rgba(224,161,63,.5)}
+  .dots.shake{animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+  .pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px}
+  .pkey{height:72px;border-radius:50%;border:1px solid var(--line2);background:rgba(23,31,40,.7);color:var(--txt);font-family:"IBM Plex Mono";font-size:24px;cursor:pointer;transition:.12s;display:flex;align-items:center;justify-content:center}
+  .pkey:active{background:var(--panel2);border-color:var(--acc)}
+  .pkey.ghost{border:none;background:none;font-size:20px;color:var(--muted)}
+  /* settings */
+  .setRow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:center;flex-wrap:wrap}
+  .setRow:last-child{border-bottom:none}
+  .setRow .l{color:var(--muted)}
+  .setRow .v{font-family:"IBM Plex Mono";font-size:12px}
+  @media(max-width:560px){
+    .stat .v{font-size:20px}
+    .field input,.field textarea,.field select,.menuCell{font-size:16px}
+    .frow{grid-template-columns:1fr}
+    .menuGrid{grid-template-columns:64px 1fr 1fr}
+    .pad{grid-template-columns:repeat(3,64px)}
+    .pkey{height:64px}
+  }
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="llogo">ALFRED<b>.</b></div>
+  <div class="lmsg" id="lockMsg">ENTER PIN</div>
+  <div class="dots" id="lockDots"><span class="pdot"></span><span class="pdot"></span><span class="pdot"></span><span class="pdot"></span></div>
+  <div class="pad" id="lockPad"></div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="brandrow">
+      <div>
+        <div class="logo">ALFRED<b>.</b></div>
+        <div class="tag">Personal life console</div>
+      </div>
+      <button class="statuspill" id="pill" title="Sync status"><span class="dot gray" id="pillDot"></span><span id="pillTxt">local</span></button>
+      <button class="gear" id="gearBtn" title="Settings">⚙</button>
+    </div>
+  </header>
+  <nav id="nav"></nav>
+  <main id="pages"></main>
+</div>
+
+<button class="btn primary fab" id="fab" style="display:none">+</button>
+
+<div class="overlay" id="modalOv"><div class="modal">
+  <button class="close" onclick="closeModal()">×</button>
+  <h3 id="mTitle">Add</h3>
+  <div id="mBody"></div>
+  <div class="foot">
+    <button class="btn danger ghost" id="mDel" style="display:none">Delete</button>
+    <span class="spacer"></span>
+    <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn primary" id="mSave">Save</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="setOv"><div class="modal">
+  <button class="close" onclick="ov('setOv',0)">×</button>
+  <h3>Settings</h3>
+  <div style="margin-top:12px">
+    <div class="setRow"><span class="l">Cloud sync</span><span class="v" id="setSync">—</span></div>
+    <div class="setRow"><span class="l">Last sync</span><span class="v" id="setLast">—</span></div>
+    <div class="setRow"><span class="l">Pending changes</span><span class="v" id="setPend">—</span></div>
+    <div class="setRow"><span class="l">Items stored</span><span class="v" id="setCount">—</span></div>
+  </div>
+  <div class="frow one">
+    <div class="field"><label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
+    <div class="field"><label>Supabase key</label><input id="cfgKey" placeholder="sb_publishable_… / anon key"></div>
+  </div>
+  <div class="foot" style="margin-top:14px;flex-wrap:wrap">
+    <button class="btn sm" id="cfgSave">Save sync config</button>
+    <button class="btn sm" id="pinChange">Change PIN</button>
+    <button class="btn sm" id="expBtn">Export backup</button>
+    <button class="btn sm" id="impBtn">Import</button>
+    <input type="file" id="impFile" accept=".json" style="display:none">
+  </div>
+  <div class="note">Alfred works fully offline — everything is saved on this device instantly. When online it syncs to your private cloud so your phone and Mac stay in step. Latest edit wins.</div>
+</div></div>
+
+<script>
+/* ---------------- helpers ---------------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>{n=+n||0;return '$'+n.toLocaleString('en-US',{maximumFractionDigits:2})};
+const fdate=s=>{if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function ov(id,show){$('#'+id).classList.toggle('show',!!show)}
+
+/* ---------------- store ---------------- */
+let S={items:{},lastPull:0,lastSyncAt:0};
+function load(){try{const j=JSON.parse(localStorage.alfred_state||'{}');if(j&&j.items)S=j}catch(e){}}
+function save(){localStorage.alfred_state=JSON.stringify(S)}
+function put(sec,d,id){
+  const it=S.items[id]||{id:id||uid(),sec,d:{}};
+  it.sec=sec; it.d=Object.assign({},it.d,d); it.up=Date.now(); it.dirty=1; delete it.del;
+  S.items[it.id]=it; save(); queueSync(); return it;
+}
+function kill(id){const it=S.items[id];if(!it)return;it.del=true;it.up=Date.now();it.dirty=1;save();queueSync()}
+function list(sec){return Object.values(S.items).filter(i=>i.sec===sec&&!i.del)}
+function one(id){const i=S.items[id];return (i&&!i.del)?i:null}
+
+/* ---------------- sync ---------------- */
+let cfg=null; try{cfg=JSON.parse(localStorage.alfred_cfg||'null')}catch(e){}
+async function sb(path,opt={}){
+  const r=await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/'+path,{...opt,
+    headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'Content-Type':'application/json'},opt.headers||{})});
+  if(!r.ok)throw new Error(r.status+' '+await r.text());
+  const t=await r.text(); return t?JSON.parse(t):null;
+}
+let syncTimer=null,syncing=false,again=false;
+function queueSync(){setPill();clearTimeout(syncTimer);syncTimer=setTimeout(sync,900)}
+async function sync(){
+  if(!cfg||!navigator.onLine){setPill();return}
+  if(syncing){again=true;return}
+  syncing=true;setPill('sync');
+  let changed=false;
+  try{
+    const rows=await sb(`items?select=*&up=gt.${S.lastPull||0}&order=up.asc&limit=1000`);
+    for(const r of rows){
+      const l=S.items[r.id];
+      if(!l||+r.up>l.up){S.items[r.id]={id:r.id,sec:r.sec,d:r.data||{},up:+r.up,...(r.del?{del:true}:{})};changed=true}
+      if(+r.up>(S.lastPull||0))S.lastPull=+r.up;
+    }
+    const dirty=Object.values(S.items).filter(i=>i.dirty);
+    if(dirty.length){
+      await sb('items?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},
+        body:JSON.stringify(dirty.map(i=>({id:i.id,sec:i.sec,data:i.d||{},up:i.up,del:!!i.del})))});
+      dirty.forEach(i=>delete i.dirty);
+    }
+    S.lastSyncAt=Date.now();save();
+  }catch(e){console.warn('sync failed:',e.message)}
+  syncing=false;setPill();
+  if(changed)renderActive();
+  if(again){again=false;queueSync()}
+}
+function setPill(state){
+  const dot=$('#pillDot'),txt=$('#pillTxt');
+  const pend=Object.values(S.items).filter(i=>i.dirty).length;
+  if(!cfg){dot.className='dot gray';txt.textContent='local only';return}
+  if(state==='sync'){dot.className='dot pend';txt.textContent='syncing…';return}
+  if(!navigator.onLine){dot.className='dot off';txt.textContent='offline · saved';return}
+  if(pend){dot.className='dot pend';txt.textContent=pend+' pending';return}
+  dot.className='dot';txt.textContent=S.lastSyncAt?('cloud · '+new Date(S.lastSyncAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'cloud';
+}
+addEventListener('online',()=>{setPill();sync()});
+addEventListener('offline',setPill);
+setInterval(()=>{if(document.visibilityState==='visible')sync()},45000);
+
+/* ---------------- PIN ---------------- */
+async function hash(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('alfred:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+let pinBuf='',pinMode='enter',pinFirst='',hiddenAt=0;
+function pinHash(){return localStorage.alfred_pin||one('cfg:pin')?.d?.h||''}
+function showLock(mode){pinMode=mode;pinBuf='';pinFirst='';
+  $('#lockMsg').textContent=mode==='set'?'CHOOSE A 4-DIGIT PIN':'ENTER PIN';
+  drawDots();$('#lock').classList.add('show')}
+function drawDots(){$$('#lockDots .pdot').forEach((d,i)=>d.classList.toggle('on',i<pinBuf.length))}
+async function pinDigit(k){
+  if(k==='⌫'){pinBuf=pinBuf.slice(0,-1);drawDots();return}
+  if(pinBuf.length>=4)return;
+  pinBuf+=k;drawDots();
+  if(pinBuf.length<4)return;
+  const h=await hash(pinBuf);
+  if(pinMode==='set'){
+    if(!pinFirst){pinFirst=h;pinBuf='';$('#lockMsg').textContent='CONFIRM PIN';setTimeout(drawDots,150);return}
+    if(h===pinFirst){localStorage.alfred_pin=h;put('cfg',{h},'cfg:pin');$('#lock').classList.remove('show')}
+    else{wrong('PINS DIDN\'T MATCH — START OVER');pinFirst='';$('#lockMsg').textContent='CHOOSE A 4-DIGIT PIN'}
+    return;
+  }
+  if(h===pinHash()){localStorage.alfred_pin=h;$('#lock').classList.remove('show')}
+  else wrong('WRONG PIN — TRY AGAIN');
+}
+function wrong(msg){const d=$('#lockDots');d.classList.add('shake');$('#lockMsg').textContent=msg;setTimeout(()=>{d.classList.remove('shake');pinBuf='';drawDots()},380)}
+function initPad(){const pad=$('#lockPad');'123456789 0⌫'.split('').forEach(k=>{
+  const b=document.createElement('button');b.className='pkey'+(k===' '?' ghost':'');b.textContent=k===' '?'':k;
+  if(k!==' ')b.onclick=()=>pinDigit(k);pad.appendChild(b)})}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden')hiddenAt=Date.now();
+  else{sync();if(pinHash()&&hiddenAt&&Date.now()-hiddenAt>5*60*1000)showLock('enter')}
+});
+
+/* ---------------- field/form engine ---------------- */
+function fieldHtml(f,v){
+  v=v??f.def??'';
+  const base=`id="f_${f.k}"`;
+  if(f.t==='ta')return`<textarea ${base} placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+  if(f.t==='sel')return`<select ${base}>${f.opt.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(f.t==='check')return`<select ${base}><option value="">No</option><option value="1" ${v?'selected':''}>Yes</option></select>`;
+  const type=f.t==='num'||f.t==='money'?'number':f.t==='date'?'date':'text';
+  const step=f.t==='money'?'step="any" inputmode="decimal"':f.t==='num'?'inputmode="numeric"':'';
+  return`<input ${base} type="${type}" ${step} value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
+}
+let editCtx=null;
+function openForm(sec,id){
+  const m=MODS[sec];if(!m||!m.fields)return;
+  const it=id?one(id):null;
+  editCtx={sec,id};
+  $('#mTitle').textContent=(it?'Edit — ':'Add — ')+m.title;
+  $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
+    m.fields.map(f=>`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,it?.d?.[f.k])}</div>`).join('')+'</div>';
+  $('#mDel').style.display=it?'':'none';
+  ov('modalOv',1);
+  const first=$('#mBody input,#mBody textarea');if(first&&!('ontouchstart'in window))first.focus();
+}
+function closeModal(){ov('modalOv',0);editCtx=null}
+$('#mSave').onclick=()=>{
+  if(!editCtx)return;
+  const m=MODS[editCtx.sec],d={};
+  for(const f of m.fields){
+    let v=$('#f_'+f.k).value.trim();
+    if(f.t==='num'||f.t==='money')v=v===''?'':+v;
+    if(f.t==='check')v=v?1:'';
+    d[f.k]=v;
+  }
+  const req=m.fields.find(f=>f.req&&!d[f.k]);
+  if(req){$('#f_'+req.k).style.borderColor='var(--bad)';return}
+  put(editCtx.sec,d,editCtx.id);
+  closeModal();renderActive();
+};
+$('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){kill(editCtx.id);closeModal();renderActive()}};
+$('#modalOv').addEventListener('click',e=>{if(e.target.id==='modalOv')closeModal()});
+
+/* ---------------- generic list page ---------------- */
+const chipState={};
+function genList(sec){
+  const m=MODS[sec];
+  let items=list(sec);
+  const chips=m.chips;
+  let html='';
+  if(m.stats){html+='<div class="grid stats">'+m.stats(items).map(s=>`<div class="stat" style="--accent:${s.c||'var(--acc)'}"><div class="k">${s.k}</div><div class="v">${s.v}</div>${s.u?`<div class="u">${s.u}</div>`:''}</div>`).join('')+'</div>'}
+  html+=`<div class="panel"><h2><span class="sw" style="background:${m.color||'var(--acc)'}"></span>${m.title}</h2><div class="hint">${m.hint||''}</div>`;
+  if(chips){
+    const cur=chipState[sec]??0;
+    html+='<div class="segbar">'+chips.map((c,i)=>`<button class="${i===cur?'active':''}" onclick="chipState['${sec}']=${i};renderActive()">${c.l}</button>`).join('')+'</div>';
+    items=items.filter(chips[cur].f);
+  }
+  if(m.sort)items.sort(m.sort);
+  if(!items.length)html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
+  else if(m.group){
+    const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
+    for(const g of Object.keys(gs).sort())html+=`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`+gs[g].map(i=>rowHtml(sec,i)).join('');
+  }
+  else html+=items.map(i=>rowHtml(sec,i)).join('');
+  html+='</div>';
+  return html;
+}
+function rowHtml(sec,i){
+  const m=MODS[sec],c=m.card(i);
+  const doneKey=m.toggle, isDone=doneKey?!!i.d[doneKey.k||doneKey]:false;
+  return`<div class="row ${c.dim?'dim':''}" onclick="openForm('${sec}','${i.id}')">
+    ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
+    <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
+    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}</div>
+  </div>`;
+}
+function stepHtml(i,k){return`<span class="qtyStep" onclick="event.stopPropagation()">
+  <button class="qtyBtn" onclick="bump('${i.id}','${k}',-1)">−</button>
+  <span class="qtyVal">${+i.d[k]||0}</span>
+  <button class="qtyBtn" onclick="bump('${i.id}','${k}',1)">+</button></span>`}
+function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
+function togg(sec,id){
+  const m=MODS[sec],i=one(id);if(!i)return;
+  if(typeof m.onToggle==='function'){m.onToggle(i)}
+  else{const k=m.toggle.k||m.toggle;put(sec,{[k]:i.d[k]?'':1},id)}
+  renderActive();
+}
+
+/* ---------------- module definitions ---------------- */
+const ST_SEL=['Idea','Planned','In progress','Done'];
+const MODS={
+briefs:{title:'Daily briefs',color:'var(--acc)',hint:'Quick notes for the day — what matters, what happened.',
+  fields:[{k:'date',l:'Date',t:'date',def:'',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
+  card:i=>({t:fdate(i.d.date),s:esc((i.d.txt||'').slice(0,140))}),
+  empty:'No briefs yet. Tap + to write today\'s.'},
+todo:{title:'To-do list',color:'#ff6b6b',hint:'Check things off as you go.',
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
+  toggle:'done',
+  sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999'),
+  card:i=>({t:esc(i.d.task),s:[i.d.due?'due '+fdate(i.d.due):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
+    pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
+bills:{title:'Bills',color:'var(--blue)',hint:'Monthly bills — amounts and due days.',
+  fields:[{k:'name',l:'Bill',t:'text',req:1},{k:'amt',l:'Amount / month',t:'money'},{k:'day',l:'Due day (1–31)',t:'num'},{k:'auto',l:'Autopay',t:'check'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  stats:it=>[{k:'Bills / month',v:money(it.reduce((s,i)=>s+(+i.d.amt||0),0)),c:'var(--blue)'},{k:'Count',v:it.length}],
+  sort:(a,b)=>(+a.d.day||99)-(+b.d.day||99),
+  card:i=>({t:esc(i.d.name),s:[(i.d.amt!==''&&i.d.amt!=null)?money(i.d.amt)+'/mo':'',i.d.day?'day '+i.d.day:'',esc(i.d.notes||'')].filter(Boolean).join(' · '),
+    pill:i.d.auto?{cls:'ok',txt:'auto'}:{cls:'mut',txt:'manual'}})},
+payroll:{title:'Payroll — house staff',color:'var(--green)',hint:'Tap the circle when someone is paid — it resets each month.',
+  fields:[{k:'name',l:'Name',t:'text',req:1},{k:'role',l:'Role',t:'text'},{k:'amt',l:'Salary / month',t:'money'},{k:'payday',l:'Pay day (1–31)',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  stats:it=>[{k:'Monthly payroll',v:money(it.reduce((s,i)=>s+(+i.d.amt||0),0)),c:'var(--green)'},{k:'Staff',v:it.length},
+    {k:'Paid this month',v:it.filter(i=>paidThis(i)).length+' / '+it.length,c:'var(--acc)'}],
+  toggle:{k:'lastPaid'},
+  onToggle:i=>put('payroll',{lastPaid:paidThis(i)?'':today()},i.id),
+  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
+  card:i=>{const p=paidThis(i);return{t:esc(i.d.name),s:[esc(i.d.role||''),(i.d.amt!==''&&i.d.amt!=null)?money(i.d.amt)+'/mo':'',i.d.payday?'pays day '+i.d.payday:''].filter(Boolean).join(' · '),
+    pill:p?{cls:'ok',txt:'paid'}:{cls:'warn',txt:'due'},dim:false}},
+  empty:'Add your house staff with + — salary, role, pay day.'},
+bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
+  fields:[{k:'name',l:'Person',t:'text',req:1},{k:'date',l:'Birthday',t:'date'},{k:'notes',l:'Gift ideas / notes',t:'ta',full:1}],
+  sort:(a,b)=>nextBday(a.d.date)-nextBday(b.d.date),
+  card:i=>{const dd=daysToBday(i.d.date);return{t:esc(i.d.name),s:i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',
+    pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
+stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you keep at home — toothpaste, supplies. Low stock flags itself.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
+  chips:[{l:'All',f:()=>1},{l:'Low / out',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
+  sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
+  card:i=>{const c=+i.d.count||0,m=+i.d.min||0;return{t:esc(i.d.name),s:esc(i.d.place||''),step:'count',
+    pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
+needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
+  toggle:'done',
+  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
+    pill:i.d.link?{cls:'acc',txt:'link'}:null})},
+wants:{title:'To order — spoils & wants',color:'var(--acc)',hint:'Treats. No judgement.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
+  toggle:'done',
+  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
+    pill:i.d.link?{cls:'acc',txt:'link'}:null})},
+juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
+  fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
+  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
+food:{title:'Food recipes',color:'var(--orange)',hint:'Dishes the cook can make — point to these from the menu.',
+  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'steps',l:'How to make it',t:'ta',full:1}],
+  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
+  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
+tlspoils:{title:'Timeline — spoils',color:'var(--acc)',hint:'A record of the treats.',
+  fields:[{k:'date',l:'Date',t:'date',req:1},{k:'name',l:'What',t:'text',req:1},{k:'cost',l:'Cost',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
+  card:i=>({t:esc(i.d.name),s:[fdate(i.d.date),i.d.cost?money(i.d.cost):''].filter(Boolean).join(' · ')})},
+travels:{title:'Timeline — travels',color:'var(--blue)',hint:'Trips past and planned.',
+  fields:[{k:'place',l:'Destination',t:'text',req:1},{k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(b.d.start||'').localeCompare(a.d.start||''),
+  card:i=>({t:esc(i.d.place),s:[i.d.start?fdate(i.d.start):'',i.d.end?'→ '+fdate(i.d.end):''].filter(Boolean).join(' '),
+    pill:i.d.start&&i.d.start>today()?{cls:'acc',txt:'upcoming'}:null})},
+games:{title:'Video games',color:'var(--purple)',hint:'Playing, backlog, wishlist.',
+  fields:[{k:'name',l:'Game',t:'text',req:1},{k:'plat',l:'Platform',t:'sel',opt:['PS5','Switch','PC','Xbox','Mobile','Other']},{k:'status',l:'Status',t:'sel',opt:['Playing','Backlog','Wishlist','Done']},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'All',f:()=>1},{l:'Playing',f:i=>i.d.status==='Playing'},{l:'Backlog',f:i=>i.d.status==='Backlog'},{l:'Wishlist',f:i=>i.d.status==='Wishlist'},{l:'Done',f:i=>i.d.status==='Done'}],
+  card:i=>({t:esc(i.d.name),s:esc(i.d.plat||''),pill:{cls:i.d.status==='Playing'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
+shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Season / episode',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.plat||''),esc(i.d.season||'')].filter(Boolean).join(' · '),
+    pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
+movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
+  card:i=>({t:esc(i.d.name),s:esc(i.d.rel||''),dim:i.d.status==='Watched',
+    pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
+books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
+  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
+  chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
+  card:i=>({t:esc(i.d.name),s:esc(i.d.author||''),dim:i.d.status==='Done',
+    pill:i.d.status==='Reading'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
+courses:{title:'Courses',color:'var(--blue)',hint:'Things you\'re learning.',
+  fields:[{k:'name',l:'Course',t:'text',req:1},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'All',f:()=>1},{l:'In progress',f:i=>i.d.status==='In progress'},{l:'Done',f:i=>i.d.status==='Done'}],
+  card:i=>({t:esc(i.d.name),s:esc(i.d.src||''),dim:i.d.status==='Done',
+    pill:i.d.status==='In progress'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
+assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value.',
+  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Watch','Property','Vehicle','Other']},{k:'val',l:'Value',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.cat||'Other',
+  card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,80),pill:(i.d.val!==''&&i.d.val!=null)?{cls:'acc',txt:money(i.d.val)}:null})},
+acts:{title:'Daily activities',color:'var(--green)',hint:'Your training week.',
+  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'text',ph:'Mon–Thu'},{k:'time',l:'Time',t:'text',ph:'6:00 AM'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.days||''),esc(i.d.time||'')].filter(Boolean).join(' · '),
+    pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
+projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever comes next.',
+  fields:[{k:'project',l:'Project',t:'text',req:1,ph:'Future room'},{k:'name',l:'Item / task',t:'text',req:1},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.project||'Other',
+  sort:(a,b)=>ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
+  card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,90),dim:i.d.status==='Done',
+    pill:{cls:i.d.status==='In progress'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
+cfg:{title:'cfg'}
+};
+function paidThis(i){const lp=i.d.lastPaid||'';return lp.slice(0,7)===today().slice(0,7)}
+function nextBday(s){const d=daysToBday(s);return d==null?9999:d}
+function daysToBday(s){if(!s)return null;const now=new Date();const [y,m,dd]=s.split('-').map(Number);if(!m)return null;
+  let b=new Date(now.getFullYear(),m-1,dd);const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(b<t0)b=new Date(now.getFullYear()+1,m-1,dd);return Math.round((b-t0)/864e5)}
+function actToday(i){const w=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];const ds=i.d.days||'';
+  if(ds.includes('–')||ds.includes('-')){const seq=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];const[a,b]=ds.split(/[–-]/).map(x=>x.trim().slice(0,3));
+    const ia=seq.indexOf(a),ib=seq.indexOf(b),iw=seq.indexOf(w);return ia>=0&&ib>=0&&iw>=ia&&iw<=ib}
+  return ds.toLowerCase().includes(w.toLowerCase())}
+
+/* ---------------- special pages ---------------- */
+const DAYS=[['mon','Monday'],['tue','Tuesday'],['wed','Wednesday'],['thu','Thursday'],['fri','Friday'],['sat','Saturday'],['sun','Sunday']];
+function menuPage(){
+  const wk=d=>one('menu:'+d[0]+':l')?.d?.txt||'', wd=d=>one('menu:'+d[0]+':d')?.d?.txt||'';
+  const todayIdx=(new Date().getDay()+6)%7;
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Home menu — this week</h2>
+  <div class="hint">What the cook makes this week. Edits save instantly; show them this screen or screenshot it.</div>
+  <div class="menuGrid"><span></span><span class="mh">Lunch</span><span class="mh">Dinner</span>`;
+  DAYS.forEach((d,ix)=>{
+    h+=`<div class="mday">${d[1].slice(0,3)}${ix===todayIdx?'<span class="md">today</span>':''}</div>
+    <textarea class="menuCell ${ix===todayIdx?'today':''}" rows="1" data-cell="${d[0]}:l" placeholder="—">${esc(wk(d))}</textarea>
+    <textarea class="menuCell ${ix===todayIdx?'today':''}" rows="1" data-cell="${d[0]}:d" placeholder="—">${esc(wd(d))}</textarea>`;
+  });
+  h+=`</div><div style="margin-top:14px" class="field"><label>Notes for the cook</label><textarea id="cookNotes" placeholder="Allergies, preferences, groceries…">${esc(one('menu:notes')?.d?.txt||'')}</textarea></div>
+  <div style="margin-top:12px;display:flex;gap:9px"><button class="btn sm danger ghost" onclick="clearWeek()">Clear week</button></div></div>`;
+  return h;
+}
+function clearWeek(){if(!confirm('Clear the whole week\'s menu?'))return;
+  DAYS.forEach(d=>{['l','d'].forEach(m=>{if(one('menu:'+d[0]+':'+m))put('menucell',{txt:''},'menu:'+d[0]+':'+m)})});renderActive()}
+function bindMenu(el){
+  el.querySelectorAll('.menuCell').forEach(t=>{
+    const fit=()=>{t.style.height='auto';t.style.height=t.scrollHeight+'px'};fit();
+    t.addEventListener('input',()=>{fit();debSave('cell-'+t.dataset.cell,()=>put('menucell',{txt:t.value},'menu:'+t.dataset.cell))});
+  });
+  const n=el.querySelector('#cookNotes');
+  if(n)n.addEventListener('input',()=>debSave('cooknotes',()=>put('menucell',{txt:n.value},'menu:notes')));
+}
+const debTimers={};
+function debSave(key,fn){clearTimeout(debTimers[key]);if(typeof fn==='function')debTimers[key]=setTimeout(fn,600)}
+function networthPage(){
+  const nw=one('nw:main')?.d||{};
+  const assets=list('assets');
+  const atot=assets.reduce((s,i)=>s+(+i.d.val||0),0);
+  const cash=+nw.cash||0,credit=+nw.credit||0;
+  let h=`<div class="grid stats">
+    <div class="stat" style="--accent:var(--green)"><div class="k">Cash</div><div class="v">${money(cash)}</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="k">Credit owed</div><div class="v">${money(credit)}</div></div>
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Difference</div><div class="v">${money(cash-credit)}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money(atot)}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v">${money(cash-credit+atot)}</div></div>
+  </div>
+  <div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Cash &amp; credit</h2>
+  <div class="hint">Manual for now — type the numbers from your finances sheet. (Auto-pull later.)</div>
+  <div class="frow">
+    <div class="field"><label>Cash</label><input id="nwCash" type="number" step="any" inputmode="decimal" value="${nw.cash??''}"></div>
+    <div class="field"><label>Credit owed</label><input id="nwCredit" type="number" step="any" inputmode="decimal" value="${nw.credit??''}"></div>
+  </div></div>`;
+  h+=genList('assets');
+  return h;
+}
+function bindNetworth(el){['nwCash','nwCredit'].forEach(id=>{const inp=el.querySelector('#'+id);
+  if(inp)inp.addEventListener('input',()=>debSave('nw',()=>put('nw',{cash:el.querySelector('#nwCash').value,credit:el.querySelector('#nwCredit').value},'nw:main')))})}
+function schedulePage(){
+  const wh=one('sched:hours')?.d?.txt||'';
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Work hours</h2>
+  <div class="field" style="margin-top:8px"><textarea id="workHours" placeholder="e.g. Mon–Fri 8:00–17:00 at the factory">${esc(wh)}</textarea></div></div>`;
+  h+=genList('acts');
+  return h;
+}
+function bindSchedule(el){const t=el.querySelector('#workHours');
+  if(t)t.addEventListener('input',()=>debSave('wh',()=>put('sched',{txt:t.value},'sched:hours')))}
+
+/* ---------------- nav / pages ---------------- */
+const NAV=[
+  {t:'Briefs',p:'briefs'},
+  {t:'To-do',p:'todo',cls:'todo'},
+  {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
+  {t:'Stock',p:'stock'},
+  {t:'Orders',g:[['Necessities','needs'],['Spoils & wants','wants']]},
+  {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
+  {t:'Bills',p:'bills'},
+  {t:'Net worth',p:'networth'},
+  {t:'Schedule',p:'schedule'},
+  {t:'Timeline',g:[['Travels','travels'],['Spoils','tlspoils']]},
+  {t:'Fun',g:[['Video games','games'],['Shows','shows'],['Movies','movies']]},
+  {t:'Learnings',g:[['Books','books'],['Courses','courses']]},
+  {t:'Projects',p:'projects'},
+];
+const SPECIAL={menu:{render:menuPage,bind:bindMenu,fab:null},
+  networth:{render:networthPage,bind:bindNetworth,fab:'assets'},
+  schedule:{render:schedulePage,bind:bindSchedule,fab:'acts'}};
+let activePage=localStorage.alfred_page||'briefs';
+function initNav(){
+  const nav=$('#nav');nav.innerHTML='';
+  NAV.forEach(n=>{
+    if(n.p){const b=document.createElement('button');b.textContent=n.t;b.dataset.p=n.p;if(n.cls)b.className=n.cls;
+      b.onclick=()=>{closeMenus();go(n.p)};nav.appendChild(b)}
+    else{const g=document.createElement('div');g.className='navGroup';
+      g.innerHTML=`<button class="navGroupBtn">${n.t} <span class="navCaret">▾</span></button><div class="navMenu">${n.g.map(x=>`<button data-p="${x[1]}">${x[0]}</button>`).join('')}</div>`;
+      const gb=g.querySelector('.navGroupBtn');
+      gb.onclick=e=>{e.stopPropagation();const was=g.classList.contains('open');closeMenus();
+        if(!was){g.classList.add('open');const r=gb.getBoundingClientRect(),menu=g.querySelector('.navMenu');
+          menu.style.top=r.bottom+2+'px';menu.style.left=Math.min(r.left,innerWidth-200)+'px'}};
+      g.querySelectorAll('.navMenu button').forEach(b=>b.onclick=()=>{closeMenus();go(b.dataset.p)});
+      nav.appendChild(g)}
+  });
+  document.addEventListener('click',closeMenus);
+  const pages=$('#pages');
+  const allPages=[...NAV.flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1]))];
+  pages.innerHTML=allPages.map(p=>`<section class="page" id="pg-${p}"></section>`).join('');
+}
+function closeMenus(){$$('.navGroup').forEach(g=>g.classList.remove('open'))}
+function markNav(){
+  $$('#nav > button').forEach(b=>b.classList.toggle('active',b.dataset.p===activePage));
+  $$('.navGroup').forEach(g=>{
+    let onIt=false;
+    g.querySelectorAll('.navMenu button').forEach(b=>{const on=b.dataset.p===activePage;b.classList.toggle('active',on);if(on)onIt=true});
+    g.querySelector('.navGroupBtn').classList.toggle('on',onIt);
+  });
+}
+function go(p){activePage=p;localStorage.alfred_page=p;renderActive()}
+function renderActive(){
+  $$('.page').forEach(pg=>pg.classList.remove('active'));
+  const el=$('#pg-'+activePage);if(!el)return;
+  const sp=SPECIAL[activePage];
+  el.innerHTML=sp?sp.render():genList(activePage);
+  if(sp?.bind)sp.bind(el);
+  el.classList.add('active');
+  markNav();
+  const fabSec=sp?sp.fab:(MODS[activePage]?.fields?activePage:null);
+  $('#fab').style.display=fabSec?'flex':'none';
+  $('#fab').onclick=()=>openForm(fabSec);
+  setPill();
+}
+
+/* ---------------- seeds ---------------- */
+const SEED=[
+  ['act:gym','acts',{name:'Gym',days:'Mon–Thu',time:'6:00 AM',notes:''}],
+  ['act:tennis','acts',{name:'Tennis',days:'',time:'',notes:''}],
+  ['act:football','acts',{name:'Football',days:'Sat',time:'5:00 PM',notes:''}],
+  ['act:pilates','acts',{name:'Pilates',days:'Wed',time:'5:00 PM',notes:''}],
+  ['prj:room-wifi','projects',{project:'Future room',name:'Desk — WiFi with ethernet cable',status:'Planned',notes:'For Mac mini + PlayStation'}],
+  ['prj:room-mac','projects',{project:'Future room',name:'Mac mini setup',status:'Planned',notes:''}],
+  ['prj:room-ps','projects',{project:'Future room',name:'PlayStation setup',status:'Planned',notes:''}],
+  ['prj:room-tv','projects',{project:'Future room',name:'TV — Apple TV 4K',status:'Planned',notes:''}],
+];
+function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
+
+/* ---------------- settings ---------------- */
+$('#gearBtn').onclick=()=>{
+  $('#setSync').textContent=cfg?'configured':'not set up';
+  $('#setLast').textContent=S.lastSyncAt?new Date(S.lastSyncAt).toLocaleString():'never';
+  $('#setPend').textContent=Object.values(S.items).filter(i=>i.dirty).length;
+  $('#setCount').textContent=Object.values(S.items).filter(i=>!i.del).length;
+  $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';
+  ov('setOv',1);
+};
+$('#setOv').addEventListener('click',e=>{if(e.target.id==='setOv')ov('setOv',0)});
+$('#cfgSave').onclick=()=>{
+  const url=$('#cfgUrl').value.trim(),key=$('#cfgKey').value.trim();
+  if(url&&key){cfg={url,key};localStorage.alfred_cfg=JSON.stringify(cfg);Object.values(S.items).forEach(i=>i.dirty=1);S.lastPull=0;save();sync()}
+  else{cfg=null;localStorage.removeItem('alfred_cfg')}
+  ov('setOv',0);setPill();
+};
+$('#pinChange').onclick=()=>{ov('setOv',0);showLock('set')};
+$('#expBtn').onclick=()=>{
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(S,null,1));
+  a.download='alfred-backup-'+today()+'.json';a.click();
+};
+$('#impBtn').onclick=()=>$('#impFile').click();
+$('#impFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const j=JSON.parse(r.result);
+    if(!j.items)throw 0;
+    for(const id in j.items){const inc=j.items[id],cur=S.items[id];
+      if(!cur||inc.up>cur.up){S.items[id]=inc;S.items[id].dirty=1}}
+    save();renderActive();sync();alert('Imported.');
+  }catch(err){alert('Not a valid Alfred backup.')}};
+  r.readAsText(f);
+};
+
+/* ---------------- boot ---------------- */
+(function(){
+  // one-time setup via link fragment: #cfg=base64({url,key})
+  if(location.hash.startsWith('#cfg=')){
+    try{cfg=JSON.parse(atob(decodeURIComponent(location.hash.slice(5))));
+      localStorage.alfred_cfg=JSON.stringify(cfg);
+      history.replaceState(null,'',location.pathname+location.search);
+    }catch(e){}
+  }
+  load();seed();initNav();initPad();
+  if(!MODS[activePage]&&!SPECIAL[activePage])activePage='briefs';
+  if(!$('#pg-'+activePage))activePage='briefs';
+  renderActive();
+  if(pinHash())showLock('enter');else showLock('set');
+  sync();
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
