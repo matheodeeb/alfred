@@ -281,6 +281,8 @@ async function sync(){
       dirty.forEach(i=>delete i.dirty);
     }
     S.lastSyncAt=Date.now();save();
+    // second device: a PIN pulled from the cloud upgrades the "choose PIN" screen to "enter PIN"
+    if(changed&&$('#lock').classList.contains('show')&&pinMode==='set'&&!pinFirst&&pinHash())showLock('enter');
   }catch(e){console.warn('sync failed:',e.message)}
   syncing=false;setPill();
   if(changed)renderActive();
@@ -720,6 +722,7 @@ $('#impFile').onchange=e=>{
       history.replaceState(null,'',location.pathname+location.search);
     }catch(e){}
   }
+  addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
   load();seed();initNav();initPad();
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='briefs';
   if(!$('#pg-'+activePage))activePage='briefs';
