@@ -218,6 +218,7 @@
   <div class="frow one">
     <div class="field"><label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
     <div class="field"><label>Supabase key</label><input id="cfgKey" placeholder="sb_publishable_… / anon key"></div>
+    <div class="field"><label>Sync secret</label><input id="cfgSec" placeholder="private access secret"></div>
   </div>
   <div class="foot" style="margin-top:14px;flex-wrap:wrap">
     <button class="btn sm" id="cfgSave">Save sync config</button>
@@ -256,7 +257,7 @@ function one(id){const i=S.items[id];return (i&&!i.del)?i:null}
 let cfg=null; try{cfg=JSON.parse(localStorage.alfred_cfg||'null')}catch(e){}
 async function sb(path,opt={}){
   const r=await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/'+path,{...opt,
-    headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'Content-Type':'application/json'},opt.headers||{})});
+    headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'Content-Type':'application/json'},cfg.secret?{'x-alfred-key':cfg.secret}:{},opt.headers||{})});
   if(!r.ok)throw new Error(r.status+' '+await r.text());
   const t=await r.text(); return t?JSON.parse(t):null;
 }
@@ -684,13 +685,13 @@ $('#gearBtn').onclick=()=>{
   $('#setLast').textContent=S.lastSyncAt?new Date(S.lastSyncAt).toLocaleString():'never';
   $('#setPend').textContent=Object.values(S.items).filter(i=>i.dirty).length;
   $('#setCount').textContent=Object.values(S.items).filter(i=>!i.del).length;
-  $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';
+  $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
   ov('setOv',1);
 };
 $('#setOv').addEventListener('click',e=>{if(e.target.id==='setOv')ov('setOv',0)});
 $('#cfgSave').onclick=()=>{
-  const url=$('#cfgUrl').value.trim(),key=$('#cfgKey').value.trim();
-  if(url&&key){cfg={url,key};localStorage.alfred_cfg=JSON.stringify(cfg);Object.values(S.items).forEach(i=>i.dirty=1);S.lastPull=0;save();sync()}
+  const url=$('#cfgUrl').value.trim(),key=$('#cfgKey').value.trim(),secret=$('#cfgSec').value.trim();
+  if(url&&key){cfg={url,key,secret};localStorage.alfred_cfg=JSON.stringify(cfg);Object.values(S.items).forEach(i=>i.dirty=1);S.lastPull=0;save();sync()}
   else{cfg=null;localStorage.removeItem('alfred_cfg')}
   ov('setOv',0);setPill();
 };
