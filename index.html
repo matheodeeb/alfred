@@ -667,16 +667,7 @@ function renderActive(){
 }
 
 /* ---------------- seeds ---------------- */
-const SEED=[
-  ['act:gym','acts',{name:'Gym',days:'Mon–Thu',time:'6:00 AM',notes:''}],
-  ['act:tennis','acts',{name:'Tennis',days:'',time:'',notes:''}],
-  ['act:football','acts',{name:'Football',days:'Sat',time:'5:00 PM',notes:''}],
-  ['act:pilates','acts',{name:'Pilates',days:'Wed',time:'5:00 PM',notes:''}],
-  ['prj:room-wifi','projects',{project:'Future room',name:'Desk — WiFi with ethernet cable',status:'Planned',notes:'For Mac mini + PlayStation'}],
-  ['prj:room-mac','projects',{project:'Future room',name:'Mac mini setup',status:'Planned',notes:''}],
-  ['prj:room-ps','projects',{project:'Future room',name:'PlayStation setup',status:'Planned',notes:''}],
-  ['prj:room-tv','projects',{project:'Future room',name:'TV — Apple TV 4K',status:'Planned',notes:''}],
-];
+const SEED=[]; // personal starter data lives in the private cloud, not in this public file
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
 /* ---------------- settings ---------------- */
