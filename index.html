@@ -60,6 +60,7 @@
   .navGroup.open .navCaret{transform:rotate(180deg)}
   .navMenu{position:fixed;z-index:300;min-width:194px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:6px;box-shadow:0 14px 34px rgba(46,40,28,.16);display:none;flex-direction:column;gap:2px}
   .navGroup.open>.navMenu{display:flex}
+  .navMenu.show{display:flex}
   .navMenu button{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:0!important;color:var(--muted);font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:13px;padding:9px 12px 9px 16px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:.12s;position:relative}
   .navMenu button:hover{background:var(--panel2)}
   .navMenu button.active{background:var(--panel2);color:var(--txt)}
@@ -192,6 +193,7 @@
 </div>
 
 <button class="btn primary fab" id="fab" style="display:none">+</button>
+<div class="navMenu" id="navFly"></div>
 
 <div class="overlay" id="modalOv"><div class="modal">
   <button class="close" onclick="closeModal()">×</button>
@@ -629,26 +631,39 @@ function initNav(){
     if(n.p){const b=document.createElement('button');b.textContent=n.t;b.dataset.p=n.p;if(n.cls)b.className=n.cls;
       b.onclick=()=>{closeMenus();go(n.p)};nav.appendChild(b)}
     else{const g=document.createElement('div');g.className='navGroup';
-      g.innerHTML=`<button class="navGroupBtn">${n.t} <span class="navCaret">▾</span></button><div class="navMenu">${n.g.map(x=>`<button data-p="${x[1]}">${x[0]}</button>`).join('')}</div>`;
+      g.dataset.pages=n.g.map(x=>x[1]).join(',');
+      g.innerHTML=`<button class="navGroupBtn">${n.t} <span class="navCaret">▾</span></button>`;
       const gb=g.querySelector('.navGroupBtn');
-      gb.onclick=e=>{e.stopPropagation();const was=g.classList.contains('open');closeMenus();
-        if(!was){g.classList.add('open');const r=gb.getBoundingClientRect(),menu=g.querySelector('.navMenu');
-          menu.style.top=r.bottom+2+'px';menu.style.left=Math.min(r.left,innerWidth-200)+'px'}};
-      g.querySelectorAll('.navMenu button').forEach(b=>b.onclick=()=>{closeMenus();go(b.dataset.p)});
+      gb.onclick=e=>{e.stopPropagation();
+        if(Date.now()-flyStamp<400&&g.classList.contains('open'))return; // duplicate synthetic tap
+        const was=g.classList.contains('open');closeMenus();
+        if(!was){openFly(n.g,g,gb);flyStamp=Date.now()}};
       nav.appendChild(g)}
   });
   document.addEventListener('click',closeMenus);
+  document.addEventListener('touchstart',e=>{if(!e.target.closest('.navGroup,#navFly'))closeMenus()},{passive:true});
+  nav.addEventListener('scroll',closeMenus);
   const pages=$('#pages');
   const allPages=[...NAV.flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1]))];
   pages.innerHTML=allPages.map(p=>`<section class="page" id="pg-${p}"></section>`).join('');
 }
-function closeMenus(){$$('.navGroup').forEach(g=>g.classList.remove('open'))}
+let flyStamp=0;
+function openFly(items,groupEl,btn){
+  // menu floats on <body>, outside the scrollable nav — iOS clips fixed elements inside touch scrollers
+  const fly=$('#navFly');
+  fly.innerHTML=items.map(x=>`<button data-p="${x[1]}" class="${x[1]===activePage?'active':''}">${x[0]}</button>`).join('');
+  fly.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();closeMenus();go(b.dataset.p)});
+  const r=btn.getBoundingClientRect();
+  fly.style.position='fixed';
+  fly.style.top=(r.bottom+2)+'px';
+  fly.style.left=Math.max(8,Math.min(r.left,innerWidth-210))+'px';
+  fly.classList.add('show');groupEl.classList.add('open');
+}
+function closeMenus(){const f=$('#navFly');if(f)f.classList.remove('show');$$('.navGroup').forEach(g=>g.classList.remove('open'))}
 function markNav(){
   $$('#nav > button').forEach(b=>b.classList.toggle('active',b.dataset.p===activePage));
   $$('.navGroup').forEach(g=>{
-    let onIt=false;
-    g.querySelectorAll('.navMenu button').forEach(b=>{const on=b.dataset.p===activePage;b.classList.toggle('active',on);if(on)onIt=true});
-    g.querySelector('.navGroupBtn').classList.toggle('on',onIt);
+    g.querySelector('.navGroupBtn').classList.toggle('on',(g.dataset.pages||'').split(',').includes(activePage));
   });
 }
 function go(p){activePage=p;localStorage.alfred_page=p;renderActive()}
