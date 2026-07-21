@@ -579,8 +579,8 @@ function networthPage(){
   const cash=+nw.cash||0,credit=+nw.credit||0;
   let h=`<div class="grid stats">
     <div class="stat" style="--accent:var(--green)"><div class="k">Cash</div><div class="v">${money(cash)}</div></div>
-    <div class="stat" style="--accent:var(--red)"><div class="k">Credit owed</div><div class="v">${money(credit)}</div></div>
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Difference</div><div class="v">${money(cash-credit)}</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money(credit)}</div></div>
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v">${money(cash-credit)}</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money(atot)}</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v">${money(cash-credit+atot)}</div></div>
   </div>
@@ -588,7 +588,7 @@ function networthPage(){
   <div class="hint">Manual for now — type the numbers from your finances sheet. (Auto-pull later.)</div>
   <div class="frow">
     <div class="field"><label>Cash</label><input id="nwCash" type="number" step="any" inputmode="decimal" value="${nw.cash??''}"></div>
-    <div class="field"><label>Credit owed</label><input id="nwCredit" type="number" step="any" inputmode="decimal" value="${nw.credit??''}"></div>
+    <div class="field"><label>Credit</label><input id="nwCredit" type="number" step="any" inputmode="decimal" value="${nw.credit??''}"></div>
   </div></div>`;
   h+=genList('assets');
   return h;
