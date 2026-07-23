@@ -708,10 +708,10 @@ function finstmtPage(){
         if(v!=null){tot+=v;any=true}
         return`<td class="ed" onclick="stmtCell('${s}','${mn}')">${v!=null?money2(v):'·'}</td>`}).join('');
       if(any)grand+=tot;
-      h+=`<tr><td>${mn.slice(0,3)}</td>${cells}<td class="${signCls(tx)}">${hasTx?money2(tx):'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
+      h+=`<tr><td>${mn.slice(0,3)}</td>${cells}<td class="${signCls(txm[mn]||0)}">${hasTx?money2(tx):'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
     });
     const txYear=-Object.values(txm).reduce((a,b)=>a+b,0),txAny=Object.keys(txn).length>0;
-    h+=`<tr class="tot"><td>Year</td>${srcs.map(s=>{const t=its.filter(i=>i.d.src===s).reduce((x,i)=>x+(+i.d.amt||0),0);return`<td>${t?money2(t):'·'}</td>`}).join('')}<td class="${signCls(txYear)}">${txAny?money2(txYear):'·'}</td><td>${money2(grand)}</td></tr>`;
+    h+=`<tr class="tot"><td>Year</td>${srcs.map(s=>{const t=its.filter(i=>i.d.src===s).reduce((x,i)=>x+(+i.d.amt||0),0);return`<td>${t?money2(t):'·'}</td>`}).join('')}<td class="${signCls(-txYear)}">${txAny?money2(txYear):'·'}</td><td>${money2(grand)}</td></tr>`;
     h+=`</table></div></div>`;
   }else{
     const its=list('finstmt').filter(i=>i.d.src==='BUH');
@@ -729,12 +729,12 @@ function finstmtPage(){
       const any=buh!=null||hasU||hasH;
       const tot=(buh||0)/rate+tu+th/rate;
       if(any)grand+=tot;
-      h+=`<tr><td>${mn.slice(0,3)}</td><td class="ed" onclick="stmtCell('BUH','${mn}')">${buh!=null?buh.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(tu)}">${hasU?money2(tu):'·'}</td><td class="${signCls(th)}">${hasH?(th||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
+      h+=`<tr><td>${mn.slice(0,3)}</td><td class="ed" onclick="stmtCell('BUH','${mn}')">${buh!=null?buh.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(txU[mn]||0)}">${hasU?money2(tu):'·'}</td><td class="${signCls(txH[mn]||0)}">${hasH?(th||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
     });
     const yb=its.reduce((s,i)=>s+(+i.d.amt||0),0);
     const yu=-Object.values(txU).reduce((a,b)=>a+b,0), yh=-Object.values(txH).reduce((a,b)=>a+b,0);
     const yuAny=Object.keys(txUn).length>0, yhAny=Object.keys(txHn).length>0;
-    h+=`<tr class="tot"><td>Year</td><td>${yb?yb.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(yu)}">${yuAny?money2(yu):'·'}</td><td class="${signCls(yh)}">${yhAny?(yh||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${money2(grand)}</td></tr></table></div></div>`;
+    h+=`<tr class="tot"><td>Year</td><td>${yb?yb.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(-yu)}">${yuAny?money2(yu):'·'}</td><td class="${signCls(-yh)}">${yhAny?(yh||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${money2(grand)}</td></tr></table></div></div>`;
   }
   return h;
 }
