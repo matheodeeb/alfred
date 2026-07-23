@@ -174,8 +174,6 @@
   table.ft td.ed:hover{background:var(--panel2)}
   table.ft tr.tot td{border-top:2px solid var(--line2);font-weight:600}
   .neg{color:var(--bad)} .pos{color:#2e7247}
-  .inp{color:#3d7fb0 !important}
-  .pill.blu{background:rgba(61,127,176,.12);color:#33698f;border:1px solid rgba(61,127,176,.35)}
   .finRow{display:flex;align-items:baseline;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .finRow:hover{background:var(--panel2)}
   .finRow:last-child{border-bottom:0}
@@ -515,7 +513,7 @@ finsub:{title:'Subscriptions',color:'var(--orange)',hint:'Tap a subscription to 
     const yr=it.filter(i=>i.d.cycle==='Yearly').reduce((s,i)=>s+(+i.d.cost||0),0);
     return[{k:'Monthly subs',v:money2(mo),c:'var(--orange)'},{k:'Yearly subs',v:money2(yr),u:'≈ '+money2(yr/12)+' / month',c:'var(--blue)'},{k:'All-in / month',v:money2(mo+yr/12),c:'var(--acc)'}]},
   card:i=>({t:esc(i.d.name),s:[esc(i.d.bank||''),esc(i.d.notes||'')].filter(Boolean).join(' · '),
-    pill:{cls:'blu',txt:money2(i.d.cost)+(i.d.cycle==='Yearly'?'/yr':'/mo')}})},
+    pill:{cls:'acc',txt:money2(i.d.cost)+(i.d.cycle==='Yearly'?'/yr':'/mo')}})},
 payroll:{title:'Payroll — house staff',color:'var(--green)',hint:'Tap the circle when someone is paid — it resets each month.',
   fields:[{k:'name',l:'Name',t:'text',req:1},{k:'role',l:'Role',t:'text'},{k:'amt',l:'Salary / month',t:'money'},{k:'payday',l:'Pay day (1–31)',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
   stats:it=>[{k:'Monthly payroll',v:money(it.reduce((s,i)=>s+(+i.d.amt||0),0)),c:'var(--green)'},{k:'Staff',v:it.length},
@@ -598,7 +596,7 @@ courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master
 assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value.',
   fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Watch','Property','Vehicle','Other']},{k:'val',l:'Value',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
-  card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,80),pill:(i.d.val!==''&&i.d.val!=null)?{cls:'blu',txt:money(i.d.val)}:null})},
+  card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,80),pill:(i.d.val!==''&&i.d.val!=null)?{cls:'acc',txt:money(i.d.val)}:null})},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
   fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
   card:i=>({t:esc(i.d.name),s:[(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
@@ -641,8 +639,8 @@ function fincashPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
   const bt=finSum('Banking'),ct=finSum('Credit'),ov=bt+ct;
   const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
-  const row=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${(i.d.stmt||i.d.due)?`<span class="sub"> · ${[i.d.stmt?'stmt '+fdate(i.d.stmt).replace(/^\w+, /,''):'',i.d.due?'due '+fdate(i.d.due).replace(/^\w+, /,''):''].filter(Boolean).join(' · ')}</span>`:''}</span><span class="v inp">${money2(i.d.amt)}</span></div>`;
-  const hrow=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usd(i))}</span><span class="v inp" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v inp">${money2(usd(i))}</span>`}</div>`;
+  const row=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${(i.d.stmt||i.d.due)?`<span class="sub"> · ${[i.d.stmt?'stmt '+fdate(i.d.stmt).replace(/^\w+, /,''):'',i.d.due?'due '+fdate(i.d.due).replace(/^\w+, /,''):''].filter(Boolean).join(' · ')}</span>`:''}</span><span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span></div>`;
+  const hrow=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usd(i))}</span><span class="v" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v">${money2(usd(i))}</span>`}</div>`;
   let h=`<div class="grid stats">
     <div class="stat" style="--accent:var(--green)"><div class="k">Cash &amp; checking</div><div class="v">${money2(bt)}</div></div>
     <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div></div>
@@ -653,7 +651,7 @@ function fincashPage(){
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Haiti</h2>
     <div class="ghead">Cash &amp; checking</div>${hc.map(hrow).join('')}
     <div class="ghead">Credit</div>${hcc.map(hrow).join('')}
-    ${rateItem?`<div class="finRow" onclick="openForm('fincash','${rateItem.id}')"><span class="n">Exchange rate</span><span class="v inp">${rate} HTG / USD</span></div>`:''}</div>`;
+    ${rateItem?`<div class="finRow" onclick="openForm('fincash','${rateItem.id}')"><span class="n">Exchange rate</span><span class="v">${rate} HTG / USD</span></div>`:''}</div>`;
   return h;
 }
 function stmtCell(src,mn){const it=list('finstmt').find(i=>i.d.src===src&&i.d.month===mn);openForm('finstmt',it?.id,{src,month:mn})}
@@ -673,7 +671,7 @@ function finstmtPage(){
     let tot=tx,any=hasTx;
     const cells=srcs.map(s=>{const it=byKey[s+'|'+mn];const v=it?(+it.d.amt||0):null;
       if(v!=null){tot+=v;any=true}
-      return`<td class="ed inp" onclick="stmtCell('${s}','${mn}')">${v!=null?money2(v):'·'}</td>`}).join('');
+      return`<td class="ed" onclick="stmtCell('${s}','${mn}')">${v!=null?money2(v):'·'}</td>`}).join('');
     if(any)grand+=tot;
     h+=`<tr><td>${mn.slice(0,3)}</td>${cells}<td class="${signCls(tx)}">${hasTx?money2(tx):'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
   });
@@ -694,7 +692,7 @@ function fintxPage(){
     const inn=rows.filter(i=>+i.d.amt>0).reduce((s,i)=>s+ +i.d.amt,0);
     const out=rows.filter(i=>+i.d.amt<0).reduce((s,i)=>s+ +i.d.amt,0);
     h+=`<div class="panel"><h2 style="justify-content:space-between;flex-wrap:wrap">${mn}<span style="font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);font-weight:400">In <span class="pos">${money2(inn)}</span> · Out <span class="neg">${money2(out)}</span> · Net <span class="${signCls(inn+out)}">${money2(inn+out)}</span></span></h2>
-    ${rows.map(i=>`<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span><span class="v inp">${money2(i.d.amt)}</span></div>`).join('')}</div>`;
+    ${rows.map(i=>`<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span><span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span></div>`).join('')}</div>`;
   });
   return h;
 }
