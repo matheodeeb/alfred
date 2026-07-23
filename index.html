@@ -138,6 +138,33 @@
   .menuCell{background:var(--bg2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);padding:9px 10px;font-family:"Public Sans",sans-serif;font-size:13.5px;width:100%;min-height:44px;resize:none;line-height:1.4;overflow:hidden}
   .menuCell:focus{outline:none;border-color:var(--acc)}
   .menuCell.today{border-color:rgba(63,111,79,.5)}
+  /* overview */
+  .ovHead{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:24px;margin:16px 2px 0}
+  .ovSub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin:4px 2px 0}
+  .ovCard{cursor:pointer;transition:.15s}
+  .ovCard:hover{border-color:var(--acc)}
+  .ovRow{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
+  .ovRow:last-child{border-bottom:0}
+  .ovRow .d{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);flex:none;min-width:52px}
+  .ovRow .d.hot{color:var(--bad);font-weight:600}
+  .ovMore{font-family:"IBM Plex Mono";font-size:11px;color:var(--acc);margin-top:9px}
+  .ovBody{font-size:13.5px;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  /* day picker */
+  .dayPick{display:flex;gap:6px;flex-wrap:wrap}
+  .dayBtn{width:44px;height:36px;border-radius:8px;border:1px solid var(--line2);background:var(--bg2);color:var(--muted);font-family:"IBM Plex Mono";font-size:11px;cursor:pointer;transition:.12s}
+  .dayBtn.on{background:var(--acc);border-color:var(--acc);color:#faf6ec;font-weight:600}
+  /* weekly timetable */
+  .ttWrap{overflow-x:auto;margin-top:8px;padding-bottom:4px}
+  .tt{display:grid;grid-template-columns:46px repeat(7,minmax(76px,1fr));gap:2px;min-width:620px}
+  .ttHead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:12px;text-align:center;padding:3px 0}
+  .ttHead.today{color:var(--acc)}
+  .ttTime{grid-column:1;font-family:"IBM Plex Mono";font-size:9px;color:var(--faint);text-align:right;padding-right:6px;transform:translateY(-6px)}
+  .ttCell{border-top:1px solid var(--line)}
+  .ttBlock{border-radius:7px;padding:3px 6px;overflow:hidden;cursor:pointer;border-left:3px solid var(--bc,var(--acc));background:var(--panel2);box-shadow:0 1px 4px rgba(46,40,28,.08)}
+  .ttBlock .n{font-weight:600;font-family:"Public Sans",sans-serif;font-size:10.5px;line-height:1.2}
+  .ttBlock .t{font-family:"IBM Plex Mono";font-size:8.5px;color:var(--muted);margin-top:1px}
+  /* brief */
+  .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
   /* lock screen */
   #lock{position:fixed;inset:0;z-index:2000;background:var(--bg);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:42px 42px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:20px}
   #lock.show{display:flex}
@@ -336,13 +363,17 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 /* ---------------- field/form engine ---------------- */
+const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function fmtT(s){if(!s)return'';const[h,m]=String(s).split(':').map(Number);if(isNaN(h))return esc(String(s));const ap=h>=12?'PM':'AM';return(((h+11)%12)+1)+':'+String(m||0).padStart(2,'0')+' '+ap}
 function fieldHtml(f,v){
   v=v??f.def??'';
   const base=`id="f_${f.k}"`;
   if(f.t==='ta')return`<textarea ${base} placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   if(f.t==='sel')return`<select ${base}>${f.opt.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
   if(f.t==='check')return`<select ${base}><option value="">No</option><option value="1" ${v?'selected':''}>Yes</option></select>`;
-  const type=f.t==='num'||f.t==='money'?'number':f.t==='date'?'date':'text';
+  if(f.t==='days'){const sel=String(v||'').split(',').map(s=>s.trim());
+    return`<div class="dayPick" ${base}>`+DOW.map(d=>`<button type="button" class="dayBtn ${sel.includes(d)?'on':''}" data-d="${d}">${d}</button>`).join('')+`</div>`}
+  const type=f.t==='num'||f.t==='money'?'number':f.t==='date'?'date':f.t==='time'?'time':'text';
   const step=f.t==='money'?'step="any" inputmode="decimal"':f.t==='num'?'inputmode="numeric"':'';
   return`<input ${base} type="${type}" ${step} value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
 }
@@ -355,6 +386,7 @@ function openForm(sec,id){
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.map(f=>`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,it?.d?.[f.k])}</div>`).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
+  $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   ov('modalOv',1);
   const first=$('#mBody input,#mBody textarea');if(first&&!('ontouchstart'in window))first.focus();
 }
@@ -363,9 +395,11 @@ $('#mSave').onclick=()=>{
   if(!editCtx)return;
   const m=MODS[editCtx.sec],d={};
   for(const f of m.fields){
-    let v=$('#f_'+f.k).value.trim();
-    if(f.t==='num'||f.t==='money')v=v===''?'':+v;
-    if(f.t==='check')v=v?1:'';
+    let v;
+    if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
+    else{v=$('#f_'+f.k).value.trim();
+      if(f.t==='num'||f.t==='money')v=v===''?'':+v;
+      if(f.t==='check')v=v?1:'';}
     d[f.k]=v;
   }
   const req=m.fields.find(f=>f.req&&!d[f.k]);
@@ -394,7 +428,7 @@ function genList(sec){
   if(!items.length)html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
   else if(m.group){
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
-    for(const g of Object.keys(gs).sort())html+=`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`+gs[g].map(i=>rowHtml(sec,i)).join('');
+    for(const g of Object.keys(gs).sort(m.groupOrder))html+=`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`+gs[g].map(i=>rowHtml(sec,i)).join('');
   }
   else html+=items.map(i=>rowHtml(sec,i)).join('');
   html+='</div>';
@@ -424,7 +458,7 @@ function togg(sec,id){
 /* ---------------- module definitions ---------------- */
 const ST_SEL=['Idea','Planned','In progress','Done'];
 const MODS={
-briefs:{title:'Daily briefs',color:'var(--acc)',hint:'Quick notes for the day — what matters, what happened.',
+briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — what matters, what happened.',
   fields:[{k:'date',l:'Date',t:'date',def:'',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
   card:i=>({t:fdate(i.d.date),s:esc((i.d.txt||'').slice(0,140))}),
@@ -488,20 +522,24 @@ tlspoils:{title:'Timeline — spoils',color:'var(--acc)',hint:'A record of the t
   fields:[{k:'date',l:'Date',t:'date',req:1},{k:'name',l:'What',t:'text',req:1},{k:'cost',l:'Cost',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
   card:i=>({t:esc(i.d.name),s:[fdate(i.d.date),i.d.cost?money(i.d.cost):''].filter(Boolean).join(' · ')})},
-travels:{title:'Timeline — travels',color:'var(--blue)',hint:'Trips past and planned.',
+travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming up first sits on top; unplanned ideas live below.',
   fields:[{k:'place',l:'Destination',t:'text',req:1},{k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  sort:(a,b)=>(b.d.start||'').localeCompare(a.d.start||''),
+  group:i=>i.d.start?'Planned':'To be planned',
+  groupOrder:(a,b)=>(a==='Planned'?0:1)-(b==='Planned'?0:1),
+  sort:(a,b)=>(a.d.start||'9999').localeCompare(b.d.start||'9999')||(a.d.place||'').localeCompare(b.d.place||''),
   card:i=>({t:esc(i.d.place),s:[i.d.start?fdate(i.d.start):'',i.d.end?'→ '+fdate(i.d.end):''].filter(Boolean).join(' '),
     pill:i.d.start&&i.d.start>today()?{cls:'acc',txt:'upcoming'}:null})},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
   fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'text',ph:'Musts, Anime…'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Season / episode',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
+  groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
   card:i=>({t:esc(i.d.name),s:[esc(i.d.plat||''),esc(i.d.season||'')].filter(Boolean).join(' · '),
     pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
 movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
   fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'text',ph:'Action, Comedy, Saga…'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
+  groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
   card:i=>({t:esc(i.d.name),s:esc(i.d.rel||''),dim:i.d.status==='Watched',
     pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
@@ -521,10 +559,19 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
   fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Watch','Property','Vehicle','Other']},{k:'val',l:'Value',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,80),pill:(i.d.val!==''&&i.d.val!=null)?{cls:'acc',txt:money(i.d.val)}:null})},
-acts:{title:'Daily activities',color:'var(--green)',hint:'Your training week.',
-  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'text',ph:'Mon–Thu'},{k:'time',l:'Time',t:'text',ph:'6:00 AM'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.days||''),esc(i.d.time||'')].filter(Boolean).join(' · '),
+acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
+  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  card:i=>({t:esc(i.d.name),s:[(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
+menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
+  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
+  group:i=>i.d.cat||'Other',
+  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
+  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,110))}),
+  empty:'Nothing on the menu yet — hit + to add what the cooks can make.'},
+brief:{title:'Daily brief',color:'var(--gold)',
+  fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
+  card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
 projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever comes next.',
   fields:[{k:'project',l:'Project',t:'text',req:1,ph:'Future room'},{k:'name',l:'Item / task',t:'text',req:1},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.project||'Other',
@@ -539,37 +586,12 @@ function daysToBday(s){if(!s)return null;const now=new Date();const [y,m,dd]=s.s
   let b=new Date(now.getFullYear(),m-1,dd);const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   if(b<t0)b=new Date(now.getFullYear()+1,m-1,dd);return Math.round((b-t0)/864e5)}
 function actToday(i){const w=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];const ds=i.d.days||'';
-  if(ds.includes('–')||ds.includes('-')){const seq=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];const[a,b]=ds.split(/[–-]/).map(x=>x.trim().slice(0,3));
+  if(ds.split(',').map(x=>x.trim()).includes(w))return true;
+  if(ds.includes('–')){const seq=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];const[a,b]=ds.split(/–/).map(x=>x.trim().slice(0,3));
     const ia=seq.indexOf(a),ib=seq.indexOf(b),iw=seq.indexOf(w);return ia>=0&&ib>=0&&iw>=ia&&iw<=ib}
-  return ds.toLowerCase().includes(w.toLowerCase())}
+  return false}
 
 /* ---------------- special pages ---------------- */
-const DAYS=[['mon','Monday'],['tue','Tuesday'],['wed','Wednesday'],['thu','Thursday'],['fri','Friday'],['sat','Saturday'],['sun','Sunday']];
-function menuPage(){
-  const wk=d=>one('menu:'+d[0]+':l')?.d?.txt||'', wd=d=>one('menu:'+d[0]+':d')?.d?.txt||'';
-  const todayIdx=(new Date().getDay()+6)%7;
-  let h=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Home menu — this week</h2>
-  <div class="hint">What the cook makes this week. Edits save instantly; show them this screen or screenshot it.</div>
-  <div class="menuGrid"><span></span><span class="mh">Lunch</span><span class="mh">Dinner</span>`;
-  DAYS.forEach((d,ix)=>{
-    h+=`<div class="mday">${d[1].slice(0,3)}${ix===todayIdx?'<span class="md">today</span>':''}</div>
-    <textarea class="menuCell ${ix===todayIdx?'today':''}" rows="1" data-cell="${d[0]}:l" placeholder="—">${esc(wk(d))}</textarea>
-    <textarea class="menuCell ${ix===todayIdx?'today':''}" rows="1" data-cell="${d[0]}:d" placeholder="—">${esc(wd(d))}</textarea>`;
-  });
-  h+=`</div><div style="margin-top:14px" class="field"><label>Notes for the cook</label><textarea id="cookNotes" placeholder="Allergies, preferences, groceries…">${esc(one('menu:notes')?.d?.txt||'')}</textarea></div>
-  <div style="margin-top:12px;display:flex;gap:9px"><button class="btn sm danger ghost" onclick="clearWeek()">Clear week</button></div></div>`;
-  return h;
-}
-function clearWeek(){if(!confirm('Clear the whole week\'s menu?'))return;
-  DAYS.forEach(d=>{['l','d'].forEach(m=>{if(one('menu:'+d[0]+':'+m))put('menucell',{txt:''},'menu:'+d[0]+':'+m)})});renderActive()}
-function bindMenu(el){
-  el.querySelectorAll('.menuCell').forEach(t=>{
-    const fit=()=>{t.style.height='auto';t.style.height=t.scrollHeight+'px'};fit();
-    t.addEventListener('input',()=>{fit();debSave('cell-'+t.dataset.cell,()=>put('menucell',{txt:t.value},'menu:'+t.dataset.cell))});
-  });
-  const n=el.querySelector('#cookNotes');
-  if(n)n.addEventListener('input',()=>debSave('cooknotes',()=>put('menucell',{txt:n.value},'menu:notes')));
-}
 const debTimers={};
 function debSave(key,fn){clearTimeout(debTimers[key]);if(typeof fn==='function')debTimers[key]=setTimeout(fn,600)}
 function networthPage(){
@@ -595,20 +617,84 @@ function networthPage(){
 }
 function bindNetworth(el){['nwCash','nwCredit'].forEach(id=>{const inp=el.querySelector('#'+id);
   if(inp)inp.addEventListener('input',()=>debSave('nw',()=>put('nw',{cash:el.querySelector('#nwCash').value,credit:el.querySelector('#nwCredit').value},'nw:main')))})}
+function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);return isNaN(p)?null:p*60+(q||0)}
 function schedulePage(){
-  const wh=one('sched:hours')?.d?.txt||'';
-  let h=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Work hours</h2>
-  <div class="field" style="margin-top:8px"><textarea id="workHours" placeholder="e.g. Mon–Fri 8:00–17:00 at the factory">${esc(wh)}</textarea></div></div>`;
+  const acts=list('acts');
+  const T0=6*60,T1=22*60,SLOT=30,rows=(T1-T0)/SLOT;
+  const todayIdx=(new Date().getDay()+6)%7;
+  const cols=['var(--green)','var(--blue)','var(--orange)','var(--purple)','var(--red)','var(--gold)','var(--acc)'];
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Week planner</h2>
+  <div class="hint">Drawn from your activities below — tap a block to edit it.</div>
+  <div class="ttWrap"><div class="tt" style="grid-template-rows:22px repeat(${rows},13px)">`;
+  h+=`<span></span>`+DOW.map((d,i)=>`<div class="ttHead ${i===todayIdx?'today':''}" style="grid-column:${i+2};grid-row:1">${d}</div>`).join('');
+  for(let mn=T0;mn<T1;mn+=60){const r=2+(mn-T0)/SLOT;
+    h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
+    for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span 2"></div>`;
+  }
+  let ci=0,placed=0;
+  acts.forEach(a=>{
+    const st=toMin(a.d.start);
+    const color=cols[ci++%cols.length];
+    if(st==null||!a.d.days)return;
+    const en=toMin(a.d.end)!=null?toMin(a.d.end):st+60;
+    (a.d.days||'').split(',').map(x=>x.trim()).forEach(dn=>{
+      const di=DOW.indexOf(dn);if(di<0)return;
+      const r1=Math.min(rows+1,Math.max(2,2+Math.round((st-T0)/SLOT)));
+      const span=Math.max(1,Math.min(rows+2-r1,Math.round((en-st)/SLOT)));
+      h+=`<div class="ttBlock" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
+      placed++;
+    });
+  });
+  h+=`</div></div>`;
+  if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
+  h+=`</div>`;
   h+=genList('acts');
   return h;
 }
-function bindSchedule(el){const t=el.querySelector('#workHours');
-  if(t)t.addEventListener('input',()=>debSave('wh',()=>put('sched',{txt:t.value},'sched:hours')))}
+function briefPage(){
+  const bs=list('brief').sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>
+  <div class="hint">Your Economist-style morning brief, posted automatically by your Claude agent. Use + to write one by hand.</div>
+  ${bs.length?'':'<div class="empty">No briefs yet — the agent posts every morning.</div>'}</div>`;
+  bs.forEach(b=>{h+=`<div class="panel"><h2 style="justify-content:space-between">${fdate(b.d.date)}<button class="btn sm ghost" onclick="openForm('brief','${b.id}')">Edit</button></h2>
+    ${b.d.title?`<div style="font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:16px;margin-top:6px">${esc(b.d.title)}</div>`:''}
+    <div class="briefBody">${esc(b.d.body||'')}</div></div>`});
+  return h;
+}
+function overviewPage(){
+  const t=today();
+  const dateline=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
+  const briefs=list('brief').sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
+  const b=briefs[0];
+  h+=`<div class="panel ovCard" onclick="go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
+  if(b)h+=`<div class="hint">${fdate(b.d.date)}${b.d.title?' — '+esc(b.d.title):''}</div><div class="ovBody">${esc(b.d.body||'')}</div><div class="ovMore">Read the full brief →</div>`;
+  else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
+  h+=`</div>`;
+  const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
+  h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
+  if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
+  else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
+  h+=`</div>`;
+  const acts=list('acts').filter(actToday);
+  if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(i.d.start)||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
+  const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
+  if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
+  const pd=list('payroll').filter(i=>!paidThis(i));
+  if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
+  const tr=list('travels').filter(i=>i.d.start&&i.d.start>=t).sort((a,b)=>a.d.start.localeCompare(b.d.start))[0];
+  if(tr)h+=`<div class="panel ovCard" onclick="go('travels')"><h2><span class="sw" style="background:var(--blue)"></span>Next trip</h2><div class="ovRow"><span class="d">${fdate(tr.d.start)}</span><span>${esc(tr.d.place)}</span></div></div>`;
+  const bd=list('bdays').map(i=>({i,dd:daysToBday(i.d.date)})).filter(x=>x.dd!=null&&x.dd<=14).sort((a,b)=>a.dd-b.dd);
+  if(bd.length)h+=`<div class="panel ovCard" onclick="go('bdays')"><h2><span class="sw" style="background:var(--purple)"></span>Birthdays coming up</h2>${bd.map(x=>`<div class="ovRow"><span class="d">${x.dd===0?'today!':'in '+x.dd+'d'}</span><span>${esc(x.i.d.name)}</span></div>`).join('')}</div>`;
+  return h;
+}
 
 /* ---------------- nav / pages ---------------- */
 const NAV=[
-  {t:'Briefs',p:'briefs'},
+  {t:'Overview',p:'overview'},
+  {t:'Brief',p:'brief'},
   {t:'To-do',p:'todo',cls:'todo'},
+  {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
   {t:'Stock',p:'stock'},
   {t:'Orders',g:[['Necessities','needs'],['Spoils & wants','wants']]},
@@ -621,10 +707,11 @@ const NAV=[
   {t:'Learnings',g:[['Books','books'],['To learn','courses']]},
   {t:'Projects',p:'projects'},
 ];
-const SPECIAL={menu:{render:menuPage,bind:bindMenu,fab:null},
+const SPECIAL={overview:{render:overviewPage,fab:null},
+  brief:{render:briefPage,fab:'brief'},
   networth:{render:networthPage,bind:bindNetworth,fab:'assets'},
-  schedule:{render:schedulePage,bind:bindSchedule,fab:'acts'}};
-let activePage=localStorage.alfred_page||'briefs';
+  schedule:{render:schedulePage,fab:'acts'}};
+let activePage=localStorage.alfred_page||'overview';
 function initNav(){
   const nav=$('#nav');nav.innerHTML='';
   NAV.forEach(n=>{
@@ -731,8 +818,8 @@ $('#impFile').onchange=e=>{
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
   load();seed();initNav();initPad();
-  if(!MODS[activePage]&&!SPECIAL[activePage])activePage='briefs';
-  if(!$('#pg-'+activePage))activePage='briefs';
+  if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
+  if(!$('#pg-'+activePage))activePage='overview';
   renderActive();
   if(pinHash())showLock('enter');else showLock('set');
   sync();
