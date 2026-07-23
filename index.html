@@ -661,7 +661,7 @@ function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
 let finView='American';
 function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
 function finStats(bt,ct,ov,u){return `<div class="grid stats">
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v ${signCls(ov)}">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
     <div class="stat" style="--accent:var(--green)"><div class="k">Cash &amp; checking</div><div class="v">${money2(bt)}</div>${u?`<div class="u">${u}</div>`:''}</div>
     <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div></div>`}
 function fincashPage(){
