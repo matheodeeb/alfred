@@ -618,10 +618,13 @@ courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master
   chips:[{l:'All',f:()=>1},{l:'In progress',f:i=>i.d.status==='In progress'},{l:'Done',f:i=>i.d.status==='Done'}],
   card:i=>({t:esc(i.d.name),s:esc(i.d.src||''),dim:i.d.status==='Done',
     pill:i.d.status==='In progress'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
-assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value.',
-  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Watch','Property','Vehicle','Other']},{k:'val',l:'Value',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
+assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value. Net worth counts what it\'s worth now.',
+  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Watch','Property','Vehicle','Other']},{k:'paid',l:'Bought for',t:'money'},{k:'val',l:'Worth now',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
-  card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,80),pill:(i.d.val!==''&&i.d.val!=null)?{cls:'acc',txt:money(i.d.val)}:null})},
+  card:i=>{const hasPaid=i.d.paid!==''&&i.d.paid!=null,hasVal=i.d.val!==''&&i.d.val!=null;
+    const d=(+i.d.val||0)-(+i.d.paid||0);
+    const sub=[hasPaid?`Bought for ${money(i.d.paid)}`+(hasVal&&d!==0?` · <span class="${d>0?'pos':'neg'}">${d>0?'+':''}${money(d)}</span>`:''):'',esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
+    return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(i.d.val)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
   fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
   card:i=>({t:esc(i.d.name),s:[(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
