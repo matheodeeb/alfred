@@ -771,12 +771,13 @@ function networthPage(){
   const bank=finSum('Banking'),cc=finSum('Credit'),net=bank+cc;
   const assets=list('assets');
   const atot=assets.reduce((s,i)=>s+(+i.d.val||0),0);
+  const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&i.d.val!==''&&i.d.val!=null);
+  const growth=tracked.reduce((s,i)=>s+((+i.d.val||0)-(+i.d.paid||0)),0);
   let h=`<div class="grid stats">
-    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--green)"><div class="k">Cash</div><div class="v">${money2(bank)}</div><div class="u">live from Finances → Cash</div></div>
-    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(cc)}</div><div class="u">live from Finances → Cash</div></div>
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v">${money2(net)}</div></div>
+    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">live from Finances → Cash</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money2(atot)}</div></div>
-    <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v">${money2(net+atot)}</div></div>
+    <div class="stat" style="--accent:var(--green)"><div class="k">Growth</div><div class="v ${signCls(growth)}">${growth>0?'+':''}${money2(growth)}</div><div class="u">worth now − bought for${tracked.length<assets.length?' · '+(assets.length-tracked.length)+' asset'+(assets.length-tracked.length>1?'s':'')+' missing a price':''}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v ${signCls(net+atot)}">${money2(net+atot)}</div></div>
   </div>`;
   h+=genList('assets');
   return h;
