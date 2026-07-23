@@ -97,9 +97,18 @@
   .pill.bad{background:rgba(184,84,63,.13);color:#a34734;border:1px solid rgba(184,84,63,.45)}
   .pill.mut{background:var(--panel2);color:var(--muted);border:1px solid var(--line2)}
   .pill.acc{background:rgba(63,111,79,.11);color:var(--acc);border:1px solid rgba(63,111,79,.35)}
-  .row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:9px;cursor:pointer;transition:.15s}
-  .row:hover{border-color:var(--acc)}
-  .row.dim{opacity:.55}
+  .rowBox{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:9px;transition:.15s}
+  .rowBox:hover{border-color:var(--acc)}
+  .rowBox.dim{opacity:.55}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+  .chev{color:var(--faint);font-size:11px;transition:transform .15s;flex:none}
+  .rowBox.open .chev{transform:rotate(180deg)}
+  .rDet{display:none;padding:0 14px 12px;font-size:13.5px;line-height:1.65}
+  .rowBox.open .rDet{display:block;animation:fade .2s ease}
+  .rDetL{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 3px}
+  .rDetB{white-space:pre-wrap}
+  .editBtn{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line2);background:var(--bg2);color:var(--muted);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;transition:.12s}
+  .editBtn:hover{border-color:var(--acc);color:var(--acc)}
   .chk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:transparent;transition:.15s}
   .chk.done{background:var(--ok);border-color:var(--ok);color:#faf6ec}
   .rinfo{min-width:0;flex:1}
@@ -460,13 +469,26 @@ function genList(sec){
   html+='</div>';
   return html;
 }
+function detailHtml(sec,i){
+  const m=MODS[sec];if(!m||!m.fields)return'';
+  const tas=m.fields.filter(f=>f.t==='ta');
+  const parts=[];
+  tas.forEach(f=>{const v=String(i.d[f.k]||'').trim();
+    if(v)parts.push((tas.length>1?`<div class="rDetL">${esc(f.l)}</div>`:'<div class="rDetL"></div>')+`<div class="rDetB">${esc(v)}</div>`)});
+  return parts.join('');
+}
+function toggleDet(el){el.closest('.rowBox').classList.toggle('open')}
 function rowHtml(sec,i){
   const m=MODS[sec],c=m.card(i);
   const doneKey=m.toggle, isDone=doneKey?!!i.d[doneKey.k||doneKey]:false;
-  return`<div class="row ${c.dim?'dim':''}" onclick="openForm('${sec}','${i.id}')">
+  const det=detailHtml(sec,i);
+  return`<div class="rowBox ${c.dim?'dim':''}">
+    <div class="row" onclick="${det?'toggleDet(this)':`openForm('${sec}','${i.id}')`}">
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
-    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}</div>
+    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}${det?'<span class="chev">▾</span>':''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
+    </div>
+    ${det?`<div class="rDet">${det}</div>`:''}
   </div>`;
 }
 function stepHtml(i,k){return`<span class="qtyStep" onclick="event.stopPropagation()">
@@ -639,9 +661,9 @@ function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
 let finView='American';
 function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
 function finStats(bt,ct,ov,u){return `<div class="grid stats">
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
     <div class="stat" style="--accent:var(--green)"><div class="k">Cash &amp; checking</div><div class="v">${money2(bt)}</div>${u?`<div class="u">${u}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div></div>`}
+    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div></div>`}
 function fincashPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
   const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
