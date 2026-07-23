@@ -507,11 +507,12 @@ function togg(sec,id){
 /* ---------------- module definitions ---------------- */
 const ST_SEL=['Idea','Planned','In progress','Done'];
 const MODS={
-briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — what matters, what happened.',
-  fields:[{k:'date',l:'Date',t:'date',def:'',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
-  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
-  card:i=>({t:fdate(i.d.date),s:esc((i.d.txt||'').slice(0,140))}),
-  empty:'No briefs yet. Tap + to write today\'s.'},
+briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
+  fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
+  formOut:d=>{if(!editCtx?.id)d.date=today();return d},
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up),
+  card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
+  empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'Check things off as you go.',
   fields:[{k:'task',l:'Task',t:'text',req:1},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
