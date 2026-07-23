@@ -526,9 +526,9 @@ fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
 finstmt:{title:'Monthly statement',color:'var(--blue)',hint:'',
   fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'src',l:'Card / source',t:'sel',opt:['Citibank CC','Amex CC','Wells Fargo CC','BUH'],def:()=>finView==='Haitian'?'BUH':'Citibank CC'},{k:'amt',l:'Amount paid',t:'money'}]},
 fintx:{title:'Transfer',color:'var(--purple)',hint:'',
-  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'desc',l:'What / who',t:'text',ph:'optional'},{k:'acct',l:'Bank side',t:'sel',opt:['American','Haitian'],def:()=>finView},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},{k:'dir',l:'Direction',t:'sel',opt:['Out','In'],def:'Out'},{k:'amt',l:'Amount',t:'money',req:1}],
+  fields:[{k:'date',l:'Date',t:'date',def:()=>today()},{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'desc',l:'What / who',t:'text',ph:'optional'},{k:'acct',l:'Bank side',t:'sel',opt:['American','Haitian'],def:()=>finView},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},{k:'dir',l:'Direction',t:'sel',opt:['Out','In'],def:'Out'},{k:'amt',l:'Amount',t:'money',req:1}],
   formIn:(it,k,v)=>k==='amt'?Math.abs(+v||0):k==='dir'?((+it.d.amt||0)>=0?'In':'Out'):v,
-  formOut:d=>{d.amt=(d.dir==='In'?1:-1)*Math.abs(+d.amt||0);delete d.dir;if(d.acct!=='Haitian')d.cur='USD';return d}},
+  formOut:d=>{d.amt=(d.dir==='In'?1:-1)*Math.abs(+d.amt||0);delete d.dir;if(d.acct!=='Haitian')d.cur='USD';if(d.date)d.month=MONTHS[+d.date.slice(5,7)-1];return d}},
 finsub:{title:'Subscriptions',color:'var(--orange)',hint:'Tap a subscription to edit it — totals update themselves.',
   fields:[{k:'name',l:'Subscription',t:'text',req:1},{k:'cycle',l:'Billing',t:'sel',opt:['Monthly','Yearly']},{k:'cost',l:'Cost',t:'money',req:1},{k:'bank',l:'Paid from',t:'text',ph:'Wells Fargo CC…'},{k:'notes',l:'Concerns / notes',t:'ta',full:1}],
   group:i=>i.d.cycle||'Monthly',
@@ -749,13 +749,15 @@ function fintxPage(){
   const usdVal=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const by={};its.forEach(i=>{(by[i.d.month]=by[i.d.month]||[]).push(i)});
   const months=MONTHS.filter(m=>by[m]);
-  const txrow=i=>`<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span>`}</div>`;
+  const txdate=i=>i.d.date?fdate(i.d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,''):'';
+  const txrow=i=>{const dt=txdate(i);
+    return `<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span>${dt?`<span class="v2" style="margin-left:auto">${dt}</span>`:''}${i.d.cur==='HTG'?`<span class="v2" style="margin-left:${dt?'12px':'auto'}">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}" style="margin-left:${dt?'12px':'auto'}">${money2(i.d.amt)}</span>`}</div>`};
   let h=finSeg();
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
   <div class="hint">${finView==='American'?'Your US banks together (Citi, Wells Fargo, Amex).':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.</div>
   ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' transfers logged yet.</div>'}</div>`;
   [...months].reverse().forEach(mn=>{
-    const rows=by[mn];
+    const rows=by[mn].slice().sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up));
     const inn=rows.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
     const out=rows.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
     const head=`<h2 style="justify-content:space-between;flex-wrap:wrap">${mn}<span style="font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);font-weight:400">In <span class="pos">${money2(inn)}</span> · Out <span class="neg">${money2(out)}</span> · Net <span class="${signCls(inn+out)}">${money2(inn+out)}</span></span></h2>`;
