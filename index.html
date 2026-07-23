@@ -193,6 +193,7 @@
   .finTot{display:flex;gap:10px;padding:10px 2px 2px;border-top:2px solid var(--line2);margin-top:2px;font-weight:600}
   .finTot .n{font-size:13px;font-family:"Fraunces",Georgia,serif}
   .finTot .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:14px}
+  .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
   .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
   /* lock screen */
@@ -658,7 +659,7 @@ const debTimers={};
 function debSave(key,fn){clearTimeout(debTimers[key]);if(typeof fn==='function')debTimers[key]=setTimeout(fn,600)}
 function finBy(grp){return list('fincash').filter(i=>(i.d.grp||'')===grp)}
 function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
-let finView='American';
+let finView='American',htTotCur='USD';
 function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
 function finStats(bt,ct,ov,u){return `<div class="grid stats">
     <div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v ${signCls(ov)}">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
@@ -718,9 +719,10 @@ function finstmtPage(){
     const byKey={};its.forEach(i=>{byKey[i.d.month]=i});
     const txU={},txH={},txUn={},txHn={};
     list('fintx').filter(i=>(i.d.acct||'American')==='Haitian').forEach(i=>{const htg=i.d.cur==='HTG';const t=htg?txH:txU,n=htg?txHn:txUn;t[i.d.month]=(t[i.d.month]||0)+(+i.d.amt||0);n[i.d.month]=(n[i.d.month]||0)+1});
+    const fmtTot=t=>htTotCur==='HTG'?(t*rate).toLocaleString('en-US',{maximumFractionDigits:0})+' HTG':money2(t);
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — 2026 (Haiti)</h2>
-    <div class="hint">BUH card payments entered in HTG; your transfers split by currency. Total is USD-equivalent at ${rate} HTG / USD.</div>
-    <div class="ftWrap"><table class="ft"><tr><th>Month</th><th>BUH card (HTG)</th><th>Transfers ($)</th><th>Transfers (HTG)</th><th>Total ($)</th></tr>`;
+    <div class="hint">BUH card payments entered in HTG; your transfers split by currency. Total converts at ${rate} HTG / USD — pick its currency in the header.</div>
+    <div class="ftWrap"><table class="ft"><tr><th>Month</th><th>BUH card (HTG)</th><th>Transfers ($)</th><th>Transfers (HTG)</th><th>Total <select class="totSel" onchange="htTotCur=this.value;renderActive()"><option ${htTotCur==='USD'?'selected':''}>USD</option><option ${htTotCur==='HTG'?'selected':''}>HTG</option></select></th></tr>`;
     let grand=0;
     MONTHS.forEach(mn=>{
       const it=byKey[mn];const buh=it?(+it.d.amt||0):null;
@@ -729,12 +731,12 @@ function finstmtPage(){
       const any=buh!=null||hasU||hasH;
       const tot=(buh||0)/rate+tu+th/rate;
       if(any)grand+=tot;
-      h+=`<tr><td>${mn.slice(0,3)}</td><td class="ed" onclick="stmtCell('BUH','${mn}')">${buh!=null?buh.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(txU[mn]||0)}">${hasU?money2(tu):'·'}</td><td class="${signCls(txH[mn]||0)}">${hasH?(th||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
+      h+=`<tr><td>${mn.slice(0,3)}</td><td class="ed" onclick="stmtCell('BUH','${mn}')">${buh!=null?buh.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(txU[mn]||0)}">${hasU?money2(tu):'·'}</td><td class="${signCls(txH[mn]||0)}">${hasH?(th||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${any?fmtTot(tot):'·'}</td></tr>`;
     });
     const yb=its.reduce((s,i)=>s+(+i.d.amt||0),0);
     const yu=-Object.values(txU).reduce((a,b)=>a+b,0), yh=-Object.values(txH).reduce((a,b)=>a+b,0);
     const yuAny=Object.keys(txUn).length>0, yhAny=Object.keys(txHn).length>0;
-    h+=`<tr class="tot"><td>Year</td><td>${yb?yb.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(-yu)}">${yuAny?money2(yu):'·'}</td><td class="${signCls(-yh)}">${yhAny?(yh||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${money2(grand)}</td></tr></table></div></div>`;
+    h+=`<tr class="tot"><td>Year</td><td>${yb?yb.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(-yu)}">${yuAny?money2(yu):'·'}</td><td class="${signCls(-yh)}">${yhAny?(yh||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${fmtTot(grand)}</td></tr></table></div></div>`;
   }
   return h;
 }
