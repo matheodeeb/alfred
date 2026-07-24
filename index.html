@@ -196,6 +196,24 @@
   .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
   .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
+  /* brief reader */
+  .bkWrap{max-width:680px;margin:0 auto;padding-top:6px}
+  .bkTop{display:flex;align-items:center;gap:8px;margin:10px 0 0}
+  .bkH1{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:clamp(26px,5.5vw,36px);line-height:1.15;margin-top:14px;letter-spacing:-.01em}
+  .bkMeta{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 4px;padding-bottom:14px;border-bottom:1px solid var(--line2)}
+  .bkKick{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line2);padding-top:12px;margin:28px 0 4px}
+  .bkH3{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:22px;line-height:1.25;margin:16px 0 0}
+  .bkP,.bkUl{font-family:Georgia,"Source Serif Pro","Times New Roman",serif;font-size:18.5px;line-height:1.7;margin:15px 0;color:var(--txt)}
+  .bkUl ul{padding-left:22px}
+  .bkUl li{margin:6px 0}
+  .bkStand{font-family:Georgia,serif;font-size:20.5px;line-height:1.6;margin:16px 0;color:var(--txt)}
+  .bkPara{scroll-margin-top:14px;transition:opacity .25s}
+  .bkPara.bkRead{opacity:.38}
+  .bkChk{display:block;margin:-4px 0 14px auto;background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;transition:.12s}
+  .bkChk:hover{border-color:var(--acc);color:var(--acc)}
+  .bkChk.on{background:var(--acc);border-color:var(--acc);color:#faf6ec}
+  .bkNav{display:flex;justify-content:space-between;gap:10px;margin:32px 0 10px;border-top:1px solid var(--line2);padding-top:14px}
+  @media(max-width:560px){.bkP,.bkUl{font-size:17.5px}.bkStand{font-size:19px}.bkH3{font-size:20px}}
   /* lock screen */
   #lock{position:fixed;inset:0;z-index:2000;background:var(--bg);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:42px 42px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:20px}
   #lock.show{display:flex}
@@ -817,15 +835,82 @@ function schedulePage(){
   h+=genList('acts');
   return h;
 }
-function briefPage(){
-  const bs=list('brief').sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
-  let h=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>
-  <div class="hint">Your Economist-style morning brief, posted automatically by your Claude agent. Use + to write one by hand.</div>
-  ${bs.length?'':'<div class="empty">No briefs yet — the agent posts every morning.</div>'}</div>`;
-  bs.forEach(b=>{h+=`<div class="panel"><h2 style="justify-content:space-between">${fdate(b.d.date)}<button class="btn sm ghost" onclick="openForm('brief','${b.id}')">Edit</button></h2>
-    ${b.d.title?`<div style="font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:16px;margin-top:6px">${esc(b.d.title)}</div>`:''}
-    <div class="briefBody">${esc(b.d.body||'')}</div></div>`});
+const fdate2=x=>{if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
+function mdBlocks(md){
+  const out=[];const lines=String(md||'').split(/\r?\n/);
+  let para=[],ul=[];
+  const inline=t=>esc(t).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  const fp=()=>{const t=para.join(' ').trim();if(t)out.push({t:'p',h:inline(t)});para=[]};
+  const fl=()=>{if(ul.length){out.push({t:'ul',h:'<ul>'+ul.map(x=>`<li>${inline(x)}</li>`).join('')+'</ul>'});ul=[]}};
+  for(const raw of lines){
+    const l=raw.trim();
+    if(!l){fp();fl();continue}
+    if(l.startsWith('### ')){fp();fl();out.push({t:'h3',h:inline(l.slice(4))});continue}
+    if(l.startsWith('## ')){fp();fl();out.push({t:'kick',h:inline(l.slice(3))});continue}
+    if(l.startsWith('# ')){fp();fl();out.push({t:'h3',h:inline(l.slice(2))});continue}
+    if(/^[-•*] /.test(l)&&!/^\*[^ ]/.test(l)){fp();ul.push(l.slice(2));continue}
+    fl();para.push(l);
+  }
+  fp();fl();return out;
+}
+function mdStrip(md,n){const b=mdBlocks(md).find(x=>x.t==='p'||x.t==='ul');const t=b?b.h.replace(/<[^>]+>/g,''):'';return t.slice(0,n||90)}
+let briefSel=null;
+function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
+function briefMark(date,id){
+  const key='alfred_briefread_'+date;
+  let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
+  const marking=!st.has(id);
+  marking?st.add(id):st.delete(id);
+  localStorage[key]=JSON.stringify([...st]);
+  renderActive();
+  if(marking)requestAnimationFrame(()=>{const nxt=document.querySelector('.bkPara:not(.bkRead)');
+    if(nxt)nxt.scrollIntoView({behavior:'smooth',block:'start'})});
+}
+function briefArticle(b){
+  const blocks=mdBlocks(b.d.body);
+  const words=String(b.d.body||'').split(/\s+/).filter(Boolean).length;
+  const mins=Math.max(1,Math.round(words/200));
+  const isToday=b.d.date===today();
+  let readSet=new Set();
+  if(isToday){try{readSet=new Set(JSON.parse(localStorage['alfred_briefread_'+b.d.date]||'[]'))}catch(e){}}
+  const all=briefsSorted(),idx=all.findIndex(x=>x.id===b.id);
+  const older=all[idx+1],newer=all[idx-1];
+  let h=`<div class="bkWrap">
+    <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ All briefs</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
+    <h1 class="bkH1">${esc(b.d.title||fdate(b.d.date))}</h1>
+    <div class="bkMeta">The Daily Brief · ${fdate2(b.d.date)} · ~${mins} min read</div>`;
+  let pi=0,firstP=blocks.findIndex(x=>x.t==='p');
+  blocks.forEach((bl,i)=>{
+    if(bl.t==='kick'){h+=`<div class="bkKick">${bl.h}</div>`;return}
+    if(bl.t==='h3'){h+=`<h3 class="bkH3">${bl.h}</h3>`;return}
+    const stand=(i===firstP&&/^<em>.*<\/em>$/.test(bl.h));
+    const cls=stand?'bkStand':(bl.t==='ul'?'bkUl':'bkP');
+    const id=pi++;
+    if(isToday){
+      const rd=readSet.has(id);
+      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?'✓ read':'mark read'}</button></div>`;
+    }else h+=`<div class="${cls}">${bl.h}</div>`;
+  });
+  h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdate2(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdate2(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
   return h;
+}
+function briefArchive(){
+  const all=briefsSorted();
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief — archive</h2>
+  <div class="hint">Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.</div>
+  ${all.length?'':'<div class="empty">No briefs yet — the agent posts every morning.</div>'}</div>`;
+  all.forEach(b=>{
+    h+=`<div class="rowBox"><div class="row" onclick="briefSel='${b.d.date}';renderActive();scrollTo(0,0)">
+      <div class="rinfo"><div class="t">${esc(b.d.title||fdate(b.d.date))}</div><div class="s">${fdate2(b.d.date)} · ${esc(mdStrip(b.d.body,80))}…</div></div>
+      <div class="rright">${b.d.date===today()?'<span class="pill acc">today</span>':''}<span class="chev" style="transform:rotate(-90deg)">▾</span></div></div></div>`;
+  });
+  return h;
+}
+function briefPage(){
+  const all=briefsSorted();
+  if(briefSel&&briefSel!=='archive'){const b=all.find(x=>x.d.date===briefSel);if(b)return briefArticle(b)}
+  if(briefSel!=='archive'){const t=all.find(x=>x.d.date===today());if(t)return briefArticle(t)}
+  return briefArchive();
 }
 function overviewPage(){
   const t=today();
@@ -833,8 +918,8 @@ function overviewPage(){
   let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
   const briefs=list('brief').sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
-  h+=`<div class="panel ovCard" onclick="go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
-  if(b)h+=`<div class="hint">${fdate(b.d.date)}${b.d.title?' — '+esc(b.d.title):''}</div><div class="ovBody">${esc(b.d.body||'')}</div><div class="ovMore">Read the full brief →</div>`;
+  h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
+  if(b)h+=`<div class="hint">${fdate(b.d.date)}${b.d.title?' — '+esc(b.d.title):''}</div><div class="ovBody">${esc(mdStrip(b.d.body,400))}</div><div class="ovMore">Read the full brief →</div>`;
   else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
   h+=`</div>`;
   const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
