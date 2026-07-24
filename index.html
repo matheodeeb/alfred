@@ -196,6 +196,7 @@
   .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
   .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
+  body.briefReading{background-image:none}
   /* brief reader */
   .bkWrap{max-width:680px;margin:0 auto;padding-top:6px}
   .bkTop{display:flex;align-items:center;gap:8px;margin:10px 0 0}
@@ -1009,6 +1010,7 @@ function markNav(){
 }
 function go(p){activePage=p;localStorage.alfred_page=p;renderActive()}
 function renderActive(){
+  document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
   const el=$('#pg-'+activePage);if(!el)return;
   const sp=SPECIAL[activePage];
