@@ -199,6 +199,7 @@
   .statsSplit>.statsBills{flex:0 0 216px}
   @media(max-width:900px){.statsSplit>.statsBills{flex:0 0 180px}}
   @media(max-width:760px){.statsSplit{flex-direction:column}.statsRule{width:auto;height:2px}.statsSplit>.statsBills{flex:1 1 auto}}
+  .panelRule{height:2px;background:var(--line2);border-radius:2px;margin:26px 2px 2px}
   .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
   .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
@@ -713,8 +714,9 @@ function fincashPage(){
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit</h2>${cc.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
     const brow=i=>{const dn=+i.d.denom||0,cnt=dn?Math.round((+i.d.amt||0)/dn):null;
       return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cnt!=null?`<span class="sub"> · ${cnt} note${cnt===1?'':'s'}</span>`:''}</span>${dn?`<span class="qtyStep" style="margin-left:auto" onclick="event.stopPropagation()"><button class="qtyBtn" onclick="billBump('${i.id}',-1)">−</button><button class="qtyBtn" onclick="billBump('${i.id}',1)">+</button></span>`:''}<span class="v ${signCls(i.d.amt)}" style="margin-left:${dn?'14px':'auto'};min-width:104px;text-align:right">${money2(i.d.amt)}</span></div>`};
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Bills</h2><div class="hint">Physical cash on hand — tracked on its own, outside Cash &amp; checking. Use − / + to remove or add a note; tap a row to set the amount.</div>${bills.map(brow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(blt)}">${money2(blt)}</span></div></div>`;
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>FICO scores</h2>${fico.map(i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span><span class="v">${Math.round(+i.d.amt||0)}</span></div>`).join('')}</div>`;
+    h+=`<div class="panelRule"></div>`;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Bills</h2><div class="hint">Physical cash on hand — tracked on its own, outside Cash &amp; checking. Use − / + to remove or add a note; tap a row to set the amount.</div>${bills.map(brow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(blt)}">${money2(blt)}</span></div></div>`;
   }else{
     const hc=finBy('Haiti cash'),hcc=finBy('Haiti credit');
     const bt=hc.reduce((s,i)=>s+usd(i),0),ct=hcc.reduce((s,i)=>s+usd(i),0);
