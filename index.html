@@ -588,6 +588,18 @@ stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you kee
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0;return{t:esc(i.d.name),s:esc(i.d.place||''),step:'count',
     pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
+kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'sel',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
+  chips:[{l:'All',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)},{l:'Stocked',f:i=>(+i.d.count||0)>(+i.d.min||0)}],
+  group:i=>i.d.cat||'Other',
+  stats:it=>{const buy=it.filter(i=>(+i.d.count||0)<=(+i.d.min||0));
+    return[{k:'To buy',v:buy.length,u:buy.length?buy.slice(0,3).map(i=>i.d.name).join(', ')+(buy.length>3?'…':''):'kitchen is stocked',c:buy.length?'var(--bad)':'var(--ok)'},
+           {k:'Items tracked',v:it.length,c:'var(--green)'}]},
+  sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
+  card:i=>{const c=+i.d.count||0,m=+i.d.min||0;
+    return{t:esc(i.d.name),s:[esc(i.d.unit||''),esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
+      pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
+  empty:'Nothing tracked yet — hit + to add what you keep in the kitchen.'},
 needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
@@ -968,6 +980,8 @@ function overviewPage(){
   if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(i.d.start)||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
   if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
+  const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
+  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Groceries to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${esc(i.d.cat||'')}</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
   const pd=list('payroll').filter(i=>!paidThis(i));
   if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
   const tr=list('travels').filter(i=>i.d.start&&i.d.start>=t).sort((a,b)=>a.d.start.localeCompare(b.d.start))[0];
@@ -984,7 +998,7 @@ const NAV=[
   {t:'To-do',p:'todo',cls:'todo'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
-  {t:'Stock',p:'stock'},
+  {t:'Stock',g:[['Goods','stock'],['Kitchen','kitchen']]},
   {t:'Orders',g:[['Necessities','needs'],['Spoils & wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub']]},
