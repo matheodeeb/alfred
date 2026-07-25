@@ -215,7 +215,8 @@
   .bkUl ul{padding-left:22px}
   .bkUl li{margin:6px 0}
   .bkStand{font-family:Georgia,serif;font-size:20.5px;line-height:1.6;margin:16px 0;color:var(--txt)}
-  .bkPara{scroll-margin-top:14px;transition:opacity .25s}
+  .bkPara,.bkKick,.bkH3{scroll-margin-top:26px}
+  .bkPara{transition:opacity .25s}
   .bkPara.bkRead{opacity:.38}
   .bkChk{display:block;margin:-4px 0 14px auto;background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;transition:.12s}
   .bkChk:hover{border-color:var(--acc);color:var(--acc)}
@@ -710,7 +711,7 @@ function fincashPage(){
     const bank=finBy('Banking'),cc=finBy('Credit'),bills=finBy('Bills'),fico=finBy('FICO');
     const bkt=finSum('Banking'),blt=finSum('Bills'),ct=finSum('Credit');
     h+=finStats(bkt,ct,bkt+ct,'',blt);
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Banking</h2><div class="hint">Tap an account to update its balance; totals recompute themselves. + adds an account.</div>${bank.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bkt)}">${money2(bkt)}</span></div></div>`;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Cash &amp; checking</h2><div class="hint">Tap an account to update its balance; totals recompute themselves. + adds an account.</div>${bank.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bkt)}">${money2(bkt)}</span></div></div>`;
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit</h2>${cc.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
     const brow=i=>{const dn=+i.d.denom||0,cnt=dn?Math.round((+i.d.amt||0)/dn):null;
       return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cnt!=null?`<span class="sub"> · ${cnt} note${cnt===1?'':'s'}</span>`:''}</span>${dn?`<span class="qtyStep" style="margin-left:auto" onclick="event.stopPropagation()"><button class="qtyBtn" onclick="billBump('${i.id}',-1)">−</button><button class="qtyBtn" onclick="billBump('${i.id}',1)">+</button></span>`:''}<span class="v ${signCls(i.d.amt)}" style="margin-left:${dn?'14px':'auto'};min-width:104px;text-align:right">${money2(i.d.amt)}</span></div>`};
@@ -873,6 +874,18 @@ function mdBlocks(md){
 function mdStrip(md,n){const b=mdBlocks(md).find(x=>x.t==='p'||x.t==='ul');const t=b?b.h.replace(/<[^>]+>/g,''):'';return t.slice(0,n||90)}
 let briefSel=null;
 function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
+function smoothTo(y){
+  const se=document.scrollingElement||document.documentElement;
+  y=Math.max(0,Math.min(y,se.scrollHeight-innerHeight));
+  const start=se.scrollTop,dist=y-start;
+  if(Math.abs(dist)<2){se.scrollTop=y;return}
+  const dur=430,t0=performance.now();let ticked=false;
+  const step=now=>{ticked=true;const p=Math.min(1,(now-t0)/dur);
+    se.scrollTop=start+dist*(p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2);
+    if(p<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step);
+  setTimeout(()=>{if(!ticked)se.scrollTop=y},140);   // if frames aren't running, jump straight there
+}
 function briefMark(date,id){
   const key='alfred_briefread_'+date;
   let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
@@ -880,8 +893,15 @@ function briefMark(date,id){
   marking?st.add(id):st.delete(id);
   localStorage[key]=JSON.stringify([...st]);
   renderActive();
-  if(marking)requestAnimationFrame(()=>{const nxt=document.querySelector('.bkPara:not(.bkRead)');
-    if(nxt)nxt.scrollIntoView({behavior:'smooth',block:'start'})});
+  if(marking){
+    const nxt=document.querySelector('.bkPara:not(.bkRead)');
+    if(!nxt)return;
+    // land on the section kicker / report title above it, so the header and its rule stay visible
+    let target=nxt,p=target.previousElementSibling;
+    while(p&&(p.classList.contains('bkKick')||p.classList.contains('bkH3'))){target=p;p=p.previousElementSibling}
+    const se=document.scrollingElement||document.documentElement;
+    smoothTo(target.getBoundingClientRect().top+se.scrollTop-28);   // leave the header's rule on screen
+  }
 }
 function briefArticle(b){
   const blocks=mdBlocks(b.d.body);
