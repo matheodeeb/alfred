@@ -101,7 +101,10 @@
   .rowBox:hover{border-color:var(--acc)}
   .rowBox.dim{opacity:.55}
   .row{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
-  .chev{color:var(--faint);font-size:11px;transition:transform .15s;flex:none}
+  .chev{color:var(--faint);font-size:11px;transition:transform .15s;flex:none;width:12px;text-align:center}
+  .chev.hid{visibility:hidden}
+  .rright .pill{min-width:54px;text-align:center}
+  .rright .qtyStep{flex:none}
   .rowBox.open .chev{transform:rotate(180deg)}
   .rDet{display:none;padding:0 14px 12px;font-size:13.5px;line-height:1.65}
   .rowBox.open .rDet{display:block;animation:fade .2s ease}
@@ -514,7 +517,7 @@ function rowHtml(sec,i){
     <div class="row" onclick="${det?'toggleDet(this)':`openForm('${sec}','${i.id}')`}">
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
-    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}${det?'<span class="chev">▾</span>':''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
+    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<span class="chev${det?'':' hid'}">▾</span><button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
     </div>
     ${det?`<div class="rDet">${det}</div>`:''}
   </div>`;
