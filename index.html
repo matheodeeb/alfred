@@ -117,7 +117,8 @@
   .rinfo{min-width:0;flex:1}
   .rinfo .t{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
   .rinfo .s{font-family:"IBM Plex Mono";font-size:11px;margin-top:2px;color:var(--muted);overflow-wrap:anywhere}
-  .rright{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+  .rright{margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
+  .row.nodet{cursor:default}
   .qtyStep{display:inline-flex;align-items:center;gap:6px}
   .qtyBtn{width:28px;height:28px;border-radius:7px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
   .qtyBtn:hover{border-color:var(--acc);color:var(--acc)}
@@ -514,10 +515,10 @@ function rowHtml(sec,i){
   const doneKey=m.toggle, isDone=doneKey?!!i.d[doneKey.k||doneKey]:false;
   const det=detailHtml(sec,i);
   return`<div class="rowBox ${c.dim?'dim':''}">
-    <div class="row" onclick="${det?'toggleDet(this)':`openForm('${sec}','${i.id}')`}">
+    <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
-    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<span class="chev${det?'':' hid'}">▾</span><button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
+    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
     </div>
     ${det?`<div class="rDet">${det}</div>`:''}
   </div>`;
