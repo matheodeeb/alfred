@@ -193,6 +193,12 @@
   .finTot{display:flex;gap:10px;padding:10px 2px 2px;border-top:2px solid var(--line2);margin-top:2px;font-weight:600}
   .finTot .n{font-size:13px;font-family:"Fraunces",Georgia,serif}
   .finTot .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:14px}
+  .statsSplit{display:flex;gap:12px;align-items:stretch}
+  .statsSplit>.stats{flex:1;min-width:0}
+  .statsRule{flex:none;width:2px;background:var(--line2);border-radius:2px;align-self:stretch}
+  .statsSplit>.statsBills{flex:0 0 216px}
+  @media(max-width:900px){.statsSplit>.statsBills{flex:0 0 180px}}
+  @media(max-width:760px){.statsSplit{flex-direction:column}.statsRule{width:auto;height:2px}.statsSplit>.statsBills{flex:1 1 auto}}
   .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
   .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
@@ -684,10 +690,13 @@ function finBy(grp){return list('fincash').filter(i=>(i.d.grp||'')===grp)}
 function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
 let finView='American',htTotCur='USD';
 function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
-function finStats(bt,ct,ov,u){return `<div class="grid stats">
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v ${signCls(ov)}">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
+function finStats(bt,ct,ov,u,bills){
+  const cards=`<div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v ${signCls(ov)}">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
     <div class="stat" style="--accent:var(--green)"><div class="k">Cash &amp; checking</div><div class="v">${money2(bt)}</div>${u?`<div class="u">${u}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div></div>`}
+    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div>`;
+  if(bills==null)return `<div class="grid stats">${cards}</div>`;
+  return `<div class="statsSplit"><div class="grid stats">${cards}</div><div class="statsRule"></div>
+    <div class="grid stats statsBills"><div class="stat" style="--accent:var(--gold)"><div class="k">Bills</div><div class="v">${money2(bills)}</div><div class="u">cash on hand · kept separate</div></div></div></div>`}
 function billBump(id,dir){const i=one(id);if(!i)return;const dn=+i.d.denom||0;if(!dn)return;
   put('fincash',{amt:Math.max(0,(+i.d.amt||0)+dir*dn)},id);renderActive()}
 function fincashPage(){
@@ -698,13 +707,13 @@ function fincashPage(){
   let h=finSeg();
   if(finView==='American'){
     const bank=finBy('Banking'),cc=finBy('Credit'),bills=finBy('Bills'),fico=finBy('FICO');
-    const bkt=finSum('Banking'),blt=finSum('Bills'),ct=finSum('Credit'),bt=bkt+blt;
-    h+=finStats(bt,ct,bt+ct);
+    const bkt=finSum('Banking'),blt=finSum('Bills'),ct=finSum('Credit');
+    h+=finStats(bkt,ct,bkt+ct,'',blt);
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Banking</h2><div class="hint">Tap an account to update its balance; totals recompute themselves. + adds an account.</div>${bank.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bkt)}">${money2(bkt)}</span></div></div>`;
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit</h2>${cc.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
     const brow=i=>{const dn=+i.d.denom||0,cnt=dn?Math.round((+i.d.amt||0)/dn):null;
       return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cnt!=null?`<span class="sub"> · ${cnt} note${cnt===1?'':'s'}</span>`:''}</span>${dn?`<span class="qtyStep" style="margin-left:auto" onclick="event.stopPropagation()"><button class="qtyBtn" onclick="billBump('${i.id}',-1)">−</button><button class="qtyBtn" onclick="billBump('${i.id}',1)">+</button></span>`:''}<span class="v ${signCls(i.d.amt)}" style="margin-left:${dn?'14px':'auto'};min-width:104px;text-align:right">${money2(i.d.amt)}</span></div>`};
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Bills</h2><div class="hint">Physical cash on hand — counted into Cash &amp; checking above. Use − / + to remove or add a note; tap a row to set the amount.</div>${bills.map(brow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(blt)}">${money2(blt)}</span></div></div>`;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Bills</h2><div class="hint">Physical cash on hand — tracked on its own, outside Cash &amp; checking. Use − / + to remove or add a note; tap a row to set the amount.</div>${bills.map(brow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(blt)}">${money2(blt)}</span></div></div>`;
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>FICO scores</h2>${fico.map(i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span><span class="v">${Math.round(+i.d.amt||0)}</span></div>`).join('')}</div>`;
   }else{
     const hc=finBy('Haiti cash'),hcc=finBy('Haiti credit');
@@ -793,7 +802,7 @@ function fintxPage(){
   return h;
 }
 function networthPage(){
-  const bank=finSum('Banking')+finSum('Bills'),cc=finSum('Credit'),net=bank+cc;
+  const bank=finSum('Banking'),cc=finSum('Credit'),net=bank+cc;
   const assets=list('assets');
   const atot=assets.reduce((s,i)=>s+(+i.d.val||0),0);
   const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&i.d.val!==''&&i.d.val!=null);
