@@ -598,12 +598,17 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'Grouped by section — put trip errands under the trip so you know when they matter.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['General','Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
-  group:i=>i.d.grp||'General',
+  group:i=>{const g=(i.d.grp||'').trim();
+    if(g&&g!=='General')return g;                                   // a named place/context keeps its own section
+    if(i.d.due){const d=new Date(i.d.due+'T12:00:00');
+      if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
+    return 'Anytime';},
   groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=i.d.due||'9999-99-99';return d<m?d:m},'9999-99-99');
-    return first(a).localeCompare(first(b))||a.localeCompare(b)},
+    const rank=g=>g==='Anytime'?1:0;
+    return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
   sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999'),
   card:i=>({t:esc(i.d.task),s:[i.d.due?'due '+fdate(i.d.due):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
