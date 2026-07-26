@@ -123,6 +123,7 @@
   .qtyBtn{width:28px;height:28px;border-radius:7px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
   .qtyBtn:hover{border-color:var(--acc);color:var(--acc)}
   .qtyVal{min-width:28px;text-align:center;font-family:"IBM Plex Mono";font-size:14px;font-weight:600}
+  .gsep{height:1px;background:var(--line2);margin:26px 2px 0;opacity:.85}
   .ghead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2)}
   .ghead:first-child{margin-top:4px}
   .ghead .gsub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);font-weight:400;margin-left:7px}
@@ -505,7 +506,8 @@ function genList(sec){
   if(!items.length)html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
   else if(m.group){
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
-    for(const g of Object.keys(gs).sort(m.groupOrder))html+=`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`+gs[g].map(i=>rowHtml(sec,i)).join('');
+    const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
+    order.forEach((g,gi)=>{html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`+gs[g].map(i=>rowHtml(sec,i)).join('')});
   }
   else html+=items.map(i=>rowHtml(sec,i)).join('');
   html+='</div>';
@@ -564,10 +566,13 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up),
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
-todo:{title:'To-do list',color:'#ff6b6b',hint:'Check things off as you go.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+todo:{title:'To-do list',color:'#ff6b6b',hint:'Grouped by section — put trip errands under the trip so you know when they matter.',
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['General','Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
+  group:i=>i.d.grp||'General',
+  groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=i.d.due||'9999-99-99';return d<m?d:m},'9999-99-99');
+    return first(a).localeCompare(first(b))||a.localeCompare(b)},
   sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999'),
   card:i=>({t:esc(i.d.task),s:[i.d.due?'due '+fdate(i.d.due):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
