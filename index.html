@@ -430,11 +430,18 @@ document.addEventListener('visibilitychange',()=>{
 /* ---------------- field/form engine ---------------- */
 const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 function fmtT(s){if(!s)return'';const[h,m]=String(s).split(':').map(Number);if(isNaN(h))return esc(String(s));const ap=h>=12?'PM':'AM';return(((h+11)%12)+1)+':'+String(m||0).padStart(2,'0')+' '+ap}
-function fieldHtml(f,v){
+function fieldHtml(f,v,sec){
   v=v??(typeof f.def==='function'?f.def():f.def)??'';
   const base=`id="f_${f.k}"`;
   if(f.t==='ta')return`<textarea ${base} placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   if(f.t==='sel')return`<select ${base}>${f.opt.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(f.t==='dyn'){
+    const used=sec?[...new Set(list(sec).map(x=>x.d[f.k]).filter(Boolean))]:[];
+    const opts=[...new Set([...(f.opt||[]),...used])].sort((a,b)=>a.localeCompare(b));
+    if(v&&!opts.includes(v))opts.unshift(v);
+    return`<select ${base} onchange="dynSel(this)"><option value="">—</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}<option value="__new">+ Add new…</option></select>`+
+      `<input id="f_${f.k}__new" class="dynNew" placeholder="New ${esc((f.l||'').toLowerCase())}…" style="display:none">`;
+  }
   if(f.t==='check')return`<select ${base}><option value="">No</option><option value="1" ${v?'selected':''}>Yes</option></select>`;
   if(f.t==='days'){const sel=String(v||'').split(',').map(s=>s.trim());
     return`<div class="dayPick" ${base}>`+DOW.map(d=>`<button type="button" class="dayBtn ${sel.includes(d)?'on':''}" data-d="${d}">${d}</button>`).join('')+`</div>`}
@@ -442,6 +449,8 @@ function fieldHtml(f,v){
   const step=f.t==='money'?'step="any" inputmode="decimal"':f.t==='num'?'inputmode="numeric"':'';
   return`<input ${base} type="${type}" ${step} value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
 }
+function dynSel(el){const inp=document.getElementById(el.id+'__new');if(!inp)return;
+  const on=el.value==='__new';inp.style.display=on?'':'block';inp.style.marginTop='6px';if(on)inp.focus()}
 let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
@@ -450,7 +459,7 @@ function openForm(sec,id,defs){
   $('#mTitle').textContent=(it?'Edit — ':'Add — ')+m.title;
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.map(f=>{let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v)}</div>`}).join('')+'</div>';
+      return`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec)}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   ov('modalOv',1);
@@ -463,6 +472,7 @@ $('#mSave').onclick=()=>{
   for(const f of m.fields){
     let v;
     if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
+    else if(f.t==='dyn'){v=$('#f_'+f.k).value;if(v==='__new')v=($('#f_'+f.k+'__new').value||'').trim()}
     else{v=$('#f_'+f.k).value.trim();
       if(f.t==='num'||f.t==='money')v=v===''?'':+v;
       if(f.t==='check')v=v?1:'';}
@@ -593,7 +603,7 @@ stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you kee
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0;return{t:esc(i.d.name),s:esc(i.d.place||''),step:'count',
     pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
 kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'sel',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'dyn',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
   chips:[{l:'All',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)},{l:'Stocked',f:i=>(+i.d.count||0)>(+i.d.min||0)}],
   group:i=>i.d.cat||'Other',
   stats:it=>{const buy=it.filter(i=>(+i.d.count||0)<=(+i.d.min||0));
@@ -621,7 +631,7 @@ juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.'
   sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
 food:{title:'Food recipes',color:'var(--orange)',hint:'Dishes the cook can make — point to these from the menu.',
-  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Snacks','Shakes','Drinks','Other']},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'steps',l:'How to make it',t:'ta',full:1}],
+  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Snacks','Shakes','Drinks','Other']},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'steps',l:'How to make it',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
@@ -637,33 +647,33 @@ travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming u
   card:i=>({t:esc(i.d.place),s:[i.d.start?fdate(i.d.start):'',i.d.end?'→ '+fdate(i.d.end):''].filter(Boolean).join(' '),
     pill:i.d.start&&i.d.start>today()?{cls:'acc',txt:'upcoming'}:null})},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'text',ph:'Musts, Anime…'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Season / episode',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'len',l:'Length',t:'text',ph:'5 seasons · 62 eps · ~47 min'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.plat||''),esc(i.d.season||'')].filter(Boolean).join(' · '),
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.len||''),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
 movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'text',ph:'Action, Comedy, Saga…'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Sad','Anime','Documentary','Saga','Thriller']},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
-  card:i=>({t:esc(i.d.name),s:esc(i.d.rel||''),dim:i.d.status==='Watched',
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
     pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
-  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'sel',opt:['Business','Politics','Other']},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
+  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Politics','History','Philosophy','Other']},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
   card:i=>({t:esc(i.d.name),s:esc(i.d.author||''),dim:i.d.status==='Done',
     pill:i.d.status==='Reading'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master.',
-  fields:[{k:'name',l:'Course / topic',t:'text',req:1},{k:'topic',l:'Group',t:'text',ph:'Courses, Haiti, Languages…'},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Course / topic',t:'text',req:1},{k:'topic',l:'Group',t:'dyn',opt:['Courses','Languages','Security','Diplomacy','Management','Haiti']},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.topic||'Other',
   chips:[{l:'All',f:()=>1},{l:'In progress',f:i=>i.d.status==='In progress'},{l:'Done',f:i=>i.d.status==='Done'}],
   card:i=>({t:esc(i.d.name),s:esc(i.d.src||''),dim:i.d.status==='Done',
     pill:i.d.status==='In progress'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value. Net worth counts what it\'s worth now.',
-  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Watch','Property','Vehicle','Other']},{k:'paid',l:'Bought for',t:'money'},{k:'val',l:'Worth now',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Watch','Property','Vehicle','Investment','Other']},{k:'paid',l:'Bought for',t:'money'},{k:'val',l:'Worth now',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   card:i=>{const hasPaid=i.d.paid!==''&&i.d.paid!=null,hasVal=i.d.val!==''&&i.d.val!=null;
     const d=(+i.d.val||0)-(+i.d.paid||0);
@@ -674,7 +684,7 @@ acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and time
   card:i=>({t:esc(i.d.name),s:[(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
 menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
-  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'sel',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
+  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,110))}),
@@ -683,7 +693,7 @@ brief:{title:'Daily brief',color:'var(--gold)',
   fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
   card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
 projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever comes next.',
-  fields:[{k:'project',l:'Project',t:'text',req:1,ph:'Future room'},{k:'name',l:'Item / task',t:'text',req:1},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'project',l:'Project',t:'dyn',req:1,opt:['Future room']},{k:'name',l:'Item / task',t:'text',req:1},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.project||'Other',
   sort:(a,b)=>ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
   card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,90),dim:i.d.status==='Done',
