@@ -465,7 +465,11 @@ function reRank(sec,item){
   arr.forEach((x,ix)=>{const np=ix+1;if((+x.d.pri||0)!==np)put(sec,{pri:np},x.id)});
 }
 function priHtml(i){const p=+i.d.pri||0;return p?`<span class="priBadge">${p}</span>`:''}
-function priSort(a,b){const pa=+a.d.pri||9999,pb=+b.d.pri||9999;return pa-pb}
+const isFinished=d=>d.status==='Done'||d.status==='Watched';
+function priSort(a,b){
+  const fa=isFinished(a.d)?1:0, fb=isFinished(b.d)?1:0;
+  return fa-fb||(+a.d.pri||9999)-(+b.d.pri||9999)||(a.d.name||'').localeCompare(b.d.name||'');
+}
 let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
@@ -496,6 +500,7 @@ $('#mSave').onclick=()=>{
   const req=m.fields.find(f=>f.req&&!d[f.k]);
   if(req){$('#f_'+req.k).style.borderColor='var(--bad)';return}
   if(m.formOut)m.formOut(d);
+  if(m.ranked&&isFinished(d))d.pri='';        // read / watched drops out of the ranking
   const saved=put(editCtx.sec,d,editCtx.id);
   if(m.ranked)reRank(editCtx.sec,saved);
   closeModal();renderActive();
