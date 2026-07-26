@@ -922,34 +922,15 @@ function mdBlocks(md){
 function mdStrip(md,n){const b=mdBlocks(md).find(x=>x.t==='p'||x.t==='ul');const t=b?b.h.replace(/<[^>]+>/g,''):'';return t.slice(0,n||90)}
 let briefSel=null;
 function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
-function smoothTo(y){
-  const se=document.scrollingElement||document.documentElement;
-  y=Math.max(0,Math.min(y,se.scrollHeight-innerHeight));
-  const start=se.scrollTop,dist=y-start;
-  if(Math.abs(dist)<2){se.scrollTop=y;return}
-  const dur=430,t0=performance.now();let ticked=false;
-  const step=now=>{ticked=true;const p=Math.min(1,(now-t0)/dur);
-    se.scrollTop=start+dist*(p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2);
-    if(p<1)requestAnimationFrame(step)};
-  requestAnimationFrame(step);
-  setTimeout(()=>{if(!ticked)se.scrollTop=y},140);   // if frames aren't running, jump straight there
-}
 function briefMark(date,id){
   const key='alfred_briefread_'+date;
   let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
-  const marking=!st.has(id);
-  marking?st.add(id):st.delete(id);
+  st.has(id)?st.delete(id):st.add(id);
   localStorage[key]=JSON.stringify([...st]);
+  const se=document.scrollingElement||document.documentElement,keep=se.scrollTop;
   renderActive();
-  if(marking){
-    const nxt=document.querySelector('.bkPara:not(.bkRead)');
-    if(!nxt)return;
-    // land on the section kicker / report title above it, so the header and its rule stay visible
-    let target=nxt,p=target.previousElementSibling;
-    while(p&&(p.classList.contains('bkKick')||p.classList.contains('bkH3'))){target=p;p=p.previousElementSibling}
-    const se=document.scrollingElement||document.documentElement;
-    smoothTo(target.getBoundingClientRect().top+se.scrollTop-28);   // leave the header's rule on screen
-  }
+  se.scrollTop=keep;
+
 }
 function briefArticle(b){
   const blocks=mdBlocks(b.d.body);
