@@ -546,6 +546,16 @@ function togg(sec,id){
 }
 
 /* ---------------- module definitions ---------------- */
+function showLen(d){
+  const s=+d.seasons||0,e=+d.eps||0,m=+d.epmin||0;
+  if(!s&&!e&&!m)return d.len||'';
+  const p=[];
+  if(s)p.push(s+' season'+(s>1?'s':''));
+  if(e)p.push(s>1?'~'+e+' eps/season':e+' eps');
+  if(m)p.push('~'+m+' min');
+  if(s&&e&&m)p.push('≈'+Math.round(s*e*m/60)+'h total');
+  return p.join(' · ');
+}
 const ST_SEL=['Idea','Planned','In progress','Done'];
 const MODS={
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
@@ -647,11 +657,11 @@ travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming u
   card:i=>({t:esc(i.d.place),s:[i.d.start?fdate(i.d.start):'',i.d.end?'→ '+fdate(i.d.end):''].filter(Boolean).join(' '),
     pill:i.d.start&&i.d.start>today()?{cls:'acc',txt:'upcoming'}:null})},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'len',l:'Length',t:'text',ph:'5 seasons · 62 eps · ~47 min'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.len||''),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
+  card:i=>({t:esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
 movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
   fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Sad','Anime','Documentary','Saga','Thriller']},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
