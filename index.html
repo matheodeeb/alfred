@@ -548,6 +548,13 @@ function togg(sec,id){
 }
 
 /* ---------------- module definitions ---------------- */
+function bookLen(d){
+  const p=+d.pages||0;
+  if(!p)return d.len||'';
+  const h=p/55;                                   // ~55 pages an hour at an average reading pace
+  const t=h<1?Math.max(10,Math.round(h*60/5)*5)+' min':(h<10?(Math.round(h*2)/2):Math.round(h))+'h';
+  return p.toLocaleString('en-US')+' pages · ≈'+t+(d.len?' · '+d.len:'');
+}
 function showLen(d){
   const s=+d.seasons||0,e=+d.eps||0,m=+d.epmin||0;
   if(!s&&!e&&!m)return d.len||'';
@@ -676,10 +683,10 @@ movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
   card:i=>({t:esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
     pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
-  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Politics','History','Philosophy','Other']},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
+  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Politics','History','Philosophy','Other']},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
-  card:i=>({t:esc(i.d.name),s:esc(i.d.author||''),dim:i.d.status==='Done',
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
     pill:i.d.status==='Reading'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master.',
   fields:[{k:'name',l:'Course / topic',t:'text',req:1},{k:'topic',l:'Group',t:'dyn',opt:['Courses','Languages','Security','Diplomacy','Management','Haiti']},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
