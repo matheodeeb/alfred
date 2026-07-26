@@ -97,6 +97,7 @@
   .pill.bad{background:rgba(184,84,63,.13);color:#a34734;border:1px solid rgba(184,84,63,.45)}
   .pill.mut{background:var(--panel2);color:var(--muted);border:1px solid var(--line2)}
   .pill.acc{background:rgba(63,111,79,.11);color:var(--acc);border:1px solid rgba(63,111,79,.35)}
+  .priBadge{display:inline-flex;align-items:center;justify-content:center;min-width:21px;height:21px;padding:0 5px;border-radius:6px;background:var(--panel2);border:1px solid var(--line2);font-family:"IBM Plex Mono";font-size:11px;font-weight:600;color:var(--muted);margin-right:9px;vertical-align:1px}
   .rowBox{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:9px;transition:.15s}
   .rowBox:hover{border-color:var(--acc)}
   .rowBox.dim{opacity:.55}
@@ -452,6 +453,19 @@ function fieldHtml(f,v,sec){
 }
 function dynSel(el){const inp=document.getElementById(el.id+'__new');if(!inp)return;
   const on=el.value==='__new';inp.style.display=on?'':'block';inp.style.marginTop='6px';if(on)inp.focus()}
+// Priority ranking, scoped to the section an item sits in.
+// Inserting at N pushes the current N and everything below it down one.
+function rankGroupOf(sec,i){const m=MODS[sec];return m.group?m.group(i):''}
+function reRank(sec,item){
+  const g=rankGroupOf(sec,item), want=+item.d.pri||0;
+  const peers=list(sec).filter(x=>x.id!==item.id&&rankGroupOf(sec,x)===g&&(+x.d.pri||0)>0)
+                       .sort((a,b)=>(+a.d.pri)-(+b.d.pri));
+  let arr=peers;
+  if(want>0){const pos=Math.max(0,Math.min(peers.length,want-1));arr=[...peers.slice(0,pos),item,...peers.slice(pos)]}
+  arr.forEach((x,ix)=>{const np=ix+1;if((+x.d.pri||0)!==np)put(sec,{pri:np},x.id)});
+}
+function priHtml(i){const p=+i.d.pri||0;return p?`<span class="priBadge">${p}</span>`:''}
+function priSort(a,b){const pa=+a.d.pri||9999,pb=+b.d.pri||9999;return pa-pb}
 let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
@@ -482,10 +496,15 @@ $('#mSave').onclick=()=>{
   const req=m.fields.find(f=>f.req&&!d[f.k]);
   if(req){$('#f_'+req.k).style.borderColor='var(--bad)';return}
   if(m.formOut)m.formOut(d);
-  put(editCtx.sec,d,editCtx.id);
+  const saved=put(editCtx.sec,d,editCtx.id);
+  if(m.ranked)reRank(editCtx.sec,saved);
   closeModal();renderActive();
 };
-$('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){kill(editCtx.id);closeModal();renderActive()}};
+$('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){
+  const sec=editCtx.sec,gone=one(editCtx.id),m=MODS[sec];
+  kill(editCtx.id);
+  if(m.ranked&&gone){const ghost={id:'',d:{...gone.d,pri:0}};reRank(sec,ghost)}
+  closeModal();renderActive()}};
 $('#modalOv').addEventListener('click',e=>{if(e.target.id==='modalOv')closeModal()});
 
 /* ---------------- generic list page ---------------- */
@@ -669,24 +688,27 @@ travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming u
   card:i=>({t:esc(i.d.place),s:[i.d.start?fdate(i.d.start):'',i.d.end?'→ '+fdate(i.d.end):''].filter(Boolean).join(' '),
     pill:i.d.start&&i.d.start>today()?{cls:'acc',txt:'upcoming'}:null})},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
-  card:i=>({t:esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
+  ranked:1, sort:priSort,
+  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
 movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Sad','Anime','Documentary','Saga','Thriller']},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
+  ranked:1, sort:priSort,
+  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
     pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
-  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
+  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
+  ranked:1, sort:priSort,
+  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
     pill:i.d.status==='Reading'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master.',
   fields:[{k:'name',l:'Course / topic',t:'text',req:1},{k:'topic',l:'Group',t:'dyn',opt:['Courses','Languages','Security','Diplomacy','Management','Haiti']},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
