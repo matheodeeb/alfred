@@ -105,6 +105,8 @@
   .chev{color:var(--faint);font-size:11px;transition:transform .15s;flex:none;width:12px;text-align:center}
   .chev.hid{visibility:hidden}
   .rright .pill{min-width:54px;text-align:center}
+  .ordBtn{flex:none;padding:5px 10px;font-size:11.5px;white-space:nowrap}
+  .ordBtn:disabled{opacity:.55;border-color:var(--ok);color:var(--ok);cursor:default}
   .rright .qtyStep{flex:none}
   .rowBox.open .chev{transform:rotate(180deg)}
   .rDet{display:none;padding:0 14px 12px;font-size:13.5px;line-height:1.65}
@@ -560,7 +562,7 @@ function rowHtml(sec,i){
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
-    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
+    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.act?`<button class="btn sm ordBtn" onclick="event.stopPropagation();${c.act.fn}">${c.act.txt}</button>`:''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
     </div>
     ${det?`<div class="rDet">${det}</div>`:''}
   </div>`;
@@ -569,6 +571,16 @@ function stepHtml(i,k){return`<span class="qtyStep" onclick="event.stopPropagati
   <button class="qtyBtn" onclick="bump('${i.id}','${k}',-1)">−</button>
   <span class="qtyVal">${+i.d[k]||0}</span>
   <button class="qtyBtn" onclick="bump('${i.id}','${k}',1)">+</button></span>`}
+function orderNeed(id,btn){
+  const it=one(id);if(!it)return;
+  const need=Math.max(0,(+it.d.par||0)-(+it.d.count||0));
+  if(!need)return;
+  const nid='need:auto:'+id, prev=one(nid);
+  put('needs',{name:it.d.name,qty:need,
+    price:prev?.d?.price??'',link:prev?.d?.link??'',done:'',
+    notes:`From Stock — par ${+it.d.par||0} minus ${+it.d.count||0} on hand.`},nid);
+  if(btn){btn.textContent='Added ✓';btn.disabled=true}
+}
 function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
 function togg(sec,id){
   const m=MODS[sec],i=one(id);if(!i)return;
@@ -653,12 +665,14 @@ bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
   sort:(a,b)=>nextBday(a.d.date)-nextBday(b.d.date),
   card:i=>{const dd=daysToBday(i.d.date);return{t:esc(i.d.name),s:i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',
     pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
-stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you keep at home — toothpaste, supplies. Low stock flags itself.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
+stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you keep at home. Set a par level and the To order button sends the shortfall to Orders → Necessities.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par stock (target)',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
   chips:[{l:'All',f:()=>1},{l:'Low / out',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>{const c=+i.d.count||0,m=+i.d.min||0;return{t:esc(i.d.name),s:esc(i.d.place||''),step:'count',
-    pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
+  card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0,need=Math.max(0,par-c);
+    return{t:esc(i.d.name),s:[esc(i.d.place||''),par?'par '+par:''].filter(Boolean).join(' · '),step:'count',
+      act:need>0?{txt:'To order '+need,fn:`orderNeed('${i.id}',this)`}:null,
+      pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
 kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'dyn',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
   chips:[{l:'All',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)},{l:'Stocked',f:i=>(+i.d.count||0)>(+i.d.min||0)}],
@@ -671,12 +685,12 @@ kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and w
     return{t:esc(i.d.name),s:[esc(i.d.unit||''),esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
   empty:'Nothing tracked yet — hit + to add what you keep in the kitchen.'},
-needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Items sent over from Stock arrive with the quantity already worked out.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
-    pill:i.d.link?{cls:'acc',txt:'link'}:null})},
+    pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
 wants:{title:'To order — spoils & wants',color:'var(--acc)',hint:'Treats. No judgement.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
@@ -712,7 +726,7 @@ shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s
   card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
 movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
