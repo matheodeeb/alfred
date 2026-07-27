@@ -571,15 +571,21 @@ function stepHtml(i,k){return`<span class="qtyStep" onclick="event.stopPropagati
   <button class="qtyBtn" onclick="bump('${i.id}','${k}',-1)">−</button>
   <span class="qtyVal">${+i.d[k]||0}</span>
   <button class="qtyBtn" onclick="bump('${i.id}','${k}',1)">+</button></span>`}
-function orderNeed(id,btn){
-  const it=one(id);if(!it)return;
-  const need=Math.max(0,(+it.d.par||0)-(+it.d.count||0));
-  if(!need)return;
-  const nid='need:auto:'+id, prev=one(nid);
-  put('needs',{name:it.d.name,qty:need,
-    price:prev?.d?.price??'',link:prev?.d?.link??'',done:'',
-    notes:`From Stock — par ${+it.d.par||0} minus ${+it.d.count||0} on hand.`},nid);
-  if(btn){btn.textContent='Added ✓';btn.disabled=true}
+// Anything at or below its reorder level (or simply out) is mirrored onto
+// Orders > Necessities automatically; restocking it takes it back off the list.
+function syncAutoOrders(){
+  list('stock').forEach(it=>{
+    const c=+it.d.count||0, m=+it.d.min||0, par=+it.d.par||0;
+    const low=(m>0&&c<=m)||c===0;
+    const nid='need:auto:'+it.id, cur=one(nid);
+    if(low){
+      const qty=par>c?par-c:'';
+      const notes=par>c?`Auto-added from Stock — ${c} on hand, par ${par}.`
+                       :`Auto-added from Stock — ${c} on hand, at or below the reorder level. Set a par level to get a quantity.`;
+      if(!cur||(cur.d.qty??'')!==qty||cur.d.name!==it.d.name||cur.d.notes!==notes)
+        put('needs',{name:it.d.name,qty,price:cur?.d?.price??'',link:cur?.d?.link??'',done:cur?.d?.done??'',notes},nid);
+    } else if(cur&&!cur.d.done) kill(nid);
+  });
 }
 function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
 function togg(sec,id){
@@ -665,13 +671,12 @@ bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
   sort:(a,b)=>nextBday(a.d.date)-nextBday(b.d.date),
   card:i=>{const dd=daysToBday(i.d.date);return{t:esc(i.d.name),s:i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',
     pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
-stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you keep at home. Set a par level and the To order button sends the shortfall to Orders → Necessities.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par stock (target)',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
+stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you keep at home. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
   chips:[{l:'All',f:()=>1},{l:'Low / out',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0,need=Math.max(0,par-c);
+  card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0;
     return{t:esc(i.d.name),s:[esc(i.d.place||''),par?'par '+par:''].filter(Boolean).join(' · '),step:'count',
-      act:need>0?{txt:'To order '+need,fn:`orderNeed('${i.id}',this)`}:null,
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
 kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'dyn',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
@@ -685,7 +690,7 @@ kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and w
     return{t:esc(i.d.name),s:[esc(i.d.unit||''),esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
   empty:'Nothing tracked yet — hit + to add what you keep in the kitchen.'},
-needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Items sent over from Stock arrive with the quantity already worked out.',
+needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Low items from Stock appear here on their own, and drop off once restocked.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
@@ -1132,6 +1137,7 @@ function markNav(){
 }
 function go(p){activePage=p;localStorage.alfred_page=p;renderActive()}
 function renderActive(){
+  syncAutoOrders();
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
   const el=$('#pg-'+activePage);if(!el)return;
