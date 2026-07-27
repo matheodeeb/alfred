@@ -521,13 +521,19 @@ function genList(sec){
   let html='';
   if(m.stats){html+='<div class="grid stats">'+m.stats(items).map(s=>`<div class="stat" style="--accent:${s.c||'var(--acc)'}"><div class="k">${s.k}</div><div class="v">${s.v}</div>${s.u?`<div class="u">${s.u}</div>`:''}</div>`).join('')+'</div>'}
   html+=`<div class="panel"><h2><span class="sw" style="background:${m.color||'var(--acc)'}"></span>${m.title}</h2><div class="hint">${m.hint||''}</div>`;
+  const totalAll=items.length;
   if(chips){
     const cur=chipState[sec]??0;
     html+='<div class="segbar">'+chips.map((c,i)=>`<button class="${i===cur?'active':''}" onclick="chipState['${sec}']=${i};renderActive()">${c.l}</button>`).join('')+'</div>';
     items=items.filter(chips[cur].f);
   }
   if(m.sort)items.sort(m.sort);
-  if(!items.length)html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
+  if(!items.length){
+    if(totalAll>0&&chips){                       // items exist — the filter is hiding them
+      const ai=chips.findIndex(c=>c.l==='All'), aix=ai>=0?ai:0;
+      html+=`<div class="empty">${totalAll} item${totalAll>1?'s':''} here, hidden by this filter.<br><button class="btn sm" style="margin-top:12px" onclick="chipState['${sec}']=${aix};renderActive()">Show all ${totalAll}</button></div>`;
+    } else html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
+  }
   else if(m.group){
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
