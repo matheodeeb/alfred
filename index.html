@@ -515,7 +515,8 @@ $('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){
 $('#modalOv').addEventListener('click',e=>{if(e.target.id==='modalOv')closeModal()});
 
 /* ---------------- generic list page ---------------- */
-const chipState={};
+const chipState={}, FROZEN={};
+function unfreeze(sec){Object.keys(FROZEN).forEach(k=>{if(k.split('|')[0]===sec)delete FROZEN[k]})}
 function genList(sec){
   const m=MODS[sec];
   let items=list(sec);
@@ -530,6 +531,12 @@ function genList(sec){
     items=items.filter(chips[cur].f);
   }
   if(m.sort)items.sort(m.sort);
+  if(m.freeze){                       // hold the order steady while you're editing counts
+    const key=sec+'|'+(chipState[sec]??0), prev=FROZEN[key];
+    if(prev){const pos=new Map(prev.map((id,ix)=>[id,ix]));
+      items.sort((a,b)=>(pos.has(a.id)?pos.get(a.id):1e9)-(pos.has(b.id)?pos.get(b.id):1e9))}
+    FROZEN[key]=items.map(i=>i.id);
+  }
   if(!items.length){
     if(totalAll>0&&chips){                       // items exist — the filter is hiding them
       const ai=chips.findIndex(c=>c.l==='All'), aix=ai>=0?ai:0;
@@ -671,14 +678,14 @@ bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
   sort:(a,b)=>nextBday(a.d.date)-nextBday(b.d.date),
   card:i=>{const dd=daysToBday(i.d.date);return{t:esc(i.d.name),s:i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',
     pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
-stock:{title:'Stock of goods',color:'var(--orange)',hint:'Counts of what you keep at home. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
+stock:{title:'Stock of goods',freeze:1,color:'var(--orange)',hint:'Counts of what you keep at home. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
   chips:[{l:'All',f:()=>1},{l:'Low / out',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0;
     return{t:esc(i.d.name),s:[esc(i.d.place||''),par?'par '+par:''].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
-kitchen:{title:'Kitchen',color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
+kitchen:{title:'Kitchen',freeze:1,color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'dyn',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
   chips:[{l:'All',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)},{l:'Stocked',f:i=>(+i.d.count||0)>(+i.d.min||0)}],
   group:i=>i.d.cat||'Other',
@@ -1135,7 +1142,7 @@ function markNav(){
     g.querySelector('.navGroupBtn').classList.toggle('on',(g.dataset.pages||'').split(',').includes(activePage));
   });
 }
-function go(p){activePage=p;localStorage.alfred_page=p;renderActive()}
+function go(p){if(p!==activePage)unfreeze(p);activePage=p;localStorage.alfred_page=p;renderActive()}
 function renderActive(){
   syncAutoOrders();
   document.body.classList.toggle('briefReading',activePage==='brief');
