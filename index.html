@@ -734,6 +734,7 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
     const sub=[hasPaid?`Bought for ${money(i.d.paid)}`+(hasVal&&d!==0?` · <span class="${d>0?'pos':'neg'}">${d>0?'+':''}${money(d)}</span>`:''):'',esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(i.d.val)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
+  sort:byStart,
   fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
   card:i=>({t:esc(i.d.name),s:[(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
@@ -899,6 +900,8 @@ function networthPage(){
   h+=genList('assets');
   return h;
 }
+function byStart(a,b){const t=x=>{const m=toMin(x.d.start);return m==null?99999:m};
+  return t(a)-t(b)||(a.d.name||'').localeCompare(b.d.name||'')}
 function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);return isNaN(p)?null:p*60+(q||0)}
 function schedulePage(){
   const acts=list('acts');
@@ -1025,7 +1028,7 @@ function overviewPage(){
   if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
   else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
   h+=`</div>`;
-  const acts=list('acts').filter(actToday);
+  const acts=list('acts').filter(actToday).sort(byStart);
   if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(i.d.start)||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
   if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
