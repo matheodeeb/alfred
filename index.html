@@ -597,6 +597,11 @@ function syncAutoOrders(){
 function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
 function togg(sec,id){
   const m=MODS[sec],i=one(id);if(!i)return;
+  if(sec==='todo'&&id.startsWith('todo:recur:')){          // finishing the mirrored copy resets the cycle
+    const rid=id.slice(11);
+    if(one(rid))put('recur',{last:today()},rid);
+    kill(id);renderActive();return;
+  }
   if(typeof m.onToggle==='function'){m.onToggle(i)}
   else{const k=m.toggle.k||m.toggle;put(sec,{[k]:i.d[k]?'':1},id)}
   renderActive();
@@ -785,8 +790,42 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever 
   sort:(a,b)=>ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
   card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,90),dim:i.d.status==='Done',
     pill:{cls:i.d.status==='In progress'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
+recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. Anything due shows up on the To-do list — tick it there or here and the clock resets.',
+  fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},
+          {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly'],def:'Weekly'},
+          {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  chips:[{l:'All',f:()=>1},{l:'Personal',f:i=>(i.d.who||'Personal')==='Personal'},{l:'Staff',f:i=>i.d.who==='Staff'}],
+  group:i=>i.d.who||'Personal',
+  groupOrder:(a,b)=>a.localeCompare(b),
+  sort:(a,b)=>recurNext(a).localeCompare(recurNext(b)),
+  toggle:{k:'last'},
+  onToggle:i=>put('recur',{last:recurDue(i)?today():''},i.id),
+  stats:it=>{const due=it.filter(recurDue);
+    return[{k:'Due now',v:due.length,u:due.length?due.slice(0,3).map(i=>i.d.name).join(', '):'all up to date',c:due.length?'var(--bad)':'var(--ok)'},
+           {k:'Recurring jobs',v:it.length,c:'var(--purple)'}]},
+  card:i=>{const due=recurDue(i),next=recurNext(i);
+    const days=Math.round((new Date(next+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
+    return{t:esc(i.d.name),s:[esc(i.d.every||'Weekly'),i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done'].join(' · '),
+      dim:!due, pill:due?{cls:'bad',txt:'due'}:{cls:'ok',txt:days===1?'in 1 day':'in '+days+' days'}}},
+  empty:'Nothing recurring yet — hit + to add one.'},
 cfg:{title:'cfg'}
 };
+const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90};
+const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function recurNext(r){const iv=EVERY[r.d.every]||7;return r.d.last?addDays(r.d.last,iv):today()}
+function recurDue(r){return recurNext(r)<=today()}
+// due recurring jobs are mirrored into the To-do list; ticking them there completes the cycle
+function syncRecurTodos(){
+  list('recur').forEach(r=>{
+    const tid='todo:recur:'+r.id, cur=one(tid);
+    if(recurDue(r)){
+      const task=r.d.name, due=recurNext(r), notes=`${r.d.every||'Weekly'} · ${r.d.who||'Personal'}`;
+      if(!cur||cur.d.task!==task||cur.d.due!==due||cur.d.notes!==notes)
+        put('todo',{task,grp:'Recurring',due,done:'',notes},tid);
+    } else if(cur) kill(tid);
+  });
+}
 function paidThis(i){const lp=i.d.lastPaid||'';return lp.slice(0,7)===today().slice(0,7)}
 function nextBday(s){const d=daysToBday(s);return d==null?9999:d}
 function daysToBday(s){if(!s)return null;const now=new Date();const [y,m,dd]=s.split('-').map(Number);if(!m)return null;
@@ -1080,6 +1119,7 @@ const NAV=[
   {t:'Overview',p:'overview'},
   {t:'Brief',p:'brief'},
   {t:'To-do',p:'todo',cls:'todo'},
+  {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
   {t:'Stock',g:[['Goods','stock'],['Kitchen','kitchen']]},
@@ -1144,7 +1184,7 @@ function markNav(){
 }
 function go(p){if(p!==activePage)unfreeze(p);activePage=p;localStorage.alfred_page=p;renderActive()}
 function renderActive(){
-  syncAutoOrders();
+  syncAutoOrders();syncRecurTodos();
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
   const el=$('#pg-'+activePage);if(!el)return;
