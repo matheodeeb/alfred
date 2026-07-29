@@ -107,6 +107,7 @@
   .rright .pill{min-width:54px;text-align:center}
   .ordBtn{flex:none;padding:5px 10px;font-size:11.5px;white-space:nowrap}
   .ordBtn:disabled{opacity:.55;border-color:var(--ok);color:var(--ok);cursor:default}
+  .pausedBtn{border-color:var(--acc);color:var(--acc)}
   .rright .qtyStep{flex:none}
   .rowBox.open .chev{transform:rotate(180deg)}
   .rDet{display:none;padding:0 14px 12px;font-size:13.5px;line-height:1.65}
@@ -569,7 +570,7 @@ function rowHtml(sec,i){
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
-    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.act?`<button class="btn sm ordBtn" onclick="event.stopPropagation();${c.act.fn}">${c.act.txt}</button>`:''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
+    <div class="rright">${c.step?stepHtml(i,c.step):''}${c.act?`<button class="btn sm ${c.act.cls||'ordBtn'}" onclick="event.stopPropagation();${c.act.fn}">${c.act.txt}</button>`:''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
     </div>
     ${det?`<div class="rDet">${det}</div>`:''}
   </div>`;
@@ -791,22 +792,24 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever 
   card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,90),dim:i.d.status==='Done',
     pill:{cls:i.d.status==='In progress'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. Anything due shows up on the To-do list — tick it there or here and the clock resets.',
-  fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},
+  fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
           {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly'],def:'Weekly'},
           {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'All',f:()=>1},{l:'Personal',f:i=>(i.d.who||'Personal')==='Personal'},{l:'Staff',f:i=>i.d.who==='Staff'}],
   group:i=>i.d.who||'Personal',
   groupOrder:(a,b)=>a.localeCompare(b),
-  sort:(a,b)=>recurNext(a).localeCompare(recurNext(b)),
+  sort:(a,b)=>(a.d.paused?1:0)-(b.d.paused?1:0)||recurNext(a).localeCompare(recurNext(b)),
   toggle:{k:'last'},
   onToggle:i=>put('recur',{last:recurDue(i)?today():''},i.id),
-  stats:it=>{const due=it.filter(recurDue);
+  stats:it=>{const due=it.filter(recurDue), paused=it.filter(i=>i.d.paused).length;
     return[{k:'Due now',v:due.length,u:due.length?due.slice(0,3).map(i=>i.d.name).join(', '):'all up to date',c:due.length?'var(--bad)':'var(--ok)'},
-           {k:'Recurring jobs',v:it.length,c:'var(--purple)'}]},
+           {k:'Recurring jobs',v:it.length,u:paused?paused+' paused':'',c:'var(--purple)'}]},
   card:i=>{const due=recurDue(i),next=recurNext(i);
     const days=Math.round((new Date(next+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
-    return{t:esc(i.d.name),s:[esc(i.d.every||'Weekly'),i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done'].join(' · '),
-      dim:!due, pill:due?{cls:'bad',txt:'due'}:{cls:'ok',txt:days===1?'in 1 day':'in '+days+' days'}}},
+    return{t:esc(i.d.name),s:[esc(i.d.every||'Weekly'),i.d.paused?'paused':(i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done')].join(' · '),
+      dim:!due,
+      act:{txt:i.d.paused?'▶ Resume':'❚❚ Pause',fn:`recurPause('${i.id}')`,cls:i.d.paused?'ordBtn pausedBtn':'ordBtn'},
+      pill:i.d.paused?{cls:'mut',txt:'paused'}:(due?{cls:'bad',txt:'due'}:{cls:'ok',txt:days===1?'in 1 day':'in '+days+' days'})}},
   empty:'Nothing recurring yet — hit + to add one.'},
 cfg:{title:'cfg'}
 };
@@ -814,7 +817,8 @@ const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90};
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function recurNext(r){const iv=EVERY[r.d.every]||7;return r.d.last?addDays(r.d.last,iv):today()}
-function recurDue(r){return recurNext(r)<=today()}
+function recurDue(r){return !r.d.paused&&recurNext(r)<=today()}
+function recurPause(id){const r=one(id);if(!r)return;put('recur',{paused:r.d.paused?'':1},id);renderActive()}
 // due recurring jobs are mirrored into the To-do list; ticking them there completes the cycle
 function syncRecurTodos(){
   list('recur').forEach(r=>{
