@@ -1165,9 +1165,9 @@ function briefArticle(b){
      2. the same paragraph from a parallel edition, which always exists
    Everything is local; nothing is fetched. -------------------------------- */
 const WT_UI={
-  en:{gloss:'Meaning',para:'Same paragraph in',save:'＋ Save word',saved:'✓ Saved',close:'Close',miss:'Not in today\'s glossary — the parallel paragraph is below.',vocab:'Saved words',vempty:'No saved words yet. Tap a word in the brief and hit Save.',from:'from',help:'Explain in'},
-  fr:{gloss:'Sens',para:'Le même paragraphe en',save:'＋ Retenir',saved:'✓ Retenu',close:'Fermer',miss:"Absent du glossaire du jour — le paragraphe parallèle est ci-dessous.",vocab:'Mots retenus',vempty:'Aucun mot retenu. Touche un mot dans le brief puis « Retenir ».',from:'du',help:'Expliquer en'},
-  es:{gloss:'Significado',para:'El mismo párrafo en',save:'＋ Guardar',saved:'✓ Guardado',close:'Cerrar',miss:'No está en el glosario de hoy — abajo tienes el párrafo paralelo.',vocab:'Palabras guardadas',vempty:'Aún no hay palabras guardadas. Toca una palabra del brief y pulsa Guardar.',from:'del',help:'Explicar en'}
+  en:{gloss:'Meaning',para:'Same paragraph in',save:'＋ Save word',saved:'✓ Saved',close:'Close',miss:'Not in the lexicon yet — it will be added with tomorrow\'s brief. The parallel paragraph is below.',vocab:'Saved words',vempty:'No saved words yet. Tap a word in the brief and hit Save.',from:'from',help:'Explain in'},
+  fr:{gloss:'Sens',para:'Le même paragraphe en',save:'＋ Retenir',saved:'✓ Retenu',close:'Fermer',miss:"Pas encore dans le lexique — il sera ajouté avec le brief de demain. Le paragraphe parallèle est ci-dessous.",vocab:'Mots retenus',vempty:'Aucun mot retenu. Touche un mot dans le brief puis « Retenir ».',from:'du',help:'Expliquer en'},
+  es:{gloss:'Significado',para:'El mismo párrafo en',save:'＋ Guardar',saved:'✓ Guardado',close:'Cerrar',miss:'Todavía no está en el léxico — se añadirá con el brief de mañana. Abajo tienes el párrafo paralelo.',vocab:'Palabras guardadas',vempty:'Aún no hay palabras guardadas. Toca una palabra del brief y pulsa Guardar.',from:'del',help:'Explicar en'}
 };
 const WT={term:'',bi:null,date:'',srcLang:'',mode:'word'};
 function wtUI(){return WT_UI[briefLang()]||WT_UI.en}
@@ -1181,16 +1181,62 @@ function briefTxtIn(b,base,lang){const d=(b&&b.d)||{};return d[base+'_'+lang]||(
 function wtNorm(s){return String(s||'').toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'').trim()}
 /* strip French/Italian elision so tapping "aviation" in "l'aviation" looks up the noun */
 function wtDeElide(w){const m=/^(l|d|qu|n|s|j|m|t|c)['’](.+)$/i.exec(w);return m&&m[2].length>1?m[2]:w}
+function wtDeaccent(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')}
+/* Regular French/Spanish inflection, longest ending first. One stored lemma then
+   answers every surface form: américaines→americain, anunciada→anunci. */
+const WT_SUF={
+ fr:["issements","issement","issaient","eraient","erions","assent","aient","aires","ateurs","atrices","ations","ation","ements","ement","eront","erait","erons","aire","ateur","atrice","ances","ance","ences","ence","ismes","isme","istes","iste","ites","ite","eurs","euses","euse","eur","ives","ive","ifs","if","elles","elle","eaux","eau","aux","als","al","ees","ee","es","ers","er","ent","ait","ons","ez","e","s"],
+ es:["aciones","acion","amientos","amiento","mientos","miento","adores","adora","ador","antes","ante","isimo","isima","mente","ables","able","ibles","ible","encia","ancia","ismos","ismo","istas","ista","idades","idad","ados","adas","ado","ada","idos","idas","ido","ida","aron","ieron","aban","ian","ando","iendo","ares","ar","er","ir","cion","es","os","as","o","a","s"]
+};
+function wtStem(w,lang){
+  w=wtDeaccent(wtDeElide(String(w||'').toLowerCase().replace(/[’]/g,"'")));
+  for(const s of (WT_SUF[lang]||[])){
+    if(w.endsWith(s)&&w.length-s.length>=4)return w.slice(0,w.length-s.length);
+  }
+  return w;
+}
+/* the accumulated lexicon, indexed by stem once per language */
+function wtLex(lang){
+  const row=S.items['lexicon:'+lang];
+  return (row&&row.d&&row.d.w)||null;
+}
+const WT_IDX={};
+function wtLexIndex(lang){
+  const lex=wtLex(lang);if(!lex)return null;
+  const cached=WT_IDX[lang];
+  if(cached&&cached.src===lex)return cached.map;
+  const map=Object.create(null);
+  for(const k in lex){
+    const st=wtStem(k,lang);
+    if(!(st in map))map[st]=lex[k];
+  }
+  WT_IDX[lang]={src:lex,map:map};
+  return map;
+}
+/* per-brief gloss wins (it can carry the sense used that day), then the lexicon */
 function wtLookup(term){
-  const b=S.items['brief:'+WT.date];if(!b)return null;
-  const g=(b.d.gloss&&b.d.gloss[WT.srcLang])||null;if(!g)return null;
-  const tries=[];const n=wtNorm(term);
-  tries.push(n,wtDeElide(n));
-  if(n.length>3){tries.push(n.replace(/(es|s|x)$/,''));}
-  for(const t of tries){if(t&&g[t])return g[t]}
-  /* last resort: a glossary entry that is a phrase containing this word */
-  for(const k in g){if(k.split(' ').length>1&&(' '+k+' ').includes(' '+n+' '))return g[k]}
+  const lang=WT.srcLang,n=wtNorm(term),de=wtDeElide(n);
+  const b=S.items['brief:'+WT.date];
+  const g=(b&&b.d.gloss&&b.d.gloss[lang])||null;
+  if(g){
+    for(const t of [n,de,n.replace(/(es|s|x)$/,'')]){if(t&&g[t])return g[t]}
+    for(const k in g){if(k.indexOf(' ')>0&&(' '+k+' ').includes(' '+n+' '))return g[k]}
+  }
+  const lex=wtLex(lang);
+  if(lex){
+    for(const t of [n,de]){if(t&&lex[t])return lex[t]}
+    /* multi-word entries: match the phrase the word sits in */
+    for(const k in lex){if(k.indexOf(' ')>0&&(' '+k+' ').includes(' '+n+' '))return lex[k]}
+    const idx=wtLexIndex(lang);
+    if(idx){const hit=idx[wtStem(n,lang)];if(hit)return hit}
+  }
   return null;
+}
+/* normalise both the old {en,es,pos,note} and the lexicon {p,e,d} shapes */
+function wtFields(g,helpLang){
+  if(!g)return null;
+  if(g.d||g.e)return {def:g.d||'',eq:g.e||'',pos:g.p||'',note:g.note||''};
+  return {def:g[helpLang]||g.en||g.m||'',eq:'',pos:g.pos||'',note:g.note||''};
 }
 function wtParallel(){
   const b=S.items['brief:'+WT.date];if(!b||WT.bi==null)return null;
@@ -1208,8 +1254,8 @@ function vocabToggle(){
   const v=vocabList(),i=vocabIdx(WT.term,WT.srcLang);
   if(i>=0)v.splice(i,1);
   else{
-    const g=wtLookup(WT.term);
-    v.unshift({w:WT.term,l:WT.srcLang,m:g?(g[wtHelpLang()]||g.en||g.m||''):'',d:WT.date});
+    const f=wtFields(wtLookup(WT.term),wtHelpLang());
+    v.unshift({w:WT.term,l:WT.srcLang,m:f?f.def:'',d:WT.date});
   }
   vocabSave(v);wtRender();
 }
@@ -1240,14 +1286,15 @@ function wtRender(){
       <div class="wtRow"><button class="wtBtn" onclick="wtClose()">${esc(U.close)}</button></div>`;
     return;
   }
-  const g=wtLookup(WT.term),par=wtParallel(),saved=vocabIdx(WT.term,WT.srcLang)>=0,hl=wtHelpLang();
-  const meaning=g?(g[hl]||g.en||g.m||''):'';
+  const hl=wtHelpLang();
+  const f=wtFields(wtLookup(WT.term),hl),par=wtParallel(),saved=vocabIdx(WT.term,WT.srcLang)>=0;
+  const meaning=f?f.def:'';
   const lab=(BRIEF_LANGS.find(l=>l.k===hl)||{}).lab||hl;
   el.innerHTML=`<div class="wtGrab"></div>
     <div class="wtTerm">${esc(WT.term)}</div>
-    ${g&&g.pos?`<div class="wtPos">${esc(g.pos)}</div>`:''}
+    ${f&&(f.pos||f.eq)?`<div class="wtPos">${esc([f.pos,f.eq].filter(Boolean).join(' · '))}</div>`:''}
     ${meaning?`<div class="wtLabel">${esc(U.gloss)}</div><div class="wtGloss">${esc(meaning)}</div>`:''}
-    ${g&&g.note?`<div class="wtNote">${esc(g.note)}</div>`:''}
+    ${f&&f.note?`<div class="wtNote">${esc(f.note)}</div>`:''}
     ${!meaning?`<div class="wtLabel">${esc(U.gloss)}</div><div class="wtMiss">${esc(U.miss)}</div>`:''}
     ${par?`<div class="wtLabel">${esc(U.para)} ${esc(lab)}</div><div class="wtPara">${par}</div>`:''}
     <div class="wtRow">
