@@ -1065,9 +1065,27 @@ function briefLangBar(){
     `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div></div>`;
 }
 function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
-function briefMark(date,id){
-  const l=briefLang(),key='alfred_briefread_'+date+(l==='en'?'':'_'+l);
+/* read-marks are shared across all three editions: one paragraph, one tick, whatever
+   language it was ticked in. The editions run block-for-block parallel, so the index
+   points at the same paragraph in each. Older per-language keys get folded in once. */
+function briefReadKey(date){return 'alfred_briefread_'+date}
+function briefReadSet(date){
+  const key=briefReadKey(date);
   let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
+  let merged=false;
+  BRIEF_LANGS.forEach(l=>{
+    if(l.k==='en')return;
+    const old=key+'_'+l.k;
+    if(localStorage[old]==null)return;
+    try{JSON.parse(localStorage[old]||'[]').forEach(i=>{if(!st.has(i)){st.add(i);merged=true}})}catch(e){}
+    delete localStorage[old];
+  });
+  if(merged)localStorage[key]=JSON.stringify([...st]);
+  return st;
+}
+function briefMark(date,id){
+  const key=briefReadKey(date);
+  let st=briefReadSet(date);
   st.has(id)?st.delete(id):st.add(id);
   localStorage[key]=JSON.stringify([...st]);
   const se=document.scrollingElement||document.documentElement,keep=se.scrollTop;
@@ -1076,14 +1094,14 @@ function briefMark(date,id){
 
 }
 function briefArticle(b){
-  const U=bUI(),lang=briefLang();
+  const U=bUI();
   const body=briefTxt(b,'body');
   const blocks=mdBlocks(body);
   const words=String(body).split(/\s+/).filter(Boolean).length;
   const mins=Math.max(1,Math.round(words/200));
   const isToday=b.d.date===today();
   let readSet=new Set();
-  if(isToday){try{readSet=new Set(JSON.parse(localStorage['alfred_briefread_'+b.d.date+(lang==='en'?'':'_'+lang)]||'[]'))}catch(e){}}
+  if(isToday)readSet=briefReadSet(b.d.date);
   const all=briefsSorted(),idx=all.findIndex(x=>x.id===b.id);
   const older=all[idx+1],newer=all[idx-1];
   let h=`<div class="bkWrap">
