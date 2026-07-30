@@ -513,6 +513,47 @@ function priSort(a,b){
   const fa=isFinished(a.d)?1:0, fb=isFinished(b.d)?1:0;
   return fa-fb||(+a.d.pri||9999)-(+b.d.pri||9999)||(a.d.name||'').localeCompare(b.d.name||'');
 }
+/* Read a release date out of the free-text "Release / where" field, so the
+   Upcoming lists can run soonest-first. Handles "July 31", "Released July 17",
+   "December 18, 2026", "Dec 2026", "2027" and plain ISO dates. */
+const REL_MONTHS=[['january|jan',0],['february|feb',1],['march|mar',2],['april|apr',3],['may',4],['june|jun',5],
+                  ['july|jul',6],['august|aug',7],['september|sept|sep',8],['october|oct',9],['november|nov',10],['december|dec',11]];
+function relDate(d){
+  const raw=String((d&&d.rel)||'').trim();
+  if(!raw)return null;
+  const iso=/(\d{4})-(\d{1,2})-(\d{1,2})/.exec(raw);
+  if(iso)return new Date(+iso[1],+iso[2]-1,+iso[3]).getTime();
+  const s=raw.toLowerCase();
+  const ym=/\b(20\d{2})\b/.exec(s);
+  let mi=null;
+  for(const [pat,ix] of REL_MONTHS){if(new RegExp('\\b(?:'+pat+')\\b').test(s)){mi=ix;break}}
+  if(mi==null)return ym?new Date(+ym[1],0,1).getTime():null;
+  const dm=/\b(\d{1,2})(?:st|nd|rd|th)?\b/.exec(s.replace(/\b20\d{2}\b/g,' '));
+  const day=dm?Math.min(31,Math.max(1,+dm[1])):1;
+  if(ym)return new Date(+ym[1],mi,day).getTime();
+  /* no year written: assume the nearest one, rolling forward if it is long past */
+  const now=new Date();let y=now.getFullYear();
+  if((new Date(y,mi,day)-now)/86400000<-120)y+=1;
+  return new Date(y,mi,day).getTime();
+}
+/* Upcoming runs chronologically — what lands soonest sits on top, including
+   something already in cinemas. Everything else keeps the manual ranking. */
+function upNextSort(a,b){
+  /* Compare within a genre only. Mixing two different rules across genres would
+     make this comparator inconsistent and Array.sort would scramble the result. */
+  const ga=a.d.genre||'Other', gb=b.d.genre||'Other';
+  if(ga!==gb)return (ga==='Upcoming'?0:1)-(gb==='Upcoming'?0:1)||ga.localeCompare(gb);
+  if(ga!=='Upcoming')return priSort(a,b);
+  const fa=isFinished(a.d)?1:0, fb=isFinished(b.d)?1:0;
+  if(fa!==fb)return fa-fb;
+  const pa=+a.d.pri||0, pb=+b.d.pri||0;            // an explicit rank still wins
+  if(pa!==pb)return (pa||1e9)-(pb||1e9);
+  const da=relDate(a.d), db=relDate(b.d);
+  if(da!=null&&db!=null&&da!==db)return da-db;
+  if(da!=null&&db==null)return -1;
+  if(da==null&&db!=null)return 1;
+  return (a.d.name||'').localeCompare(b.d.name||'');
+}
 let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
@@ -776,19 +817,19 @@ travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming u
   card:i=>({t:esc(i.d.place),s:[i.d.start?fdate(i.d.start):'',i.d.end?'→ '+fdate(i.d.end):''].filter(Boolean).join(' '),
     pill:i.d.start&&i.d.start>today()?{cls:'acc',txt:'upcoming'}:null})},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
-  ranked:1, sort:priSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
+  ranked:1, sort:upNextSort,
+  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
 movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
   fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
-  ranked:1, sort:priSort,
+  ranked:1, sort:upNextSort,
   card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
     pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
