@@ -240,6 +240,38 @@
   .bkLang button.on{background:var(--gold);color:#faf6ec}
   .bkFallback{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:center;margin:9px 0 0}
   @media(max-width:400px){.bkLang button{padding:6px 10px;font-size:9.5px}}
+  .bkVocab{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;margin-left:8px}
+  .bkVocab:hover{border-color:var(--gold);color:var(--gold)}
+  /* tap-to-understand */
+  .bkP,.bkStand,.bkUl,.bkH3{cursor:text}
+  .wtMark{background:rgba(185,139,46,.28);border-radius:3px}
+  .wtBack{position:fixed;inset:0;z-index:1490;background:rgba(30,26,18,.28);opacity:0;pointer-events:none;transition:opacity .2s}
+  .wtBack.on{opacity:1;pointer-events:auto}
+  .wtSheet{position:fixed;left:0;right:0;bottom:0;z-index:1500;background:var(--panel);border-top:1px solid var(--line2);border-radius:18px 18px 0 0;box-shadow:0 -12px 44px rgba(41,36,24,.22);padding:10px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .24s cubic-bezier(.22,.8,.3,1);max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .wtSheet.on{transform:none}
+  .wtGrab{width:38px;height:4px;border-radius:999px;background:var(--line2);margin:0 auto 12px}
+  .wtTerm{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:24px;line-height:1.2;letter-spacing:-.01em;word-break:break-word}
+  .wtPos{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+  .wtGloss{font-family:Georgia,serif;font-size:17.5px;line-height:1.55;margin:12px 0 0;color:var(--txt)}
+  .wtNote{font-family:Georgia,serif;font-size:15px;line-height:1.5;margin:8px 0 0;color:var(--muted);font-style:italic}
+  .wtLabel{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line2);padding-top:11px;margin:16px 0 7px}
+  .wtPara{font-family:Georgia,serif;font-size:16px;line-height:1.62;color:var(--txt)}
+  .wtPara ul{padding-left:20px;margin:0}
+  .wtMiss{font-family:Georgia,serif;font-size:15.5px;line-height:1.55;color:var(--muted);font-style:italic}
+  .wtRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;border-top:1px solid var(--line2);padding-top:12px}
+  .wtBtn{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:7px 13px;cursor:pointer;transition:.12s}
+  .wtBtn:hover{border-color:var(--acc);color:var(--acc)}
+  .wtBtn.on{background:var(--gold);border-color:var(--gold);color:#faf6ec}
+  .wtHelp{display:inline-flex;gap:2px;background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:2px;margin-left:auto}
+  .wtHelp button{background:none;border:0;border-radius:999px;font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:5px 9px;cursor:pointer}
+  .wtHelp button.on{background:var(--acc);color:#faf6ec}
+  .wtChip{position:absolute;z-index:1480;background:var(--acc);color:#faf6ec;border:0;border-radius:999px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:7px 13px;cursor:pointer;box-shadow:0 4px 14px rgba(41,36,24,.28);display:none}
+  .wtChip.on{display:block}
+  .wtVrow{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--line2)}
+  .wtVrow .vw{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:16px;flex:0 0 auto;max-width:42%;word-break:break-word}
+  .wtVrow .vm{font-family:Georgia,serif;font-size:14.5px;line-height:1.45;color:var(--muted);flex:1}
+  .wtVrow .vx{background:none;border:0;color:var(--faint);cursor:pointer;font-size:15px;padding:0 2px}
+  .wtEmpty{font-family:Georgia,serif;font-size:15.5px;color:var(--muted);font-style:italic;margin:14px 0 4px}
   /* lock screen */
   #lock{position:fixed;inset:0;z-index:2000;background:var(--bg);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:42px 42px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:20px}
   #lock.show{display:flex}
@@ -1060,9 +1092,10 @@ function briefTxt(b,base){const l=briefLang(),d=(b&&b.d)||{};return d[base+'_'+l
 function briefNative(b){const l=briefLang(),d=(b&&b.d)||{};return l==='en'?!!(d.body_en||d.body):!!d['body_'+l]}
 function fdateL(x){if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString(bUI().loc,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
 function briefLangBar(){
-  const cur=briefLang();
+  const cur=briefLang(),n=vocabList().length;
   return `<div class="bkLangRow"><div class="bkLang">${BRIEF_LANGS.map(l=>
-    `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div></div>`;
+    `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div>${
+    n?`<button class="bkVocab" onclick="wtOpenVocab()">★ ${n}</button>`:''}</div>`;
 }
 function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
 /* read-marks are shared across all three editions: one paragraph, one tick, whatever
@@ -1104,7 +1137,7 @@ function briefArticle(b){
   if(isToday)readSet=briefReadSet(b.d.date);
   const all=briefsSorted(),idx=all.findIndex(x=>x.id===b.id);
   const older=all[idx+1],newer=all[idx-1];
-  let h=`<div class="bkWrap">
+  let h=`<div class="bkWrap" data-brief="${b.d.date}">
     ${briefLangBar()}
     <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
@@ -1112,19 +1145,184 @@ function briefArticle(b){
     ${briefNative(b)?'':`<div class="bkFallback">${esc(U.fb)}</div>`}`;
   let pi=0,firstP=blocks.findIndex(x=>x.t==='p');
   blocks.forEach((bl,i)=>{
-    if(bl.t==='kick'){h+=`<div class="bkKick">${bl.h}</div>`;return}
-    if(bl.t==='h3'){h+=`<h3 class="bkH3">${bl.h}</h3>`;return}
+    if(bl.t==='kick'){h+=`<div class="bkKick" data-bi="${i}">${bl.h}</div>`;return}
+    if(bl.t==='h3'){h+=`<h3 class="bkH3" data-bi="${i}">${bl.h}</h3>`;return}
     const stand=(i===firstP&&/^<em>.*<\/em>$/.test(bl.h));
     const cls=stand?'bkStand':(bl.t==='ul'?'bkUl':'bkP');
     const id=pi++;
     if(isToday){
       const rd=readSet.has(id);
-      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?esc(U.read):esc(U.mark)}</button></div>`;
-    }else h+=`<div class="${cls}">${bl.h}</div>`;
+      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}" data-bi="${i}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?esc(U.read):esc(U.mark)}</button></div>`;
+    }else h+=`<div class="${cls}" data-bi="${i}">${bl.h}</div>`;
   });
   h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdateL(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdateL(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
   return h;
 }
+/* ---------- tap-to-understand ----------
+   Tap any word (or highlight a phrase) in the brief and get it explained.
+   Two layers, so a tap always returns something:
+     1. the day's glossary, written alongside the edition — meaning in context
+     2. the same paragraph from a parallel edition, which always exists
+   Everything is local; nothing is fetched. -------------------------------- */
+const WT_UI={
+  en:{gloss:'Meaning',para:'Same paragraph in',save:'＋ Save word',saved:'✓ Saved',close:'Close',miss:'Not in today\'s glossary — the parallel paragraph is below.',vocab:'Saved words',vempty:'No saved words yet. Tap a word in the brief and hit Save.',from:'from',help:'Explain in'},
+  fr:{gloss:'Sens',para:'Le même paragraphe en',save:'＋ Retenir',saved:'✓ Retenu',close:'Fermer',miss:"Absent du glossaire du jour — le paragraphe parallèle est ci-dessous.",vocab:'Mots retenus',vempty:'Aucun mot retenu. Touche un mot dans le brief puis « Retenir ».',from:'du',help:'Expliquer en'},
+  es:{gloss:'Significado',para:'El mismo párrafo en',save:'＋ Guardar',saved:'✓ Guardado',close:'Cerrar',miss:'No está en el glosario de hoy — abajo tienes el párrafo paralelo.',vocab:'Palabras guardadas',vempty:'Aún no hay palabras guardadas. Toca una palabra del brief y pulsa Guardar.',from:'del',help:'Explicar en'}
+};
+const WT={term:'',bi:null,date:'',srcLang:'',mode:'word'};
+function wtUI(){return WT_UI[briefLang()]||WT_UI.en}
+function wtHelpLang(){
+  const v=localStorage['alfred_briefhelp'];
+  if(BRIEF_LANGS.some(l=>l.k===v)&&v!==briefLang())return v;
+  return briefLang()==='en'?'fr':'en';
+}
+function wtSetHelpLang(k){localStorage['alfred_briefhelp']=k;wtRender()}
+function briefTxtIn(b,base,lang){const d=(b&&b.d)||{};return d[base+'_'+lang]||(lang==='en'?(d[base]||''):'')}
+function wtNorm(s){return String(s||'').toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'').trim()}
+/* strip French/Italian elision so tapping "aviation" in "l'aviation" looks up the noun */
+function wtDeElide(w){const m=/^(l|d|qu|n|s|j|m|t|c)['’](.+)$/i.exec(w);return m&&m[2].length>1?m[2]:w}
+function wtLookup(term){
+  const b=S.items['brief:'+WT.date];if(!b)return null;
+  const g=(b.d.gloss&&b.d.gloss[WT.srcLang])||null;if(!g)return null;
+  const tries=[];const n=wtNorm(term);
+  tries.push(n,wtDeElide(n));
+  if(n.length>3){tries.push(n.replace(/(es|s|x)$/,''));}
+  for(const t of tries){if(t&&g[t])return g[t]}
+  /* last resort: a glossary entry that is a phrase containing this word */
+  for(const k in g){if(k.split(' ').length>1&&(' '+k+' ').includes(' '+n+' '))return g[k]}
+  return null;
+}
+function wtParallel(){
+  const b=S.items['brief:'+WT.date];if(!b||WT.bi==null)return null;
+  const src=briefTxtIn(b,'body',wtHelpLang());if(!src)return null;
+  const blocks=mdBlocks(src);
+  const mine=mdBlocks(briefTxtIn(b,'body',WT.srcLang)||b.d.body||'');
+  /* only trust the index when the two editions run block-for-block parallel */
+  if(blocks.length!==mine.length)return null;
+  return blocks[WT.bi]?blocks[WT.bi].h:null;
+}
+function vocabList(){try{const v=JSON.parse(localStorage['alfred_vocab']||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+function vocabSave(v){localStorage['alfred_vocab']=JSON.stringify(v.slice(0,500))}
+function vocabIdx(term,lang){const n=wtNorm(term);return vocabList().findIndex(x=>wtNorm(x.w)===n&&x.l===lang)}
+function vocabToggle(){
+  const v=vocabList(),i=vocabIdx(WT.term,WT.srcLang);
+  if(i>=0)v.splice(i,1);
+  else{
+    const g=wtLookup(WT.term);
+    v.unshift({w:WT.term,l:WT.srcLang,m:g?(g[wtHelpLang()]||g.en||g.m||''):'',d:WT.date});
+  }
+  vocabSave(v);wtRender();
+}
+function vocabDel(i){const v=vocabList();v.splice(i,1);vocabSave(v);wtRender()}
+function wtEl(){
+  let el=document.getElementById('wtSheet');
+  if(el)return el;
+  const back=document.createElement('div');back.className='wtBack';back.id='wtBack';back.onclick=wtClose;
+  document.body.appendChild(back);
+  el=document.createElement('div');el.className='wtSheet';el.id='wtSheet';
+  document.body.appendChild(el);
+  const chip=document.createElement('button');chip.className='wtChip';chip.id='wtChip';
+  chip.onclick=e=>{e.stopPropagation();const s=String(getSelection()).trim();if(s)wtOpen(s,WT.bi)};
+  document.body.appendChild(chip);
+  return el;
+}
+function wtHelpBar(){
+  const cur=wtHelpLang();
+  return `<div class="wtHelp">${BRIEF_LANGS.filter(l=>l.k!==WT.srcLang).map(l=>
+    `<button class="${l.k===cur?'on':''}" onclick="wtSetHelpLang('${l.k}')">${l.k.toUpperCase()}</button>`).join('')}</div>`;
+}
+function wtRender(){
+  const el=wtEl(),U=wtUI();
+  if(WT.mode==='vocab'){
+    const v=vocabList();
+    el.innerHTML=`<div class="wtGrab"></div><div class="wtTerm">${esc(U.vocab)}</div>
+      ${v.length?v.map((x,i)=>`<div class="wtVrow"><div class="vw">${esc(x.w)}</div><div class="vm">${x.m?esc(x.m):'<span style="opacity:.6">—</span>'}</div><button class="vx" onclick="vocabDel(${i})" aria-label="remove">✕</button></div>`).join(''):`<div class="wtEmpty">${esc(U.vempty)}</div>`}
+      <div class="wtRow"><button class="wtBtn" onclick="wtClose()">${esc(U.close)}</button></div>`;
+    return;
+  }
+  const g=wtLookup(WT.term),par=wtParallel(),saved=vocabIdx(WT.term,WT.srcLang)>=0,hl=wtHelpLang();
+  const meaning=g?(g[hl]||g.en||g.m||''):'';
+  const lab=(BRIEF_LANGS.find(l=>l.k===hl)||{}).lab||hl;
+  el.innerHTML=`<div class="wtGrab"></div>
+    <div class="wtTerm">${esc(WT.term)}</div>
+    ${g&&g.pos?`<div class="wtPos">${esc(g.pos)}</div>`:''}
+    ${meaning?`<div class="wtLabel">${esc(U.gloss)}</div><div class="wtGloss">${esc(meaning)}</div>`:''}
+    ${g&&g.note?`<div class="wtNote">${esc(g.note)}</div>`:''}
+    ${!meaning?`<div class="wtLabel">${esc(U.gloss)}</div><div class="wtMiss">${esc(U.miss)}</div>`:''}
+    ${par?`<div class="wtLabel">${esc(U.para)} ${esc(lab)}</div><div class="wtPara">${par}</div>`:''}
+    <div class="wtRow">
+      <button class="wtBtn ${saved?'on':''}" onclick="vocabToggle()">${saved?esc(U.saved):esc(U.save)}</button>
+      <button class="wtBtn" onclick="wtClose()">${esc(U.close)}</button>
+      ${wtHelpBar()}
+    </div>`;
+}
+function wtOpen(term,bi){
+  if(!term)return;
+  /* tapping "aviation" in "l'aviation" should look up the noun, not the elided pair */
+  if(!/\s/.test(term))term=wtDeElide(term);
+  WT.term=term;WT.bi=bi;WT.mode='word';WT.srcLang=briefLang();
+  const w=document.querySelector('.bkWrap[data-brief]');
+  if(w)WT.date=w.getAttribute('data-brief');
+  wtRender();
+  wtEl().classList.add('on');document.getElementById('wtBack').classList.add('on');
+  wtChipHide();
+}
+function wtOpenVocab(){
+  WT.mode='vocab';WT.srcLang=briefLang();
+  wtRender();
+  wtEl().classList.add('on');document.getElementById('wtBack').classList.add('on');
+}
+function wtClose(){
+  const el=document.getElementById('wtSheet');if(el)el.classList.remove('on');
+  const b=document.getElementById('wtBack');if(b)b.classList.remove('on');
+}
+function wtChipHide(){const c=document.getElementById('wtChip');if(c)c.classList.remove('on')}
+/* find the word sitting under the pointer, without wrapping 2,000 spans into the DOM */
+function wtWordAt(x,y){
+  let node=null,off=0;
+  if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r){node=r.startContainer;off=r.startOffset}}
+  else if(document.caretPositionFromPoint){const p=document.caretPositionFromPoint(x,y);if(p){node=p.offsetNode;off=p.offset}}
+  if(!node||node.nodeType!==3)return null;
+  const t=node.nodeValue||'';
+  const isW=c=>c!=null&&/[\p{L}\p{M}'’-]/u.test(c);
+  let a=Math.min(off,t.length),z=a;
+  while(a>0&&isW(t[a-1]))a--;
+  while(z<t.length&&isW(t[z]))z++;
+  const w=t.slice(a,z).replace(/^['’-]+|['’-]+$/g,'');
+  return w.length>1?w:null;
+}
+function wtBlockOf(node){
+  let el=node&&node.nodeType===3?node.parentElement:node;
+  while(el&&!el.hasAttribute?.('data-bi'))el=el.parentElement;
+  return el?parseInt(el.getAttribute('data-bi'),10):null;
+}
+document.addEventListener('click',e=>{
+  if(activePage!=='brief')return;
+  if(e.target.closest('#wtSheet,#wtChip,.wtBack,button,a,.bkLang,.bkTop,.bkNav'))return;
+  const host=e.target.closest('.bkP,.bkStand,.bkUl,.bkH3,.bkH1');
+  if(!host)return;
+  const sel=String(getSelection()).trim();
+  if(sel&&sel.split(/\s+/).length>1){wtOpen(sel,wtBlockOf(host));return}
+  const w=wtWordAt(e.clientX,e.clientY);
+  if(w)wtOpen(w,wtBlockOf(host));
+});
+/* highlight a phrase and a small button follows the selection */
+document.addEventListener('selectionchange',()=>{
+  const c=document.getElementById('wtChip');if(!c)return;
+  if(activePage!=='brief')return wtChipHide();
+  const s=getSelection();
+  const txt=String(s||'').trim();
+  if(!txt||txt.split(/\s+/).length<2||!s.rangeCount)return wtChipHide();
+  const host=s.anchorNode&&(s.anchorNode.nodeType===3?s.anchorNode.parentElement:s.anchorNode);
+  if(!host||!host.closest||!host.closest('.bkWrap'))return wtChipHide();
+  const r=s.getRangeAt(0).getBoundingClientRect();
+  if(!r.width&&!r.height)return wtChipHide();
+  c.textContent=wtUI().gloss;
+  c.classList.add('on');
+  WT.bi=wtBlockOf(s.anchorNode);
+  c.style.top=(r.top+scrollY-42)+'px';
+  c.style.left=Math.max(10,Math.min(r.left+scrollX+r.width/2-52,innerWidth-120))+'px';
+});
 function briefArchive(){
   const all=briefsSorted(),U=bUI();
   let h=`<div class="bkWrap" style="padding-bottom:2px">${briefLangBar()}</div>
