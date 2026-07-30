@@ -232,6 +232,14 @@
   .bkChk.on{background:var(--acc);border-color:var(--acc);color:#faf6ec}
   .bkNav{display:flex;justify-content:space-between;gap:10px;margin:32px 0 10px;border-top:1px solid var(--line2);padding-top:14px}
   @media(max-width:560px){.bkP,.bkUl{font-size:17.5px}.bkStand{font-size:19px}.bkH3{font-size:20px}}
+  /* brief language switch */
+  .bkLangRow{display:flex;justify-content:center;margin:12px 0 0}
+  .bkLang{display:inline-flex;gap:2px;background:var(--line);border:1px solid var(--line2);border-radius:999px;padding:2px}
+  .bkLang button{background:none;border:0;border-radius:999px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:6px 14px;cursor:pointer;transition:.12s;white-space:nowrap}
+  .bkLang button:hover{color:var(--txt)}
+  .bkLang button.on{background:var(--gold);color:#faf6ec}
+  .bkFallback{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:center;margin:9px 0 0}
+  @media(max-width:400px){.bkLang button{padding:6px 10px;font-size:9.5px}}
   /* lock screen */
   #lock{position:fixed;inset:0;z-index:2000;background:var(--bg);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:42px 42px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:20px}
   #lock.show{display:flex}
@@ -1031,9 +1039,34 @@ function mdBlocks(md){
 }
 function mdStrip(md,n){const b=mdBlocks(md).find(x=>x.t==='p'||x.t==='ul');const t=b?b.h.replace(/<[^>]+>/g,''):'';return t.slice(0,n||90)}
 let briefSel=null;
+/* --- brief language: three separately-written editions, last choice sticks --- */
+const BRIEF_LANGS=[{k:'en',lab:'English'},{k:'fr',lab:'Français'},{k:'es',lab:'Español'}];
+const BRIEF_UI={
+  en:{all:'All briefs',arch:'Daily brief — archive',hint:"Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.",empty:'No briefs yet — the agent posts every morning.',masthead:'The Daily Brief',min:'min read',read:'✓ read',mark:'mark read',today:'today',fb:'Not written in this language — showing the English edition.',loc:'en-GB'},
+  fr:{all:'Toutes les éditions',arch:'Brief quotidien — archives',hint:"Chaque édition du matin, de la plus récente à la plus ancienne. Publiée automatiquement par ton agent Claude ; + pour en écrire une à la main.",empty:"Aucune édition pour l'instant — l'agent publie chaque matin.",masthead:'Le Brief Quotidien',min:'min de lecture',read:'✓ lu',mark:'marquer lu',today:"aujourd'hui",fb:"Pas d'édition française ce jour-là — version anglaise affichée.",loc:'fr-FR'},
+  es:{all:'Todas las ediciones',arch:'Brief diario — archivo',hint:'Cada edición de la mañana, de la más reciente a la más antigua. La publica automáticamente tu agente de Claude; + para escribir una a mano.',empty:'Aún no hay ediciones — el agente publica cada mañana.',masthead:'El Brief Diario',min:'min de lectura',read:'✓ leído',mark:'marcar leído',today:'hoy',fb:'No hay edición en español de ese día — se muestra la inglesa.',loc:'es-ES'}
+};
+function briefLang(){const v=localStorage['alfred_brieflang'];return BRIEF_LANGS.some(l=>l.k===v)?v:'en'}
+function setBriefLang(k){
+  if(!BRIEF_LANGS.some(l=>l.k===k))return;
+  localStorage['alfred_brieflang']=k;
+  const se=document.scrollingElement||document.documentElement,keep=se.scrollTop;
+  renderActive();
+  se.scrollTop=keep;
+}
+function bUI(){return BRIEF_UI[briefLang()]}
+/* pick the edition written in the chosen language; fall back to English for older briefs */
+function briefTxt(b,base){const l=briefLang(),d=(b&&b.d)||{};return d[base+'_'+l]||d[base+'_en']||d[base]||''}
+function briefNative(b){const l=briefLang(),d=(b&&b.d)||{};return l==='en'?!!(d.body_en||d.body):!!d['body_'+l]}
+function fdateL(x){if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString(bUI().loc,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+function briefLangBar(){
+  const cur=briefLang();
+  return `<div class="bkLangRow"><div class="bkLang">${BRIEF_LANGS.map(l=>
+    `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div></div>`;
+}
 function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
 function briefMark(date,id){
-  const key='alfred_briefread_'+date;
+  const l=briefLang(),key='alfred_briefread_'+date+(l==='en'?'':'_'+l);
   let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
   st.has(id)?st.delete(id):st.add(id);
   localStorage[key]=JSON.stringify([...st]);
@@ -1043,18 +1076,22 @@ function briefMark(date,id){
 
 }
 function briefArticle(b){
-  const blocks=mdBlocks(b.d.body);
-  const words=String(b.d.body||'').split(/\s+/).filter(Boolean).length;
+  const U=bUI(),lang=briefLang();
+  const body=briefTxt(b,'body');
+  const blocks=mdBlocks(body);
+  const words=String(body).split(/\s+/).filter(Boolean).length;
   const mins=Math.max(1,Math.round(words/200));
   const isToday=b.d.date===today();
   let readSet=new Set();
-  if(isToday){try{readSet=new Set(JSON.parse(localStorage['alfred_briefread_'+b.d.date]||'[]'))}catch(e){}}
+  if(isToday){try{readSet=new Set(JSON.parse(localStorage['alfred_briefread_'+b.d.date+(lang==='en'?'':'_'+lang)]||'[]'))}catch(e){}}
   const all=briefsSorted(),idx=all.findIndex(x=>x.id===b.id);
   const older=all[idx+1],newer=all[idx-1];
   let h=`<div class="bkWrap">
-    <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ All briefs</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
-    <h1 class="bkH1">${esc(b.d.title||fdate(b.d.date))}</h1>
-    <div class="bkMeta">The Daily Brief · ${fdate2(b.d.date)} · ~${mins} min read</div>`;
+    ${briefLangBar()}
+    <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
+    <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
+    <div class="bkMeta">${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>
+    ${briefNative(b)?'':`<div class="bkFallback">${esc(U.fb)}</div>`}`;
   let pi=0,firstP=blocks.findIndex(x=>x.t==='p');
   blocks.forEach((bl,i)=>{
     if(bl.t==='kick'){h+=`<div class="bkKick">${bl.h}</div>`;return}
@@ -1064,21 +1101,22 @@ function briefArticle(b){
     const id=pi++;
     if(isToday){
       const rd=readSet.has(id);
-      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?'✓ read':'mark read'}</button></div>`;
+      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?esc(U.read):esc(U.mark)}</button></div>`;
     }else h+=`<div class="${cls}">${bl.h}</div>`;
   });
-  h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdate2(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdate2(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
+  h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdateL(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdateL(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
   return h;
 }
 function briefArchive(){
-  const all=briefsSorted();
-  let h=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief — archive</h2>
-  <div class="hint">Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.</div>
-  ${all.length?'':'<div class="empty">No briefs yet — the agent posts every morning.</div>'}</div>`;
+  const all=briefsSorted(),U=bUI();
+  let h=`<div class="bkWrap" style="padding-bottom:2px">${briefLangBar()}</div>
+  <div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>${esc(U.arch)}</h2>
+  <div class="hint">${esc(U.hint)}</div>
+  ${all.length?'':`<div class="empty">${esc(U.empty)}</div>`}</div>`;
   all.forEach(b=>{
     h+=`<div class="rowBox"><div class="row" onclick="briefSel='${b.d.date}';renderActive();scrollTo(0,0)">
-      <div class="rinfo"><div class="t">${esc(b.d.title||fdate(b.d.date))}</div><div class="s">${fdate2(b.d.date)} · ${esc(mdStrip(b.d.body,80))}…</div></div>
-      <div class="rright">${b.d.date===today()?'<span class="pill acc">today</span>':''}<span class="chev" style="transform:rotate(-90deg)">▾</span></div></div></div>`;
+      <div class="rinfo"><div class="t">${esc(briefTxt(b,'title')||fdate(b.d.date))}</div><div class="s">${fdateL(b.d.date)} · ${esc(mdStrip(briefTxt(b,'body'),80))}…</div></div>
+      <div class="rright">${b.d.date===today()?`<span class="pill acc">${esc(U.today)}</span>`:''}<span class="chev" style="transform:rotate(-90deg)">▾</span></div></div></div>`;
   });
   return h;
 }
@@ -1095,7 +1133,7 @@ function overviewPage(){
   const briefs=list('brief').sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
   h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
-  if(b)h+=`<div class="hint">${fdate(b.d.date)}${b.d.title?' — '+esc(b.d.title):''}</div><div class="ovBody">${esc(mdStrip(b.d.body,400))}</div><div class="ovMore">Read the full brief →</div>`;
+  if(b)h+=`<div class="hint">${fdate(b.d.date)}${briefTxt(b,'title')?' — '+esc(briefTxt(b,'title')):''}</div><div class="ovBody">${esc(mdStrip(briefTxt(b,'body'),400))}</div><div class="ovMore">Read the full brief →</div>`;
   else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
   h+=`</div>`;
   const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
