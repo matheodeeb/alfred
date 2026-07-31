@@ -130,6 +130,7 @@
   .gsep{height:1px;background:var(--line2);margin:26px 2px 0;opacity:.85}
   .shead{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin:15px 2px 1px;padding-bottom:4px;border-bottom:1px solid var(--line)}
   .shead:first-of-type{margin-top:8px}
+  .sshead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:11.5px;color:var(--muted);margin:11px 2px 1px;letter-spacing:.01em}
   .ghead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2)}
   .ghead:first-child{margin-top:4px}
   .ghead .gsub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);font-weight:400;margin-left:7px}
@@ -681,7 +682,13 @@ function genList(sec){
     order.forEach((g,gi)=>{
       html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
-        Object.keys(sg).forEach(k=>{html+=`<div class="shead">${esc(k)}</div>`+sg[k].map(i=>rowHtml(sec,i)).join('')})}
+        Object.keys(sg).forEach(k=>{
+          html+=`<div class="shead">${esc(k)}</div>`;
+          if(m.subsub){const ss={};sg[k].forEach(i=>{const k2=m.subsub(i);(ss[k2]=ss[k2]||[]).push(i)});
+            Object.keys(ss).sort((a,b)=>a.localeCompare(b)).forEach(k2=>{
+              html+=`<div class="sshead">${esc(k2)}</div>`+ss[k2].map(i=>rowHtml(sec,i)).join('')})}
+          else html+=sg[k].map(i=>rowHtml(sec,i)).join('');
+        })}
       else html+=gs[g].map(i=>rowHtml(sec,i)).join('');
     });
   }
@@ -770,15 +777,14 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up),
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
-todo:{title:'To-do list',color:'#ff6b6b',hint:'Grouped by section — put trip errands under the trip so you know when they matter.',
+todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, then the section each task belongs to.',
   fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
-  group:i=>{const g=(i.d.grp||'').trim();
-    if(g&&g!=='General')return g;                                   // a named place/context keeps its own section
-    if(i.d.due){const d=new Date(i.d.due+'T12:00:00');
+  group:i=>{if(i.d.due){const d=new Date(i.d.due+'T12:00:00');
       if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
     return 'Anytime';},
+  subsub:i=>(i.d.grp||'').trim()||'General',
   groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=i.d.due||'9999-99-99';return d<m?d:m},'9999-99-99');
     const rank=g=>g==='Anytime'?1:0;
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
