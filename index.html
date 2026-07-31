@@ -570,6 +570,19 @@ function reRankTodo(item){
   [...sibs.slice(0,pos),item,...sibs.slice(pos)].forEach((x,ix)=>{
     const np=ix+1;if((+x.d.ord||0)!==np)put('todo',{ord:np},x.id)});
 }
+function syncOrdField(){
+  const wrap=document.getElementById('fw_ord'), sel=document.getElementById('f_ord');
+  if(!wrap||!sel)return;
+  let grp=document.getElementById('f_grp')?.value||'';
+  if(grp==='__new')grp=(document.getElementById('f_grp__new')?.value||'').trim();
+  const n=todoSibs({grp,due:document.getElementById('f_due')?.value||''},editCtx?.id).length;
+  if(!n){wrap.style.display='none';sel.innerHTML='';return}
+  wrap.style.display='';
+  const saved=editCtx?.id?(+one(editCtx.id)?.d?.ord||0):0;
+  const cur=+sel.value||saved, total=n+1;
+  sel.innerHTML=Array.from({length:total},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  sel.value=String(cur>0&&cur<=total?cur:total);
+}
 let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
@@ -579,9 +592,14 @@ function openForm(sec,id,defs){
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
       let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
+      return`<div class="field" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  if(sec==='todo'){                       // order options follow the date / section as you pick them
+    ['f_due','f_grp','f_grp__new'].forEach(id=>{const e=document.getElementById(id);
+      if(e){e.addEventListener('change',syncOrdField);e.addEventListener('input',syncOrdField)}});
+    syncOrdField();
+  }
   ov('modalOv',1);
   const first=$('#mBody input,#mBody textarea');if(first&&!('ontouchstart'in window))first.focus();
 }
@@ -592,6 +610,7 @@ $('#mSave').onclick=()=>{
   for(const f of m.fields){
     let v;
     if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
+    if(f.t==='ord'&&document.getElementById('fw_ord')?.style.display==='none'){d[f.k]='';continue}
     if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
     else if(f.t==='dyn'){v=$('#f_'+f.k).value;if(v==='__new')v=($('#f_'+f.k+'__new').value||'').trim()}
     else{v=$('#f_'+f.k).value.trim();
@@ -735,7 +754,7 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'Grouped by section — put trip errands under the trip so you know when they matter.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord',showIf:c=>todoSibs(c,editCtx?.id).length>0},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
   group:i=>{const g=(i.d.grp||'').trim();
