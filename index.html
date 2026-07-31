@@ -475,11 +475,15 @@ document.addEventListener('visibilitychange',()=>{
 /* ---------------- field/form engine ---------------- */
 const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 function fmtT(s){if(!s)return'';const[h,m]=String(s).split(':').map(Number);if(isNaN(h))return esc(String(s));const ap=h>=12?'PM':'AM';return(((h+11)%12)+1)+':'+String(m||0).padStart(2,'0')+' '+ap}
-function fieldHtml(f,v,sec){
+function fieldHtml(f,v,sec,ctx){
   v=v??(typeof f.def==='function'?f.def():f.def)??'';
   const base=`id="f_${f.k}"`;
   if(f.t==='ta')return`<textarea ${base} placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   if(f.t==='sel')return`<select ${base}>${f.opt.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(f.t==='ord'){
+    const n=todoSibs(ctx||{},editCtx?.id).length+1, cur=+v||0;
+    return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
+  }
   if(f.t==='dyn'){
     const used=sec?[...new Set(list(sec).map(x=>x.d[f.k]).filter(Boolean))]:[];
     const opts=[...new Set([...(f.opt||[]),...used])].sort((a,b)=>a.localeCompare(b));
@@ -554,6 +558,18 @@ function upNextSort(a,b){
   if(da==null&&db!=null)return 1;
   return (a.d.name||'').localeCompare(b.d.name||'');
 }
+function todoSibs(d,exclId){
+  const g=(d.grp||'').trim(), due=d.due||'';
+  if(!due)return [];
+  return list('todo').filter(x=>x.id!==exclId&&(x.d.grp||'').trim()===g&&(x.d.due||'')===due);
+}
+function reRankTodo(item){
+  const sibs=todoSibs(item.d,item.id).sort((a,b)=>((+a.d.ord||9999)-(+b.d.ord||9999))||((a.up||0)-(b.up||0)));
+  const want=+item.d.ord||0;
+  const pos=want>0?Math.max(0,Math.min(sibs.length,want-1)):sibs.length;
+  [...sibs.slice(0,pos),item,...sibs.slice(pos)].forEach((x,ix)=>{
+    const np=ix+1;if((+x.d.ord||0)!==np)put('todo',{ord:np},x.id)});
+}
 let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
@@ -561,8 +577,9 @@ function openForm(sec,id,defs){
   editCtx={sec,id};
   $('#mTitle').textContent=(it?'Edit — ':'Add — ')+m.title;
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
-    m.fields.map(f=>{let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec)}</div>`}).join('')+'</div>';
+    m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
+      let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
+      return`<div class="field" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   ov('modalOv',1);
@@ -574,6 +591,7 @@ $('#mSave').onclick=()=>{
   const m=MODS[editCtx.sec],d={};
   for(const f of m.fields){
     let v;
+    if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
     if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
     else if(f.t==='dyn'){v=$('#f_'+f.k).value;if(v==='__new')v=($('#f_'+f.k+'__new').value||'').trim()}
     else{v=$('#f_'+f.k).value.trim();
@@ -587,6 +605,7 @@ $('#mSave').onclick=()=>{
   if(m.ranked&&isFinished(d))d.pri='';        // read / watched drops out of the ranking
   const saved=put(editCtx.sec,d,editCtx.id);
   if(m.ranked)reRank(editCtx.sec,saved);
+  if(editCtx.sec==='todo')reRankTodo(saved);
   closeModal();renderActive();
 };
 $('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){
@@ -716,7 +735,7 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'Grouped by section — put trip errands under the trip so you know when they matter.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord',showIf:c=>todoSibs(c,editCtx?.id).length>0},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
   group:i=>{const g=(i.d.grp||'').trim();
@@ -727,7 +746,8 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'Grouped by section — put trip e
   groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=i.d.due||'9999-99-99';return d<m?d:m},'9999-99-99');
     const rank=g=>g==='Anytime'?1:0;
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
-  sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999'),
+  sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
+  ranked:0,
   card:i=>({t:esc(i.d.task),s:[i.d.due?'due '+fdate(i.d.due):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
 fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
