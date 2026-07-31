@@ -683,7 +683,7 @@ function genList(sec){
       html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
         Object.keys(sg).forEach(k=>{
-          html+=`<div class="shead">${esc(k)}</div>`;
+          if(k)html+=`<div class="shead">${esc(k)}</div>`;
           if(m.subsub){const ss={};sg[k].forEach(i=>{const k2=m.subsub(i);(ss[k2]=ss[k2]||[]).push(i)});
             Object.keys(ss).sort((a,b)=>a.localeCompare(b)).forEach(k2=>{
               html+=`<div class="sshead">${esc(k2)}</div>`+ss[k2].map(i=>rowHtml(sec,i)).join('')})}
@@ -783,12 +783,12 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, t
   toggle:'done',
   group:i=>{if(i.d.due){const d=new Date(i.d.due+'T12:00:00');
       if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
-    return 'Anytime';},
+    return 'General';},
   subsub:i=>(i.d.grp||'').trim()||'General',
   groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=i.d.due||'9999-99-99';return d<m?d:m},'9999-99-99');
-    const rank=g=>g==='Anytime'?1:0;
+    const rank=g=>g==='General'?1:0;
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
-  subgroup:i=>dlabel(i.d.due),
+  subgroup:i=>i.d.due?dlabel(i.d.due):'',
   sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
   ranked:0,
   card:i=>({t:esc(i.d.task),s:esc(i.d.notes||''),dim:!!i.d.done,
