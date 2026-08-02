@@ -132,7 +132,8 @@
   .shead:first-of-type{margin-top:8px}
   .lnk{color:var(--muted);font-style:italic}
   .sshead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:11.5px;color:var(--muted);margin:11px 2px 1px;letter-spacing:.01em}
-  .ghead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2)}
+  .ghead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2);display:flex;align-items:baseline;gap:7px}
+  .gtot{margin-left:auto;font-family:"IBM Plex Mono";font-size:12px;font-weight:600;color:var(--muted)}
   .ghead:first-child{margin-top:4px}
   .ghead .gsub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);font-weight:400;margin-left:7px}
   .empty{padding:36px 16px;text-align:center;color:var(--faint);font-size:13px;line-height:1.6}
@@ -756,7 +757,7 @@ function genList(sec){
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
     order.forEach((g,gi)=>{
-      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span></div>`;
+      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
         Object.keys(sg).forEach(k=>{
           if(k)html+=`<div class="shead">${esc(k)}</div>`;
@@ -933,7 +934,11 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
 wants:{title:'To order — spoils & wants',color:'var(--acc)',hint:'Treats. No judgement.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
+          {k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>String(i.d.grp||'').trim()||'Other',
+  groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
+  groupNote:arr=>money(arr.reduce((t,i)=>t+(+i.d.price||0),0)),
   stats:it=>{const sum=a=>a.reduce((t,i)=>t+(+i.d.price||0),0);
     const open=it.filter(i=>!i.d.done), got=it.filter(i=>i.d.done), noPrice=it.filter(i=>!(+i.d.price)).length;
     return[{k:'Everything',v:money(sum(it)),u:it.length+' item'+(it.length===1?'':'s')+(noPrice?' · '+noPrice+' without a price':''),c:'var(--acc)'},
