@@ -807,9 +807,9 @@ function syncAutoOrders(){
     const c=+it.d.count||0, m=+it.d.min||0, par=+it.d.par||0;
     const low=(m>0&&c<=m)||c===0;
     const nid='need:auto:'+it.id, raw=S.items[nid], cur=one(nid);
-    if(raw&&raw.del)return;                    // you deleted it — don't resurrect it
     if(low){
       const qty=par>c?par-c:'';
+      if(raw&&raw.del&&raw.d&&(raw.d.qty??'')===qty)return;   // dismissed at this quantity
       const notes=par>c?`Auto-added from Stock — ${c} on hand, par ${par}.`
                        :`Auto-added from Stock — ${c} on hand, at or below the reorder level. Set a par level to get a quantity.`;
       if(!cur||(cur.d.qty??'')!==qty||cur.d.name!==it.d.name||cur.d.notes!==notes)
@@ -1073,10 +1073,9 @@ function recurPause(id){const r=one(id);if(!r)return;put('recur',{paused:r.d.pau
 // due recurring jobs are mirrored into the To-do list; ticking them there completes the cycle
 function syncRecurTodos(){
   list('recur').forEach(r=>{
-    const tid='todo:recur:'+r.id, raw=S.items[tid], cur=one(tid);
+    const tid='todo:recur:'+r.id, cur=one(tid);
     if(r.d.paused){if(cur)kill(tid);return}          // paused jobs stay off the list entirely
     const due=recurNext(r);                          // always the NEXT one, and only that one
-    if(raw&&raw.del&&raw.d&&raw.d.due===due)return;  // you deleted this occurrence — leave it be
     const task=r.d.name, notes=`${r.d.every||'Weekly'} · ${r.d.who||'Personal'}`;
     if(!cur||cur.d.task!==task||cur.d.due!==due||cur.d.notes!==notes)
       put('todo',{task,grp:'Recurring',due,done:'',notes},tid);
