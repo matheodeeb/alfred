@@ -934,6 +934,11 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
 wants:{title:'To order — spoils & wants',color:'var(--acc)',hint:'Treats. No judgement.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  stats:it=>{const sum=a=>a.reduce((t,i)=>t+(+i.d.price||0),0);
+    const open=it.filter(i=>!i.d.done), got=it.filter(i=>i.d.done), noPrice=it.filter(i=>!(+i.d.price)).length;
+    return[{k:'Everything',v:money(sum(it)),u:it.length+' item'+(it.length===1?'':'s')+(noPrice?' · '+noPrice+' without a price':''),c:'var(--acc)'},
+           {k:'Still to buy',v:money(sum(open)),u:open.length+' item'+(open.length===1?'':'s'),c:'var(--gold)'},
+           {k:'Already ordered',v:money(sum(got)),u:got.length+' item'+(got.length===1?'':'s'),c:'var(--ok)'}]},
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
