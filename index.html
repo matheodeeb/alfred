@@ -211,6 +211,9 @@
   .statsSplit>.statsBills{flex:0 0 216px}
   @media(max-width:900px){.statsSplit>.statsBills{flex:0 0 180px}}
   @media(max-width:760px){.statsSplit{flex-direction:column}.statsRule{width:auto;height:2px}.statsSplit>.statsBills{flex:1 1 auto}}
+  .chartWrap{margin-top:10px;overflow:hidden}
+  .invSvg{width:100%;height:auto;display:block}
+  .cLab{font-family:"IBM Plex Mono";font-size:9px;fill:var(--faint);letter-spacing:.04em}
   .panelRule{height:2px;background:var(--line2);border-radius:2px;margin:26px 2px 2px}
   .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
@@ -1004,6 +1007,16 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever 
   sort:(a,b)=>ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
   card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,90),dim:i.d.status==='Done',
     pill:{cls:i.d.status==='In progress'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
+invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month — the balance, and anything you put in. The chart above draws itself from these.',
+  fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
+          {k:'acct',l:'Account',t:'dyn',opt:['Citi','Other'],def:'Citi'},
+          {k:'val',l:'Total value',t:'money',req:1},
+          {k:'added',l:'Added since last entry',t:'money'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
+  card:i=>{const v=+i.d.val||0,a=+i.d.added||0;
+    return{t:money2(v),s:[fdate(i.d.date).replace(/^\w+, /,''),esc(i.d.acct||''),a?'+'+money2(a)+' in':''].filter(Boolean).join(' · ')}},
+  empty:'Nothing logged yet — hit + and record this month\'s balance.'},
 recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. Anything due shows up on the To-do list — tick it there or here and the clock resets.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
           {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly'],def:'Weekly'},
@@ -1029,7 +1042,17 @@ cfg:{title:'cfg'}
 const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90};
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
-function recurNext(r){const iv=EVERY[r.d.every]||7;return r.d.last?addDays(r.d.last,iv):today()}
+function recurNext(r){
+  if(!r.d.last)return today();
+  const ev=r.d.every||'Weekly';
+  if(ev==='Monthly'||ev==='Quarterly'){        // keep the same day-of-month instead of drifting
+    const d=new Date(r.d.last+'T12:00:00');
+    if(isNaN(d))return today();
+    d.setMonth(d.getMonth()+(ev==='Monthly'?1:3));
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  return addDays(r.d.last,EVERY[ev]||7);
+}
 function recurDue(r){return !r.d.paused&&recurNext(r)<=today()}
 function recurPause(id){const r=one(id);if(!r)return;put('recur',{paused:r.d.paused?'':1},id);renderActive()}
 // due recurring jobs are mirrored into the To-do list; ticking them there completes the cycle
@@ -1172,6 +1195,51 @@ function fintxPage(){
     else{const ru=rows.filter(i=>i.d.cur!=='HTG'),rh=rows.filter(i=>i.d.cur==='HTG');
       h+=`<div class="panel">${head}${ru.length?`<div class="ghead">USD<span class="gsub">${ru.length}</span></div>`+ru.map(txrow).join(''):''}${rh.length?`<div class="ghead">HTG<span class="gsub">${rh.length}</span></div>`+rh.map(txrow).join(''):''}</div>`}
   });
+  return h;
+}
+function investChart(rows){
+  if(rows.length<2)return'<div class="empty">Log a second month and the curve appears here.</div>';
+  const W=640,H=200,L=10,R=10,T=16,B=24;
+  const vals=rows.map(r=>+r.d.val||0);
+  const mn=Math.min(...vals),mx=Math.max(...vals),span=(mx-mn)||mx||1;
+  const lo=mn-span*.15, hi=mx+span*.15;
+  const x=i=>L+(W-L-R)*(i/(rows.length-1));
+  const y=v=>T+(H-T-B)*(1-((v-lo)/((hi-lo)||1)));
+  const pts=vals.map((v,i)=>[x(i),y(v)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${H-B} L ${pts[0][0].toFixed(1)} ${H-B} Z`;
+  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:2.6}" fill="var(--acc)"/>`).join('');
+  const lbl=(i)=>fdate(rows[i].d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,'');
+  const up=vals[vals.length-1]>=vals[0];
+  return`<div class="chartWrap"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="invSvg">
+    <defs><linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${up?'var(--acc)':'var(--bad)'}" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="${up?'var(--acc)':'var(--bad)'}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
+    <path d="${area}" fill="url(#ig)"/>
+    <path d="${line}" fill="none" stroke="${up?'var(--acc)':'var(--bad)'}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <text x="${L}" y="${H-7}" class="cLab">${esc(lbl(0))}</text>
+    <text x="${W-R}" y="${H-7}" class="cLab" text-anchor="end">${esc(lbl(rows.length-1))}</text>
+    <text x="${W-R}" y="12" class="cLab" text-anchor="end">${esc(money2(mx))} high</text>
+  </svg></div>`;
+}
+function investPage(){
+  const rows=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+  const cur=rows.length?(+rows[rows.length-1].d.val||0):0;
+  const put_in=rows.reduce((t,i)=>t+(+i.d.added||0),0);
+  const gain=cur-put_in, pct=put_in>0?gain/put_in*100:0;
+  const prev=rows.length>1?(+rows[rows.length-2].d.val||0):0;
+  const mom=prev?cur-prev:0;
+  let h=`<div class="grid stats">
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Value now</div><div class="v">${money2(cur)}</div>${rows.length?`<div class="u">as of ${fdate(rows[rows.length-1].d.date).replace(/^\w+, /,'')}</div>`:''}</div>
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Put in</div><div class="v">${money2(put_in)}</div><div class="u">across ${rows.length} entr${rows.length===1?'y':'ies'}</div></div>
+    <div class="stat" style="--accent:${gain>=0?'var(--ok)':'var(--bad)'}"><div class="k">Gain</div><div class="v ${signCls(gain)}">${gain>0?'+':''}${money2(gain)}</div>${put_in>0?`<div class="u">${pct>0?'+':''}${pct.toFixed(1)}% on what you put in</div>`:''}</div>
+    <div class="stat" style="--accent:var(--gold)"><div class="k">Since last entry</div><div class="v ${signCls(mom)}">${mom>0?'+':''}${money2(mom)}</div></div>
+  </div>`;
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Growth</h2>
+    <div class="hint">Every logged balance, oldest to newest.</div>${investChart(rows)}</div>`;
+  h+=genList('invest');
   return h;
 }
 function networthPage(){
@@ -1604,7 +1672,7 @@ const NAV=[
   {t:'Stock',g:[['Goods','stock'],['Kitchen','kitchen']]},
   {t:'Orders',g:[['Necessities','needs'],['Spoils & wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
-  {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub']]},
+  {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest']]},
   {t:'Net worth',p:'networth'},
   {t:'Schedule',p:'schedule'},
   {t:'Timeline',g:[['Travels','travels'],['Spoils','tlspoils']]},
@@ -1616,6 +1684,7 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
   networth:{render:networthPage,fab:'assets'},
   fincash:{render:fincashPage,fab:'fincash'},
+  invest:{render:investPage,fab:'invest'},
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
   schedule:{render:schedulePage,fab:'acts'}};
