@@ -25,7 +25,7 @@
     --ok:#3f8f5f; --bad:#b8543f; --warn:#b98b2e;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased}
+  html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
   body{
     background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
     background-size:42px 42px;background-color:var(--bg);
@@ -352,6 +352,8 @@
     <div class="setRow"><span class="l">Last sync</span><span class="v" id="setLast">—</span></div>
     <div class="setRow"><span class="l">Pending changes</span><span class="v" id="setPend">—</span></div>
     <div class="setRow"><span class="l">Items stored</span><span class="v" id="setCount">—</span></div>
+    <div class="setRow"><span class="l">On-device size</span><span class="v" id="setStore">—</span></div>
+    <div class="setRow"><span class="l">Last error</span><span class="v" id="setErr">—</span></div>
   </div>
   <div class="frow one">
     <div class="field"><label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
@@ -393,8 +395,45 @@ function ov(id,show){$('#'+id).classList.toggle('show',!!show)}
 
 /* ---------------- store ---------------- */
 let S={items:{},lastPull:0,lastSyncAt:0};
-function load(){try{const j=JSON.parse(localStorage.alfred_state||'{}');if(j&&j.items)S=j}catch(e){}}
-function save(){localStorage.alfred_state=JSON.stringify(S)}
+const BULK=new Set(['brief','lexicon']);      // big, rarely-edited rows live in their own key
+const KEEP_BRIEFS=45;                          // older ones stay in the cloud
+let storeErr='';
+function load(){
+  try{const j=JSON.parse(localStorage.alfred_state||'{}');if(j&&j.items)S=j}
+  catch(e){try{localStorage.alfred_state_broken=localStorage.alfred_state;storeErr='local data was corrupt — a copy was kept'}catch(x){}}
+  try{const b=JSON.parse(localStorage.alfred_bulk||'null');if(b)Object.assign(S.items,b)}catch(e){}
+}
+function writeStore(){
+  const main={},bulk={};
+  for(const k in S.items){const it=S.items[k];(BULK.has(it.sec)?bulk:main)[k]=it}
+  localStorage.alfred_state=JSON.stringify({items:main,lastPull:S.lastPull,lastSyncAt:S.lastSyncAt});
+  localStorage.alfred_bulk=JSON.stringify(bulk);
+}
+function trimLocal(){                          // drop the oldest already-synced briefs and stale tombstones
+  const cut=Date.now()-30*864e5;
+  Object.values(S.items).forEach(i=>{if(i.del&&!i.dirty&&(i.up||0)<cut)delete S.items[i.id]});
+  const briefs=Object.values(S.items).filter(i=>i.sec==='brief'&&!i.dirty)
+    .sort((a,b)=>(b.d?.date||'').localeCompare(a.d?.date||''));
+  briefs.slice(KEEP_BRIEFS).forEach(i=>delete S.items[i.id]);
+}
+let saveT=null,savePending=false;
+function flushSave(){
+  if(!savePending)return; savePending=false;
+  try{writeStore();storeErr=''}
+  catch(e){                                    // out of room — shed history and try once more
+    try{trimLocal();writeStore();storeErr=''}
+    catch(e2){storeErr=e2.message||'storage full';console.warn('save failed:',e2)}
+  }
+  try{setPill()}catch(e){}
+}
+function save(now){
+  savePending=true;
+  if(now){clearTimeout(saveT);saveT=null;flushSave();return}
+  if(saveT)return;
+  saveT=setTimeout(()=>{saveT=null;flushSave()},250);
+}
+addEventListener('pagehide',()=>save(1));
+addEventListener('beforeunload',()=>save(1));
 function put(sec,d,id){
   const it=S.items[id]||{id:id||uid(),sec,d:{}};
   it.sec=sec; it.d=Object.assign({},it.d,d); it.up=Date.now(); it.dirty=1; delete it.del;
@@ -414,28 +453,38 @@ async function sb(path,opt={}){
 }
 let syncTimer=null,syncing=false,again=false;
 function queueSync(){setPill();clearTimeout(syncTimer);syncTimer=setTimeout(sync,900)}
+let syncErr='';
 async function sync(){
   if(!cfg||!navigator.onLine){setPill();return}
   if(syncing){again=true;return}
   syncing=true;setPill('sync');
   let changed=false;
   try{
-    const rows=await sb(`items?select=*&up=gt.${S.lastPull||0}&order=up.asc&limit=1000`);
-    for(const r of rows){
-      const l=S.items[r.id];
-      if(!l||+r.up>l.up){S.items[r.id]={id:r.id,sec:r.sec,d:r.data||{},up:+r.up,...(r.del?{del:true}:{})};changed=true}
-      if(+r.up>(S.lastPull||0))S.lastPull=+r.up;
+    const PAGE=500, since=Math.max(0,(S.lastPull||0)-5*60000);   // overlap, so a skewed clock can't hide rows
+    let maxUp=S.lastPull||0, off=0;
+    for(;;){                                   // page through, so a big catch-up can't be truncated
+      const rows=await sb(`items?select=*&up=gt.${since}&order=up.asc&limit=${PAGE}&offset=${off}`);
+      for(const r of rows){
+        const l=S.items[r.id];
+        if(!l||+r.up>l.up){S.items[r.id]={id:r.id,sec:r.sec,d:r.data||{},up:+r.up,...(r.del?{del:true}:{})};changed=true}
+        if(+r.up>maxUp)maxUp=+r.up;
+      }
+      if(rows.length<PAGE)break;
+      off+=PAGE;
     }
+    S.lastPull=maxUp;
     const dirty=Object.values(S.items).filter(i=>i.dirty);
-    if(dirty.length){
+    for(let i=0;i<dirty.length;i+=40){         // push in batches so one huge body can't fail the lot
+      const chunk=dirty.slice(i,i+40), snap=chunk.map(x=>[x,x.up]);
       await sb('items?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},
-        body:JSON.stringify(dirty.map(i=>({id:i.id,sec:i.sec,data:i.d||{},up:i.up,del:!!i.del})))});
-      dirty.forEach(i=>delete i.dirty);
+        body:JSON.stringify(chunk.map(x=>({id:x.id,sec:x.sec,data:x.d||{},up:x.up,del:!!x.del})))});
+      snap.forEach(([x,u])=>{if(x.up===u)delete x.dirty});   // edited mid-flight? stays dirty
     }
-    S.lastSyncAt=Date.now();save();
+    trimLocal();
+    S.lastSyncAt=Date.now();syncErr='';save(1);
     // second device: a PIN pulled from the cloud upgrades the "choose PIN" screen to "enter PIN"
     if(changed&&$('#lock').classList.contains('show')&&pinMode==='set'&&!pinFirst&&pinHash())showLock('enter');
-  }catch(e){console.warn('sync failed:',e.message)}
+  }catch(e){syncErr=e.message||'sync failed';console.warn('sync failed:',e.message)}
   syncing=false;setPill();
   if(changed)renderActive();
   if(again){again=false;queueSync()}
@@ -445,7 +494,9 @@ function setPill(state){
   const pend=Object.values(S.items).filter(i=>i.dirty).length;
   if(!cfg){dot.className='dot gray';txt.textContent='local only';return}
   if(state==='sync'){dot.className='dot pend';txt.textContent='syncing…';return}
+  if(storeErr){dot.className='dot off';txt.textContent='storage full';return}
   if(!navigator.onLine){dot.className='dot off';txt.textContent='offline · saved';return}
+  if(syncErr){dot.className='dot off';txt.textContent='sync error · retrying';return}
   if(pend){dot.className='dot pend';txt.textContent=pend+' pending';return}
   dot.className='dot';txt.textContent=S.lastSyncAt?('cloud · '+new Date(S.lastSyncAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'cloud';
 }
@@ -456,7 +507,7 @@ setInterval(()=>{if(document.visibilityState==='visible')sync()},45000);
 /* ---------------- PIN ---------------- */
 async function hash(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('alfred:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 let pinBuf='',pinMode='enter',pinFirst='',hiddenAt=0;
-function pinHash(){return localStorage.alfred_pin||one('cfg:pin')?.d?.h||''}
+function pinHash(){return one('cfg:pin')?.d?.h||localStorage.alfred_pin||''}
 function showLock(mode){pinMode=mode;pinBuf='';pinFirst='';
   $('#lockMsg').textContent=mode==='set'?'CHOOSE A 4-DIGIT PIN':'ENTER PIN';
   drawDots();$('#lock').classList.add('show')}
@@ -469,11 +520,11 @@ async function pinDigit(k){
   const h=await hash(pinBuf);
   if(pinMode==='set'){
     if(!pinFirst){pinFirst=h;pinBuf='';$('#lockMsg').textContent='CONFIRM PIN';setTimeout(drawDots,150);return}
-    if(h===pinFirst){localStorage.alfred_pin=h;put('cfg',{h},'cfg:pin');$('#lock').classList.remove('show')}
+    if(h===pinFirst){localStorage.alfred_pin=h;localStorage.alfred_unlocked=Date.now();put('cfg',{h},'cfg:pin');$('#lock').classList.remove('show')}
     else{wrong('PINS DIDN\'T MATCH — START OVER');pinFirst='';$('#lockMsg').textContent='CHOOSE A 4-DIGIT PIN'}
     return;
   }
-  if(h===pinHash()){localStorage.alfred_pin=h;$('#lock').classList.remove('show')}
+  if(h===pinHash()){localStorage.alfred_pin=h;localStorage.alfred_unlocked=Date.now();$('#lock').classList.remove('show')}
   else wrong('WRONG PIN — TRY AGAIN');
 }
 function wrong(msg){const d=$('#lockDots');d.classList.add('shake');$('#lockMsg').textContent=msg;setTimeout(()=>{d.classList.remove('shake');pinBuf='';drawDots()},380)}
@@ -482,7 +533,9 @@ function initPad(){const pad=$('#lockPad');'123456789 0⌫'.split('').forEach(k=
   if(k!==' ')b.onclick=()=>pinDigit(k);pad.appendChild(b)})}
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden')hiddenAt=Date.now();
-  else{sync();if(pinHash()&&hiddenAt&&Date.now()-hiddenAt>5*60*1000)showLock('enter')}
+  else{sync();
+    if(pinHash()&&hiddenAt&&Date.now()-hiddenAt>5*60*1000)showLock('enter');
+    else localStorage.alfred_unlocked=Date.now();}
 });
 
 /* ---------------- field/form engine ---------------- */
@@ -499,7 +552,7 @@ function fieldHtml(f,v,sec,ctx){
   }
   if(f.t==='dyn'){
     const used=sec?[...new Set(list(sec).map(x=>x.d[f.k]).filter(Boolean))]:[];
-    const opts=[...new Set([...(f.opt||[]),...used])].sort((a,b)=>a.localeCompare(b));
+    const opts=[...new Set([...(f.opt||[]),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
     if(v&&!opts.includes(v))opts.unshift(v);
     return`<select ${base} onchange="dynSel(this)"><option value="">—</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}<option value="__new">+ Add new…</option></select>`+
       `<input id="f_${f.k}__new" class="dynNew" placeholder="New ${esc((f.l||'').toLowerCase())}…" style="display:none">`;
@@ -631,13 +684,22 @@ $('#mSave').onclick=()=>{
       if(f.t==='check')v=v?1:'';}
     d[f.k]=v;
   }
-  const req=m.fields.find(f=>f.req&&!d[f.k]);
-  if(req){$('#f_'+req.k).style.borderColor='var(--bad)';return}
+  m.fields.forEach(f=>{const e=$('#f_'+f.k);if(e&&e.style)e.style.borderColor=''});
+  const req=m.fields.find(f=>f.req&&(d[f.k]===''||d[f.k]==null));
+  if(req){const e=$('#f_'+req.k);
+    if(e){e.style.borderColor='var(--bad)';e.scrollIntoView({block:'center'});try{e.focus()}catch(x){}}
+    return}
   if(m.formOut)m.formOut(d);
   if(m.ranked&&isFinished(d))d.pri='';        // read / watched drops out of the ranking
-  const saved=put(editCtx.sec,d,editCtx.id);
-  if(m.ranked)reRank(editCtx.sec,saved);
-  if(editCtx.sec==='todo')reRankTodo(saved);
+  try{
+    const saved=put(editCtx.sec,d,editCtx.id);
+    if(m.ranked)reRank(editCtx.sec,saved);
+    if(editCtx.sec==='todo')reRankTodo(saved);
+  }catch(err){
+    console.warn('save failed:',err);
+    alert('Could not save — '+(err.message||'unknown error')+'\n\nYour text is still in the form; try again or copy it out.');
+    return;                                    // keep the form open so nothing typed is lost
+  }
   closeModal();renderActive();
 };
 $('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){
@@ -645,7 +707,11 @@ $('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){
   kill(editCtx.id);
   if(m.ranked&&gone){const ghost={id:'',d:{...gone.d,pri:0}};reRank(sec,ghost)}
   closeModal();renderActive()}};
-$('#modalOv').addEventListener('click',e=>{if(e.target.id==='modalOv')closeModal()});
+let ovDown=null;
+$('#modalOv').addEventListener('pointerdown',e=>{ovDown=e.target.id});
+$('#modalOv').addEventListener('click',e=>{
+  if(e.target.id==='modalOv'&&ovDown==='modalOv')closeModal();   // only if the press STARTED on the backdrop
+  ovDown=null;});
 
 /* ---------------- generic list page ---------------- */
 const chipState={}, FROZEN={};
@@ -704,12 +770,14 @@ function detailHtml(sec,i){
     if(v)parts.push((tas.length>1?`<div class="rDetL">${esc(f.l)}</div>`:'<div class="rDetL"></div>')+`<div class="rDetB">${esc(v)}</div>`)});
   return parts.join('');
 }
-function toggleDet(el){el.closest('.rowBox').classList.toggle('open')}
+const OPEN=new Set();
+function toggleDet(el){const b=el.closest('.rowBox'),id=b.dataset.id;
+  if(OPEN.has(id)){OPEN.delete(id);b.classList.remove('open')}else{OPEN.add(id);b.classList.add('open')}}
 function rowHtml(sec,i){
   const m=MODS[sec],c=m.card(i);
   const doneKey=m.toggle, isDone=doneKey?!!i.d[doneKey.k||doneKey]:false;
   const det=detailHtml(sec,i);
-  return`<div class="rowBox ${c.dim?'dim':''}">
+  return`<div class="rowBox ${c.dim?'dim':''} ${OPEN.has(i.id)?'open':''}" data-id="${i.id}">
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
@@ -728,7 +796,8 @@ function syncAutoOrders(){
   list('stock').forEach(it=>{
     const c=+it.d.count||0, m=+it.d.min||0, par=+it.d.par||0;
     const low=(m>0&&c<=m)||c===0;
-    const nid='need:auto:'+it.id, cur=one(nid);
+    const nid='need:auto:'+it.id, raw=S.items[nid], cur=one(nid);
+    if(raw&&raw.del)return;                    // you deleted it — don't resurrect it
     if(low){
       const qty=par>c?par-c:'';
       const notes=par>c?`Auto-added from Stock — ${c} on hand, par ${par}.`
@@ -958,7 +1027,7 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
 cfg:{title:'cfg'}
 };
 const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90};
-const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);
+const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function recurNext(r){const iv=EVERY[r.d.every]||7;return r.d.last?addDays(r.d.last,iv):today()}
 function recurDue(r){return !r.d.paused&&recurNext(r)<=today()}
@@ -966,7 +1035,8 @@ function recurPause(id){const r=one(id);if(!r)return;put('recur',{paused:r.d.pau
 // due recurring jobs are mirrored into the To-do list; ticking them there completes the cycle
 function syncRecurTodos(){
   list('recur').forEach(r=>{
-    const tid='todo:recur:'+r.id, cur=one(tid);
+    const tid='todo:recur:'+r.id, raw=S.items[tid], cur=one(tid);
+    if(raw&&raw.del&&!recurDue(r))return;
     if(recurDue(r)){
       const task=r.d.name, due=recurNext(r), notes=`${r.d.every||'Weekly'} · ${r.d.who||'Personal'}`;
       if(!cur||cur.d.task!==task||cur.d.due!==due||cur.d.notes!==notes)
@@ -1497,7 +1567,7 @@ function overviewPage(){
   const t=today();
   const dateline=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
-  const briefs=list('brief').sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
+  const briefs=list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
   h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
   if(b)h+=`<div class="hint">${fdate(b.d.date)}${briefTxt(b,'title')?' — '+esc(briefTxt(b,'title')):''}</div><div class="ovBody">${esc(mdStrip(briefTxt(b,'body'),400))}</div><div class="ovMore">Read the full brief →</div>`;
@@ -1618,13 +1688,20 @@ $('#gearBtn').onclick=()=>{
   $('#setLast').textContent=S.lastSyncAt?new Date(S.lastSyncAt).toLocaleString():'never';
   $('#setPend').textContent=Object.values(S.items).filter(i=>i.dirty).length;
   $('#setCount').textContent=Object.values(S.items).filter(i=>!i.del).length;
+  const kb=((localStorage.alfred_state||'').length+(localStorage.alfred_bulk||'').length)/1024;
+  $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
+  $('#setErr').textContent=storeErr||syncErr||'none';
   $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
   ov('setOv',1);
 };
-$('#setOv').addEventListener('click',e=>{if(e.target.id==='setOv')ov('setOv',0)});
+let setDown=null;
+$('#setOv').addEventListener('pointerdown',e=>{setDown=e.target.id});
+$('#setOv').addEventListener('click',e=>{
+  if(e.target.id==='setOv'&&setDown==='setOv')ov('setOv',0);
+  setDown=null;});
 $('#cfgSave').onclick=()=>{
   const url=$('#cfgUrl').value.trim(),key=$('#cfgKey').value.trim(),secret=$('#cfgSec').value.trim();
-  if(url&&key){cfg={url,key,secret};localStorage.alfred_cfg=JSON.stringify(cfg);Object.values(S.items).forEach(i=>i.dirty=1);S.lastPull=0;save();sync()}
+  if(url&&key){cfg={url,key,secret};localStorage.alfred_cfg=JSON.stringify(cfg);S.lastPull=0;save(1);sync()}
   else{cfg=null;localStorage.removeItem('alfred_cfg')}
   ov('setOv',0);setPill();
 };
@@ -1638,12 +1715,16 @@ $('#impBtn').onclick=()=>$('#impFile').click();
 $('#impFile').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=()=>{try{const j=JSON.parse(r.result);
-    if(!j.items)throw 0;
+  r.onload=()=>{
+    let j;
+    try{j=JSON.parse(r.result);if(!j||!j.items)throw 0}
+    catch(err){alert('Not a valid Alfred backup.');return}
+    let added=0;const total=Object.keys(j.items).length;
     for(const id in j.items){const inc=j.items[id],cur=S.items[id];
-      if(!cur||inc.up>cur.up){S.items[id]=inc;S.items[id].dirty=1}}
-    save();renderActive();sync();alert('Imported.');
-  }catch(err){alert('Not a valid Alfred backup.')}};
+      if(!cur||(+inc.up||0)>(+cur.up||0)){S.items[id]=inc;S.items[id].dirty=1;added++}}
+    try{save(1);renderActive();sync();alert(added+' of '+total+' items imported.')}
+    catch(err){alert('Imported '+added+', but saving failed: '+(err.message||err))}
+  };
   r.readAsText(f);
 };
 
@@ -1661,7 +1742,10 @@ $('#impFile').onchange=e=>{
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
   renderActive();
-  if(pinHash())showLock('enter');else showLock('set');
+  const GRACE=10*60*1000;                       // a reload within 10 min doesn't re-ask
+  const recent=+localStorage.alfred_unlocked||0;
+  if(!pinHash())showLock('set');
+  else if(Date.now()-recent>GRACE)showLock('enter');
   sync();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();

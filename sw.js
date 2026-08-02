@@ -1,4 +1,4 @@
-const V = 'alfred-v2';
+const V = 'alfred-v3';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -21,8 +21,10 @@ self.addEventListener('fetch', e => {
   if (e.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
     e.respondWith(
       fetch(e.request).then(r => {
-        const copy = r.clone();
-        caches.open(V).then(c => c.put('./index.html', copy));
+        if (r.ok) {                       // never cache a 404/502 as the app shell
+          const copy = r.clone();
+          caches.open(V).then(c => c.put('./index.html', copy));
+        }
         return r;
       }).catch(() => caches.match('./index.html'))
     );
@@ -32,8 +34,10 @@ self.addEventListener('fetch', e => {
   // Everything else (icons, fonts): cache-first with backfill.
   e.respondWith(
     caches.match(e.request).then(hit => hit || fetch(e.request).then(r => {
-      const copy = r.clone();
-      caches.open(V).then(c => c.put(e.request, copy));
+      if (r.ok) {
+        const copy = r.clone();
+        caches.open(V).then(c => c.put(e.request, copy));
+      }
       return r;
     }))
   );
