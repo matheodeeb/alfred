@@ -820,9 +820,9 @@ function syncAutoOrders(){
 function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
 function togg(sec,id){
   const m=MODS[sec],i=one(id);if(!i)return;
-  if(sec==='todo'&&id.startsWith('todo:recur:')){          // finishing the mirrored copy resets the cycle
-    const rid=id.slice(11);
-    if(one(rid))put('recur',{last:today()},rid);
+  if(sec==='todo'&&id.startsWith('todo:recur:')){          // finishing the mirrored copy advances the cycle
+    const rid=id.slice(11), occ=i.d.due||today();
+    if(one(rid))put('recur',{last:occ>today()?occ:today()},rid);   // done early? credit the occurrence's own date
     kill(id);renderActive();return;
   }
   if(typeof m.onToggle==='function'){m.onToggle(i)}
@@ -1031,7 +1031,7 @@ invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month �
   card:i=>{const v=+i.d.val||0,a=+i.d.added||0;
     return{t:money2(v),s:[fdate(i.d.date).replace(/^\w+, /,''),esc(i.d.acct||''),a?'+'+money2(a)+' in':''].filter(Boolean).join(' · ')}},
   empty:'Nothing logged yet — hit + and record this month\'s balance.'},
-recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. Anything due shows up on the To-do list — tick it there or here and the clock resets.',
+recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
           {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly'],def:'Weekly'},
           {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -1040,7 +1040,8 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
   groupOrder:(a,b)=>a.localeCompare(b),
   sort:(a,b)=>(a.d.paused?1:0)-(b.d.paused?1:0)||recurNext(a).localeCompare(recurNext(b)),
   toggle:{k:'last'},
-  onToggle:i=>put('recur',{last:recurDue(i)?today():''},i.id),
+  onToggle:i=>{const occ=recurNext(i);
+    put('recur',{last:recurDue(i)?today():(occ>today()?occ:today())},i.id)},
   stats:it=>{const due=it.filter(recurDue), paused=it.filter(i=>i.d.paused).length;
     return[{k:'Due now',v:due.length,u:due.length?due.slice(0,3).map(i=>i.d.name).join(', '):'all up to date',c:due.length?'var(--bad)':'var(--ok)'},
            {k:'Recurring jobs',v:it.length,u:paused?paused+' paused':'',c:'var(--purple)'}]},
@@ -1073,12 +1074,12 @@ function recurPause(id){const r=one(id);if(!r)return;put('recur',{paused:r.d.pau
 function syncRecurTodos(){
   list('recur').forEach(r=>{
     const tid='todo:recur:'+r.id, raw=S.items[tid], cur=one(tid);
-    if(raw&&raw.del&&!recurDue(r))return;
-    if(recurDue(r)){
-      const task=r.d.name, due=recurNext(r), notes=`${r.d.every||'Weekly'} · ${r.d.who||'Personal'}`;
-      if(!cur||cur.d.task!==task||cur.d.due!==due||cur.d.notes!==notes)
-        put('todo',{task,grp:'Recurring',due,done:'',notes},tid);
-    } else if(cur) kill(tid);
+    if(r.d.paused){if(cur)kill(tid);return}          // paused jobs stay off the list entirely
+    const due=recurNext(r);                          // always the NEXT one, and only that one
+    if(raw&&raw.del&&raw.d&&raw.d.due===due)return;  // you deleted this occurrence — leave it be
+    const task=r.d.name, notes=`${r.d.every||'Weekly'} · ${r.d.who||'Personal'}`;
+    if(!cur||cur.d.task!==task||cur.d.due!==due||cur.d.notes!==notes)
+      put('todo',{task,grp:'Recurring',due,done:'',notes},tid);
   });
 }
 function paidThis(i){const lp=i.d.lastPaid||'';return lp.slice(0,7)===today().slice(0,7)}
