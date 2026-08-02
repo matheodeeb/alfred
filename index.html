@@ -214,7 +214,13 @@
   @media(max-width:760px){.statsSplit{flex-direction:column}.statsRule{width:auto;height:2px}.statsSplit>.statsBills{flex:1 1 auto}}
   .chartWrap{margin-top:10px;overflow:hidden}
   .invSvg{width:100%;height:auto;display:block}
-  .cLab{font-family:"IBM Plex Mono";font-size:9px;fill:var(--faint);letter-spacing:.04em}
+  .cLab{font-family:"IBM Plex Mono";font-size:9.5px;fill:var(--faint);letter-spacing:.04em}
+  .chartRead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:8px 2px 2px;min-height:22px}
+  .chartRead .rDate{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .chartRead .rVal{font-family:"IBM Plex Mono";font-size:17px;font-weight:600}
+  .chartRead .rMut{font-family:"IBM Plex Mono";font-size:11px;color:var(--faint)}
+  .chartRead .pos,.chartRead .neg{font-family:"IBM Plex Mono";font-size:12.5px}
+  #ivSvg{touch-action:pan-y;cursor:crosshair}
   .panelRule{height:2px;background:var(--line2);border-radius:2px;margin:26px 2px 2px}
   .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
@@ -1216,32 +1222,83 @@ function assetVal(i){                          // linked assets are read-only mi
 function assetHasVal(i){
   return i.d.src==='Investment log'?!!latestInvest():(i.d.val!==''&&i.d.val!=null);
 }
+let INVPTS=[];
 function investChart(rows){
-  if(rows.length<2)return'<div class="empty">Log a second month and the curve appears here.</div>';
-  const W=640,H=200,L=10,R=10,T=16,B=24;
+  if(rows.length<2){INVPTS=[];return'<div class="empty">Log a second month and the curve appears here.</div>'}
+  const W=680,H=250,L=54,R=14,T=18,B=34;
   const vals=rows.map(r=>+r.d.val||0);
   const mn=Math.min(...vals),mx=Math.max(...vals),span=(mx-mn)||mx||1;
-  const lo=mn-span*.15, hi=mx+span*.15;
+  const lo=mn-span*.18, hi=mx+span*.18;
   const x=i=>L+(W-L-R)*(i/(rows.length-1));
   const y=v=>T+(H-T-B)*(1-((v-lo)/((hi-lo)||1)));
+  const k=v=>Math.abs(v)>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
+  // y grid
+  let grid='';
+  const TICKS=4;
+  for(let t=0;t<=TICKS;t++){
+    const v=lo+(hi-lo)*(t/TICKS), yy=y(v);
+    grid+=`<line x1="${L}" y1="${yy.toFixed(1)}" x2="${W-R}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`
+        +`<text x="${L-8}" y="${(yy+3.5).toFixed(1)}" class="cLab" text-anchor="end">${k(v)}</text>`;
+  }
+  // x labels — month name, skipped when they'd collide
+  const every=Math.ceil(rows.length/7);
+  let xl='';
+  rows.forEach((r,i)=>{
+    if(i%every&&i!==rows.length-1)return;
+    const d=new Date(r.d.date+'T12:00:00');
+    xl+=`<text x="${x(i).toFixed(1)}" y="${H-12}" class="cLab" text-anchor="middle">${isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short'})}</text>`;
+  });
   const pts=vals.map((v,i)=>[x(i),y(v)]);
   const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
   const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${H-B} L ${pts[0][0].toFixed(1)} ${H-B} Z`;
-  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:2.6}" fill="var(--acc)"/>`).join('');
-  const lbl=(i)=>fdate(rows[i].d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,'');
-  const up=vals[vals.length-1]>=vals[0];
-  return`<div class="chartWrap"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="invSvg">
+  const up=vals[vals.length-1]>=vals[0], col=up?'var(--acc)':'var(--bad)';
+  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:2.8}" fill="${col}"/>`).join('');
+  INVPTS=rows.map((r,i)=>({x:pts[i][0],y:pts[i][1],date:r.d.date,val:vals[i],
+    delta:i?vals[i]-vals[i-1]:null,added:+r.d.added||0}));
+  const last=INVPTS[INVPTS.length-1];
+  return`<div class="chartRead" id="ivRead">${readLine(last)}</div>
+  <div class="chartWrap"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="invSvg" id="ivSvg">
     <defs><linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${up?'var(--acc)':'var(--bad)'}" stop-opacity=".22"/>
-      <stop offset="100%" stop-color="${up?'var(--acc)':'var(--bad)'}" stop-opacity="0"/></linearGradient></defs>
+      <stop offset="0%" stop-color="${col}" stop-opacity=".2"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    ${grid}
+    <line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
     <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
     <path d="${area}" fill="url(#ig)"/>
-    <path d="${line}" fill="none" stroke="${up?'var(--acc)':'var(--bad)'}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
-    <text x="${L}" y="${H-7}" class="cLab">${esc(lbl(0))}</text>
-    <text x="${W-R}" y="${H-7}" class="cLab" text-anchor="end">${esc(lbl(rows.length-1))}</text>
-    <text x="${W-R}" y="12" class="cLab" text-anchor="end">${esc(money2(mx))} high</text>
+    <line id="ivGuide" x1="0" y1="${T}" x2="0" y2="${H-B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="ivDot" r="5.5" fill="none" stroke="${col}" stroke-width="2.5" opacity="0"/>
+    ${xl}
   </svg></div>`;
+}
+function readLine(p){
+  if(!p)return'';
+  const d=fdate(p.date).replace(/^\w+, /,'');
+  const ch=p.delta==null?'<span class="rMut">first entry</span>'
+    :`<span class="${p.delta>=0?'pos':'neg'}">${p.delta>=0?'+':''}${money2(p.delta)}</span> <span class="rMut">since previous</span>`;
+  return`<span class="rDate">${esc(d)}</span><span class="rVal">${money2(p.val)}</span>${ch}${p.added?`<span class="rMut">· ${money2(p.added)} added</span>`:''}`;
+}
+function bindInvest(el){
+  const svg=el.querySelector('#ivSvg'); if(!svg||!INVPTS.length)return;
+  const guide=svg.querySelector('#ivGuide'), dot=svg.querySelector('#ivDot'), read=el.querySelector('#ivRead');
+  const VB=680;
+  const at=e=>{
+    const r=svg.getBoundingClientRect();
+    const cx=((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(VB/r.width);
+    let best=0,bd=1e9;
+    INVPTS.forEach((p,i)=>{const d=Math.abs(p.x-cx);if(d<bd){bd=d;best=i}});
+    const p=INVPTS[best];
+    guide.setAttribute('x1',p.x);guide.setAttribute('x2',p.x);guide.setAttribute('opacity','1');
+    dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.y);dot.setAttribute('opacity','1');
+    read.innerHTML=readLine(p);
+  };
+  const off=()=>{guide.setAttribute('opacity','0');dot.setAttribute('opacity','0');
+    read.innerHTML=readLine(INVPTS[INVPTS.length-1])};
+  svg.addEventListener('pointermove',at);
+  svg.addEventListener('pointerdown',at);
+  svg.addEventListener('pointerleave',off);
+  svg.addEventListener('touchmove',e=>{at(e);e.preventDefault()},{passive:false});
+  svg.addEventListener('touchend',off);
 }
 function investPage(){
   const rows=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
@@ -1703,7 +1760,7 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
   networth:{render:networthPage,fab:'assets'},
   fincash:{render:fincashPage,fab:'fincash'},
-  invest:{render:investPage,fab:'invest'},
+  invest:{render:investPage,bind:bindInvest,fab:'invest'},
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
   schedule:{render:schedulePage,fab:'acts'}};
