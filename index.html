@@ -130,6 +130,7 @@
   .gsep{height:1px;background:var(--line2);margin:26px 2px 0;opacity:.85}
   .shead{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin:15px 2px 1px;padding-bottom:4px;border-bottom:1px solid var(--line)}
   .shead:first-of-type{margin-top:8px}
+  .lnk{color:var(--muted);font-style:italic}
   .sshead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:11.5px;color:var(--muted);margin:11px 2px 1px;letter-spacing:.01em}
   .ghead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2)}
   .ghead:first-child{margin-top:4px}
@@ -981,12 +982,19 @@ courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master
   card:i=>({t:esc(i.d.name),s:esc(i.d.src||''),dim:i.d.status==='Done',
     pill:i.d.status==='In progress'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value. Net worth counts what it\'s worth now.',
-  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Watch','Property','Vehicle','Investment','Other']},{k:'paid',l:'Bought for',t:'money'},{k:'val',l:'Worth now',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Watch','Property','Vehicle','Investment','Other']},
+          {k:'src',l:'Value from',t:'sel',opt:['Manual','Investment log'],def:'Manual'},
+          {k:'paid',l:'Bought for',t:'money'},
+          {k:'val',l:'Worth now',t:'money',showIf:c=>c.src!=='Investment log'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
-  card:i=>{const hasPaid=i.d.paid!==''&&i.d.paid!=null,hasVal=i.d.val!==''&&i.d.val!=null;
-    const d=(+i.d.val||0)-(+i.d.paid||0);
-    const sub=[hasPaid?`Bought for ${money(i.d.paid)}`+(hasVal&&d!==0?` · <span class="${d>0?'pos':'neg'}">${d>0?'+':''}${money(d)}</span>`:''):'',esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
-    return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(i.d.val)}:null}}},
+  card:i=>{const linked=i.d.src==='Investment log', v=assetVal(i), hasVal=assetHasVal(i);
+    const hasPaid=i.d.paid!==''&&i.d.paid!=null, d=v-(+i.d.paid||0);
+    const l=linked?latestInvest():null;
+    const sub=[hasPaid?`Bought for ${money(i.d.paid)}`+(hasVal&&d!==0?` · <span class="${d>0?'pos':'neg'}">${d>0?'+':''}${money(d)}</span>`:''):'',
+      linked?`<span class="lnk">↳ from the investment log${l?' · '+fdate(l.d.date).replace(/^\w+, /,''):' · nothing logged yet'}</span>`:'',
+      esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
+    return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
   sort:byStart,
   fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -1197,6 +1205,17 @@ function fintxPage(){
   });
   return h;
 }
+function latestInvest(){
+  const r=list('invest').filter(x=>x.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
+  return r[0]||null;
+}
+function assetVal(i){                          // linked assets are read-only mirrors
+  if(i.d.src==='Investment log'){const l=latestInvest();return l?(+l.d.val||0):0}
+  return +i.d.val||0;
+}
+function assetHasVal(i){
+  return i.d.src==='Investment log'?!!latestInvest():(i.d.val!==''&&i.d.val!=null);
+}
 function investChart(rows){
   if(rows.length<2)return'<div class="empty">Log a second month and the curve appears here.</div>';
   const W=640,H=200,L=10,R=10,T=16,B=24;
@@ -1245,9 +1264,9 @@ function investPage(){
 function networthPage(){
   const bank=finSum('Banking'),cc=finSum('Credit'),net=bank+cc;
   const assets=list('assets');
-  const atot=assets.reduce((s,i)=>s+(+i.d.val||0),0);
-  const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&i.d.val!==''&&i.d.val!=null);
-  const growth=tracked.reduce((s,i)=>s+((+i.d.val||0)-(+i.d.paid||0)),0);
+  const atot=assets.reduce((s,i)=>s+assetVal(i),0);
+  const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&assetHasVal(i));
+  const growth=tracked.reduce((s,i)=>s+(assetVal(i)-(+i.d.paid||0)),0);
   let h=`<div class="grid stats">
     <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">live from Finances → Cash</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money2(atot)}</div></div>
