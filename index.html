@@ -373,6 +373,7 @@
   </div>
   <div class="foot" style="margin-top:14px;flex-wrap:wrap">
     <button class="btn sm" id="cfgSave">Save sync config</button>
+    <button class="btn sm" id="linkBtn">Copy setup link</button>
     <button class="btn sm" id="pinChange">Change PIN</button>
     <button class="btn sm" id="expBtn">Export backup</button>
     <button class="btn sm" id="impBtn">Import</button>
@@ -1872,6 +1873,7 @@ $('#gearBtn').onclick=()=>{
   $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
   $('#setErr').textContent=storeErr||syncErr||'none';
   $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
+  $('#linkBtn').disabled=!cfg;$('#linkBtn').textContent='Copy setup link';
   ov('setOv',1);
 };
 let setDown=null;
@@ -1881,9 +1883,22 @@ $('#setOv').addEventListener('click',e=>{
   setDown=null;});
 $('#cfgSave').onclick=()=>{
   const url=$('#cfgUrl').value.trim(),key=$('#cfgKey').value.trim(),secret=$('#cfgSec').value.trim();
-  if(url&&key){cfg={url,key,secret};localStorage.alfred_cfg=JSON.stringify(cfg);S.lastPull=0;save(1);sync()}
+  const joining=!cfg;                       // local-only until now: this device is joining the account
+  if(url&&key){cfg={url,key,secret};localStorage.alfred_cfg=JSON.stringify(cfg);
+    if(joining)dropLocalPin();
+    S.lastPull=0;save(1);sync()}
   else{cfg=null;localStorage.removeItem('alfred_cfg')}
   ov('setOv',0);setPill();
+};
+// A PIN chosen while the device was local-only is newer than the real one, so last-edit-wins would
+// push it to every other device. Forget it locally instead and let the first pull hand down the real one.
+function dropLocalPin(){delete S.items['cfg:pin']}
+$('#linkBtn').onclick=async()=>{
+  if(!cfg)return;
+  const link=location.origin+location.pathname+'#cfg='+encodeURIComponent(btoa(JSON.stringify(cfg)));
+  try{await navigator.clipboard.writeText(link);$('#linkBtn').textContent='Copied ✓';
+    setTimeout(()=>{$('#linkBtn').textContent='Copy setup link'},1600)}
+  catch(e){prompt('Open this on the other device:',link)}
 };
 $('#pinChange').onclick=()=>{ov('setOv',0);showLock('set')};
 $('#expBtn').onclick=()=>{
@@ -1911,14 +1926,17 @@ $('#impFile').onchange=e=>{
 /* ---------------- boot ---------------- */
 (function(){
   // one-time setup via link fragment: #cfg=base64({url,key})
+  let joining=false;
   if(location.hash.startsWith('#cfg=')){
-    try{cfg=JSON.parse(atob(decodeURIComponent(location.hash.slice(5))));
+    try{joining=!cfg;
+      cfg=JSON.parse(atob(decodeURIComponent(location.hash.slice(5))));
       localStorage.alfred_cfg=JSON.stringify(cfg);
       history.replaceState(null,'',location.pathname+location.search);
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
   load();seed();initNav();initPad();
+  if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
   renderActive();
