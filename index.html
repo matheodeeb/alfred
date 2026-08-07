@@ -948,7 +948,7 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The collection. Bott
   sort:(a,b)=>(a.d.house||'zzz').localeCompare(b.d.house||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0;
     return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
-      pill:c===0?{cls:'bad',txt:'empty'}:c>1?{cls:'acc',txt:'× '+c}:null}},
+      pill:c===0?{cls:'bad',txt:'empty'}:null}},
   empty:'Nothing here yet — hit + to add a bottle.'},
 needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Low items from Stock appear here on their own, and drop off once restocked.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
