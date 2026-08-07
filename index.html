@@ -391,7 +391,7 @@ const money2=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US
 const signCls=n=>(+n||0)<0?'neg':(+n||0)>0?'pos':'';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const fdate=s=>{if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})};
-const dlabel=s=>{
+const dlabel=(s,noOverdue)=>{     // noOverdue: a finished task is never late
   if(!s)return'No date';
   const d=new Date(s+'T12:00:00');if(isNaN(d))return String(s);
   const t=new Date(),t0=new Date(t.getFullYear(),t.getMonth(),t.getDate());
@@ -399,7 +399,7 @@ const dlabel=s=>{
   const opts={weekday:'short',month:'short',day:'numeric'};
   if(d.getFullYear()!==t.getFullYear())opts.year='numeric';
   const base=d.toLocaleDateString('en-US',opts);
-  return diff===0?'Today · '+base:diff===1?'Tomorrow · '+base:diff<0?base+' · overdue':base;
+  return diff===0?'Today · '+base:diff===1?'Tomorrow · '+base:diff<0?(noOverdue?base:base+' · overdue'):base;
 };
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function ov(id,show){$('#'+id).classList.toggle('show',!!show)}
@@ -827,7 +827,9 @@ function togg(sec,id){
     kill(id);renderActive();return;
   }
   if(typeof m.onToggle==='function'){m.onToggle(i)}
-  else{const k=m.toggle.k||m.toggle;put(sec,{[k]:i.d[k]?'':1},id)}
+  else{const k=m.toggle.k||m.toggle, on=!i.d[k], patch={[k]:on?1:''};
+    if(m.stamp)patch[m.stamp]=on?today():'';        // remember when it was finished
+    put(sec,patch,id)}
   renderActive();
 }
 
@@ -850,6 +852,10 @@ function showLen(d){
   return p.join(' · ');
 }
 const tripWhen=d=>d.start||d.end||'';        // a trip counts as dated if either end is filled
+const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
+// To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
+const doneView=()=>(chipState.todo??0)===1;
+const todoWhen=i=>(doneView()?(i.d.doneAt||i.d.due):i.d.due)||'';
 const ST_SEL=['Idea','Planned','In progress','Done'];
 const MODS={
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
@@ -860,17 +866,22 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, then the section each task belongs to.',
   fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done},{l:'All',f:()=>1}],
-  toggle:'done',
-  group:i=>{if(i.d.due){const d=new Date(i.d.due+'T12:00:00');
+  chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
+  toggle:'done',stamp:'doneAt',
+  group:i=>{const w=todoWhen(i);if(w){const d=new Date(w+'T12:00:00');
       if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
     return 'General';},
   subsub:i=>(i.d.grp||'').trim()||'General',
-  groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=i.d.due||'9999-99-99';return d<m?d:m},'9999-99-99');
-    const rank=g=>g==='General'?1:0;
+  groupOrder:(a,b,gs)=>{const rank=g=>g==='General'?1:0;
+    if(doneView()){                                  // newest month first
+      const last=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i);return d>m?d:m},'');
+      return rank(a)-rank(b)||last(b).localeCompare(last(a))||b.localeCompare(a)}
+    const first=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i)||'9999-99-99';return d<m?d:m},'9999-99-99');
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
-  subgroup:i=>i.d.due?dlabel(i.d.due):'',
-  sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
+  subgroup:i=>{const w=todoWhen(i);return w?dlabel(w,doneView()):''},
+  sort:(a,b)=>doneView()
+    ? (todoWhen(b)||'').localeCompare(todoWhen(a)||'')||((+a.d.ord||9999)-(+b.d.ord||9999))
+    : (a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
   ranked:0,
   card:i=>({t:esc(i.d.task),s:esc(i.d.notes||''),dim:!!i.d.done,
     pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
@@ -945,21 +956,24 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
   toggle:'done',
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'To order — spoils & wants',color:'var(--acc)',hint:'Treats. No judgement.',
+wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>String(i.d.grp||'').trim()||'Other',
   groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
   groupNote:arr=>money(arr.reduce((t,i)=>t+(+i.d.price||0),0)),
   stats:it=>{const sum=a=>a.reduce((t,i)=>t+(+i.d.price||0),0);
-    const open=it.filter(i=>!i.d.done), got=it.filter(i=>i.d.done), noPrice=it.filter(i=>!(+i.d.price)).length;
-    return[{k:'Everything',v:money(sum(it)),u:it.length+' item'+(it.length===1?'':'s')+(noPrice?' · '+noPrice+' without a price':''),c:'var(--acc)'},
-           {k:'Still to buy',v:money(sum(open)),u:open.length+' item'+(open.length===1?'':'s'),c:'var(--gold)'},
-           {k:'Already ordered',v:money(sum(got)),u:got.length+' item'+(got.length===1?'':'s'),c:'var(--ok)'}]},
-  chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
+    const open=it.filter(wOpen), paid=it.filter(i=>!wOpen(i)), noPrice=open.filter(i=>!(+i.d.price)).length;
+    return[{k:'To spend',v:money(sum(open)),u:open.length+' item'+(open.length===1?'':'s')+(noPrice?' · '+noPrice+' without a price':''),c:'var(--gold)'},
+           {k:'Spent',v:money(sum(paid)),u:paid.length+' item'+(paid.length===1?'':'s'),c:'var(--ok)'}]},
+  chips:[{l:'Open',f:wOpen},{l:'Ordered',f:i=>i.d.done&&!i.d.got},{l:'Received',f:i=>!!i.d.got}],
+  onToggle:i=>{const d=i.d;
+    if(wOpen(i))put('wants',{done:1,doneAt:today()},i.id);            // open  → ordered
+    else if(!d.got)put('wants',{got:1,gotAt:today()},i.id);           // ordered → received
+    else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
   toggle:'done',
-  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
-    pill:i.d.link?{cls:'acc',txt:'link'}:null})},
+  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+    pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
@@ -1769,7 +1783,7 @@ const NAV=[
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
   {t:'Stock',g:[['Goods','stock'],['Kitchen','kitchen'],['Perfume','perfume']]},
-  {t:'Orders',g:[['Necessities','needs'],['Spoils & wants','wants']]},
+  {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest']]},
   {t:'Net worth',p:'networth'},
