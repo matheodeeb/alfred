@@ -804,20 +804,30 @@ function stepHtml(i,k){return`<span class="qtyStep" onclick="event.stopPropagati
   <button class="qtyBtn" onclick="bump('${i.id}','${k}',1)">+</button></span>`}
 // Anything at or below its reorder level (or simply out) is mirrored onto
 // Orders > Necessities automatically; restocking it takes it back off the list.
+const AUTO_SRC=[                                  // stock page → where its shortages get listed
+  {sec:'stock',  from:'Goods',       dest:'needs', pre:'need:auto:', par:1},
+  {sec:'kitchen',from:'Living room', dest:'needs', pre:'need:auto:'},
+  {sec:'perfume',from:'Perfume',     dest:'wants', pre:'want:auto:'},
+];
 function syncAutoOrders(){
-  list('stock').forEach(it=>{
+  AUTO_SRC.forEach(src=>list(src.sec).forEach(it=>{
     const c=+it.d.count||0, m=+it.d.min||0, par=+it.d.par||0;
-    const low=(m>0&&c<=m)||c===0;
-    const nid='need:auto:'+it.id, raw=S.items[nid], cur=one(nid);
+    const low=(m>0&&c<=m)||c===0;                 // same test the To buy tab uses
+    const nid=src.pre+it.id, raw=S.items[nid], cur=one(nid), wants=src.dest==='wants';
     if(low){
       const qty=par>c?par-c:'';
-      if(raw&&raw.del&&raw.d&&(raw.d.qty??'')===qty)return;   // dismissed at this quantity
-      const notes=par>c?`Auto-added from Stock — ${c} on hand, par ${par}.`
-                       :`Auto-added from Stock — ${c} on hand, at or below the reorder level. Set a par level to get a quantity.`;
-      if(!cur||(cur.d.qty??'')!==qty||cur.d.name!==it.d.name||cur.d.notes!==notes)
-        put('needs',{name:it.d.name,qty,price:cur?.d?.price??'',link:cur?.d?.link??'',done:cur?.d?.done??'',notes},nid);
-    } else if(cur&&!cur.d.done) kill(nid);
-  });
+      // you dismissed it by hand at this quantity — stay off. (Rows this sync retired on a
+      // restock carry `auto` and must come back the next time the item runs low.)
+      if(raw&&raw.del&&raw.d&&!raw.d.auto&&(raw.d.qty??'')===qty)return;
+      const notes=`Auto-added from ${src.from} — `+(par>c?`${c} on hand, par ${par}.`
+        :c===0?'none left.'
+        :`${c} on hand, at or below the reorder level.${src.par?' Set a par level to get a quantity.':''}`);
+      const row={name:it.d.name,price:cur?.d?.price??'',link:cur?.d?.link??'',done:cur?.d?.done??'',notes,auto:''};
+      if(wants){row.grp=src.from;row.got=cur?.d?.got??''} else row.qty=qty;
+      if(!cur||cur.d.name!==row.name||cur.d.notes!==notes||(!wants&&(cur.d.qty??'')!==qty))
+        put(src.dest,row,nid);
+    } else if(cur&&!cur.d.done&&!cur.d.got){put(src.dest,{auto:1},nid);kill(nid)}   // restocked
+  }));
 }
 function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
 function togg(sec,id){
@@ -923,23 +933,23 @@ bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
     pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
 stock:{title:'Stock of goods',freeze:1,color:'var(--orange)',hint:'Counts of what you keep at home. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
-  chips:[{l:'All',f:()=>1},{l:'Low / out',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
+  chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0;
     return{t:esc(i.d.name),s:[esc(i.d.place||''),par?'par '+par:''].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
-kitchen:{title:'Kitchen',freeze:1,color:'var(--green)',hint:'What\'s in the kitchen and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on the buy list.',
+kitchen:{title:'Living room',freeze:1,color:'var(--green)',hint:'What\'s in the living room and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on Orders → Necessities by itself.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'dyn',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
-  chips:[{l:'All',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)},{l:'Stocked',f:i=>(+i.d.count||0)>(+i.d.min||0)}],
+  chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   group:i=>i.d.cat||'Other',
   stats:it=>{const buy=it.filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-    return[{k:'To buy',v:buy.length,u:buy.length?buy.slice(0,3).map(i=>i.d.name).join(', ')+(buy.length>3?'…':''):'kitchen is stocked',c:buy.length?'var(--bad)':'var(--ok)'},
+    return[{k:'To buy',v:buy.length,u:buy.length?buy.slice(0,3).map(i=>i.d.name).join(', ')+(buy.length>3?'…':''):'all stocked',c:buy.length?'var(--bad)':'var(--ok)'},
            {k:'Items tracked',v:it.length,c:'var(--green)'}]},
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0;
     return{t:esc(i.d.name),s:[esc(i.d.unit||''),esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
-  empty:'Nothing tracked yet — hit + to add what you keep in the kitchen.'},
+  empty:'Nothing tracked yet — hit + to add what you keep in the living room.'},
 perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The collection. Bottles you own — use − / + when one runs out or a new one arrives.',
   fields:[{k:'name',l:'Fragrance',t:'text',req:1},{k:'house',l:'House',t:'dyn',opt:['Dior','Yves Saint Laurent','Tom Ford','Davidoff','Houbigant','Maison Francis Kurkdjian','Diptyque','Prada','Atelier Rebul','Penhaligon’s']},
           {k:'count',l:'Bottles',t:'num'},{k:'place',l:'Where',t:'text',ph:'dresser, travel bag…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'notes, season, occasion…'}],
@@ -949,13 +959,13 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The collection. Bott
   sort:(a,b)=>(a.d.house||'zzz').localeCompare(b.d.house||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count'}),
   empty:'Nothing here yet — hit + to add a bottle.'},
-needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Low items from Stock appear here on their own, and drop off once restocked.',
+needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Anything low in Goods or the Living room appears here on its own, and drops off once restocked.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received.',
+wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received. Perfume you\'ve run out of shows up here on its own.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>String(i.d.grp||'').trim()||'Other',
@@ -1763,7 +1773,7 @@ function overviewPage(){
   const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
   if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Groceries to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${esc(i.d.cat||'')}</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
+  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${esc(i.d.cat||'')}</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
   const pd=list('payroll').filter(i=>!paidThis(i));
   if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
   const tr=list('travels').filter(i=>tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
@@ -1781,7 +1791,7 @@ const NAV=[
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
-  {t:'Stock',g:[['Goods','stock'],['Kitchen','kitchen'],['Perfume','perfume']]},
+  {t:'Stock',g:[['Goods','stock'],['Living room','kitchen'],['Perfume','perfume']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest']]},
