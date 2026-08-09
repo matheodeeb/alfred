@@ -1,4 +1,4 @@
-const V = 'alfred-v9';
+const V = 'alfred-v10';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
