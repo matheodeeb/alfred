@@ -823,9 +823,9 @@ function syncAutoOrders(){
       const notes=`Auto-added from ${src.from} — `+(par>c?`${c} on hand, par ${par}.`
         :c===0?'none left.'
         :`${c} on hand, at or below the reorder level.${src.par?' Set a par level to get a quantity.':''}`);
-      const row={name:it.d.name,price:cur?.d?.price??'',link:cur?.d?.link??'',done:cur?.d?.done??'',notes,auto:''};
+      const row={name:it.d.name,price:cur?.d?.price??'',link:cur?.d?.link??'',done:cur?.d?.done??'',notes,auto:'',src:src.from};
       if(wants){row.grp=src.from;row.got=cur?.d?.got??''} else row.qty=qty;
-      if(!cur||cur.d.name!==row.name||cur.d.notes!==notes||(!wants&&(cur.d.qty??'')!==qty))
+      if(!cur||cur.d.name!==row.name||cur.d.notes!==notes||cur.d.src!==src.from||(!wants&&(cur.d.qty??'')!==qty))
         put(src.dest,row,nid);
     } else if(cur&&!cur.d.done&&!cur.d.got){put(src.dest,{auto:1},nid);kill(nid)}   // restocked
   }));
@@ -865,6 +865,7 @@ function showLen(d){
 }
 const tripWhen=d=>d.start||d.end||'';        // a trip counts as dated if either end is filled
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
+const NEED_SRC=['Goods','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
 const doneView=()=>(chipState.todo??0)===1;
 const todoWhen=i=>(doneView()?(i.d.doneAt||i.d.due):i.d.due)||'';
@@ -978,10 +979,13 @@ supp:{title:'Supplements',freeze:1,color:'var(--blue)',hint:'Vitamins and supple
   sort:(a,b)=>(a.d.brand||'zzz').localeCompare(b.d.brand||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:[esc(i.d.brand||''),esc(i.d.kind||'')].filter(Boolean).join(' · '),step:'count'}),
   empty:'Nothing here yet — hit + to add a supplement.'},
-needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Anything low in Goods or the Living room appears here on its own, and drops off once restocked.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs, grouped by the stock page it came from. Anything low in Goods, the Living room or Supplements appears here on its own, and drops off once restocked.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'src',l:'Section',t:'dyn',opt:NEED_SRC},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
+  group:i=>String(i.d.src||'').trim()||'Added by hand',
+  groupOrder:(a,b)=>{const r=g=>{const x=NEED_SRC.indexOf(g);return x<0?9:x};
+    return r(a)-r(b)||a.localeCompare(b)},
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
 wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received. Perfume you\'ve run out of shows up here on its own.',
@@ -1809,8 +1813,8 @@ const NAV=[
   {t:'To-do',p:'todo',cls:'todo'},
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
-  {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice']]},
-  {t:'Stock',g:[['Goods','stock'],['Living room','kitchen'],['Perfume','perfume'],['Supplements','supp']]},
+  {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
+  {t:'Stock',g:[['Goods','stock'],['Living room','kitchen'],['Perfume','perfume']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest']]},
