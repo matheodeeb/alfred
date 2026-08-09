@@ -957,7 +957,13 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection
   stats:it=>[{k:'Bottles',v:it.reduce((s,i)=>s+(+i.d.count||0),0),c:'var(--gold)'},
              {k:'Fragrances',v:it.length,u:new Set(it.map(i=>i.d.house).filter(Boolean)).size+' houses',c:'var(--acc)'}],
   sort:(a,b)=>(a.d.house||'zzz').localeCompare(b.d.house||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count'}),
+  card:i=>{const c=+i.d.count||0,m=+i.d.min||0;
+    // Stock lists the whole collection now, so a bottle you've run out of has to
+    // read as empty at a glance — same as Goods and the Living room. Unlike them
+    // there's no 'ok' pill: this is a collection you browse, and a green badge on
+    // every bottle is noise. Nothing comes back for the × N duplicate count.
+    return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
+      pill:c===0?{cls:'bad',txt:'empty'}:(m>0&&c<=m)?{cls:'warn',txt:'buy'}:null}},
   empty:'Nothing here yet — hit + to add a bottle.'},
 needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs. Anything low in Goods or the Living room appears here on its own, and drops off once restocked.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
