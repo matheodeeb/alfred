@@ -1166,6 +1166,10 @@ const debTimers={};
 function debSave(key,fn){clearTimeout(debTimers[key]);if(typeof fn==='function')debTimers[key]=setTimeout(fn,600)}
 function finBy(grp){return list('fincash').filter(i=>(i.d.grp||'')===grp)}
 function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
+function fxRate(){return (+finBy('Setting')[0]?.d?.amt)||131}
+// Same as finSum but in dollars — the Haiti rows can be held in HTG.
+function finUsd(...grps){const r=fxRate();
+  return grps.flatMap(finBy).reduce((s,i)=>s+(i.d.cur==='HTG'?(+i.d.amt||0)/r:(+i.d.amt||0)),0)}
 let finView='American',htTotCur='USD';
 function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
 function finStats(bt,ct,ov,u,bills){
@@ -1388,13 +1392,14 @@ function investPage(){
   return h;
 }
 function networthPage(){
-  const bank=finSum('Banking'),cc=finSum('Credit'),net=bank+cc;
+  // Net worth spans both banks. Bills stay out — that's physical cash, tracked on its own.
+  const us=finUsd('Banking','Credit'), ht=finUsd('Haiti cash','Haiti credit'), net=us+ht;
   const assets=list('assets');
   const atot=assets.reduce((s,i)=>s+assetVal(i),0);
   const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&assetHasVal(i));
   const growth=tracked.reduce((s,i)=>s+(assetVal(i)-(+i.d.paid||0)),0);
   let h=`<div class="grid stats">
-    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">live from Finances → Cash</div></div>
+    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">US ${money2(us)} · Haiti ${money2(ht)} · HTG at ${fxRate()}</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money2(atot)}</div></div>
     <div class="stat" style="--accent:var(--green)"><div class="k">Growth</div><div class="v ${signCls(growth)}">${growth>0?'+':''}${money2(growth)}</div><div class="u">worth now − bought for${tracked.length<assets.length?' · '+(assets.length-tracked.length)+' asset'+(assets.length-tracked.length>1?'s':'')+' missing a price':''}</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v ${signCls(net+atot)}">${money2(net+atot)}</div></div>
