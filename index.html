@@ -829,6 +829,11 @@ function syncAutoOrders(){
         put(src.dest,row,nid);
     } else if(cur&&!cur.d.done&&!cur.d.got){put(src.dest,{auto:1},nid);kill(nid)}   // restocked
   }));
+  // Deleting a stock row outright never reaches the branch above, so its mirror would
+  // sit in Orders for ever with nothing behind it. Sweep those, unless already ordered.
+  [['needs','need:auto:'],['wants','want:auto:']].forEach(([dest,pre])=>
+    list(dest).forEach(i=>{
+      if(i.id.startsWith(pre)&&!one(i.id.slice(pre.length))&&!i.d.done&&!i.d.got)kill(i.id)}));
 }
 function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
 function togg(sec,id){
