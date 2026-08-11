@@ -457,19 +457,37 @@ function one(id){const i=S.items[id];return (i&&!i.del)?i:null}
 
 /* ---------------- sync ---------------- */
 let cfg=null; try{cfg=JSON.parse(localStorage.alfred_cfg||'null')}catch(e){}
+const SB_TIMEOUT=20000;                        // a hung request must never park sync() forever
 async function sb(path,opt={}){
-  const r=await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/'+path,{...opt,
-    headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'Content-Type':'application/json'},cfg.secret?{'x-alfred-key':cfg.secret}:{},opt.headers||{})});
+  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),SB_TIMEOUT);
+  let r;
+  try{
+    r=await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/'+path,{...opt,signal:ac.signal,
+      headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'Content-Type':'application/json'},cfg.secret?{'x-alfred-key':cfg.secret}:{},opt.headers||{})});
+  }catch(e){                                   // fetch only rejects when the request never got an answer
+    const err=new Error(ac.signal.aborted?'cloud timed out':'cloud unreachable');err.net=1;throw err;
+  }finally{clearTimeout(tm)}
   if(!r.ok)throw new Error(r.status+' '+await r.text());
   const t=await r.text(); return t?JSON.parse(t):null;
 }
 let syncTimer=null,syncing=false,again=false;
 function queueSync(){setPill();clearTimeout(syncTimer);syncTimer=setTimeout(sync,900)}
-let syncErr='';
+// Online/offline is decided by what actually happened on the wire, not by navigator.onLine:
+// that flag gets stuck false after sleep/wake or a VPN flip, and its 'online' event never fires
+// to unstick it. netOk: null = untested, true = reached the cloud, false = the wire is really down.
+let syncErr='',netOk=null,fails=0,retryTimer=null,lastTry=0;
+function retry(){                              // keep trying on our own instead of waiting to be told
+  fails++;clearTimeout(retryTimer);
+  retryTimer=setTimeout(sync,Math.min(60000,2000*Math.pow(2,Math.min(fails,5))));
+}
+function syncSoon(){                            // coming back to the app: eager while broken, calm while healthy
+  if(netOk===false||syncErr){fails=0;sync();return}   // don't sit on a backoff the user is waiting out
+  if(Date.now()-lastTry>3000)sync();
+}
 async function sync(){
-  if(!cfg||!navigator.onLine){setPill();return}
+  if(!cfg){setPill();return}
   if(syncing){again=true;return}
-  syncing=true;setPill('sync');
+  syncing=true;lastTry=Date.now();clearTimeout(retryTimer);setPill('sync');
   let changed=false;
   try{
     const PAGE=500, since=Math.max(0,(S.lastPull||0)-5*60000);   // overlap, so a skewed clock can't hide rows
@@ -493,10 +511,15 @@ async function sync(){
       snap.forEach(([x,u])=>{if(x.up===u)delete x.dirty});   // edited mid-flight? stays dirty
     }
     trimLocal();
-    S.lastSyncAt=Date.now();syncErr='';save(1);
+    S.lastSyncAt=Date.now();syncErr='';netOk=true;fails=0;save(1);
     // second device: a PIN pulled from the cloud upgrades the "choose PIN" screen to "enter PIN"
     if(changed&&$('#lock').classList.contains('show')&&pinMode==='set'&&!pinFirst&&pinHash())showLock('enter');
-  }catch(e){syncErr=e.message||'sync failed';console.warn('sync failed:',e.message)}
+  }catch(e){
+    if(e.net){netOk=false;syncErr=''}                    // never got through
+    else{netOk=true;syncErr=e.message||'sync failed'}    // the cloud answered, and said no
+    console.warn('sync failed:',e.message);
+    retry();
+  }
   syncing=false;setPill();
   if(changed)renderActive();
   if(again){again=false;queueSync()}
@@ -507,14 +530,17 @@ function setPill(state){
   if(!cfg){dot.className='dot gray';txt.textContent='local only';return}
   if(state==='sync'){dot.className='dot pend';txt.textContent='syncing…';return}
   if(storeErr){dot.className='dot off';txt.textContent='storage full';return}
-  if(!navigator.onLine){dot.className='dot off';txt.textContent='offline · saved';return}
+  if(netOk===false){dot.className='dot off';txt.textContent='offline · retrying';return}
   if(syncErr){dot.className='dot off';txt.textContent='sync error · retrying';return}
   if(pend){dot.className='dot pend';txt.textContent=pend+' pending';return}
   dot.className='dot';txt.textContent=S.lastSyncAt?('cloud · '+new Date(S.lastSyncAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'cloud';
 }
-addEventListener('online',()=>{setPill();sync()});
-addEventListener('offline',setPill);
+addEventListener('online',()=>{fails=0;sync()});     // a hint worth acting on, never one we wait for
+addEventListener('offline',()=>setPill());
+addEventListener('pageshow',e=>{if(e.persisted)syncSoon()});  // woken from the back/forward cache
+addEventListener('focus',()=>syncSoon());
 setInterval(()=>{if(document.visibilityState==='visible')sync()},45000);
+$('#pill').onclick=()=>{fails=0;sync()};             // tap the badge to pull now
 
 /* ---------------- PIN ---------------- */
 async function hash(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('alfred:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -545,7 +571,7 @@ function initPad(){const pad=$('#lockPad');'123456789 0⌫'.split('').forEach(k=
   if(k!==' ')b.onclick=()=>pinDigit(k);pad.appendChild(b)})}
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden')hiddenAt=Date.now();
-  else{sync();
+  else{syncSoon();
     if(pinHash()&&hiddenAt&&Date.now()-hiddenAt>5*60*1000)showLock('enter');
     else localStorage.alfred_unlocked=Date.now();}
 });
