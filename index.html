@@ -1015,9 +1015,8 @@ stock:{title:'Bathroom',freeze:1,color:'var(--orange)',hint:'Counts of what you 
     return{t:esc(i.d.name),s:[esc(i.d.place||''),par?'par '+par:''].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
 kitchen:{title:'Living room',freeze:1,color:'var(--green)',hint:'What\'s in the living room and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on Orders → Necessities by itself; the par level sets how many to buy.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'cat',l:'Aisle',t:'dyn',opt:['Produce','Meat & fish','Dairy & eggs','Bread & bakery','Pantry & dry goods','Frozen','Drinks','Spices & condiments','Snacks','Household','Other']},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
   chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
-  group:i=>i.d.cat||'Other',
   stats:it=>{const buy=it.filter(i=>(+i.d.count||0)<=(+i.d.min||0));
     return[{k:'To buy',v:buy.length,u:buy.length?buy.slice(0,3).map(i=>i.d.name).join(', ')+(buy.length>3?'…':''):'all stocked',c:buy.length?'var(--bad)':'var(--ok)'},
            {k:'Items tracked',v:it.length,c:'var(--green)'}]},
@@ -1875,7 +1874,7 @@ function overviewPage(){
   const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
   if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${esc(i.d.cat||'')}</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
+  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
   const pd=list('payroll').filter(i=>!paidThis(i));
   if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
   const tr=list('travels').filter(i=>tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
