@@ -831,7 +831,7 @@ function stepHtml(i,k){return`<span class="qtyStep" onclick="event.stopPropagati
 // Anything at or below its reorder level (or simply out) is mirrored onto
 // Orders > Necessities automatically; restocking it takes it back off the list.
 const AUTO_SRC=[                                  // stock page → where its shortages get listed
-  {sec:'stock',  from:'Goods',       dest:'needs', pre:'need:auto:', par:1},
+  {sec:'stock',  from:'Bathroom',    dest:'needs', pre:'need:auto:', par:1},
   {sec:'kitchen',from:'Living room', dest:'needs', pre:'need:auto:'},
   {sec:'supp',   from:'Supplements', dest:'needs', pre:'need:auto:'},
   {sec:'perfume',from:'Perfume',     dest:'wants', pre:'want:auto:'},
@@ -896,7 +896,7 @@ function showLen(d){
 }
 const tripWhen=d=>d.start||d.end||'';        // a trip counts as dated if either end is filled
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
-const NEED_SRC=['Goods','Living room','Supplements'];   // Necessities groups by the stock page it came from
+const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
 const doneView=()=>(chipState.todo??0)===1;
 const todoWhen=i=>(doneView()?(i.d.doneAt||i.d.due):i.d.due)||'';
@@ -964,8 +964,8 @@ bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
   sort:(a,b)=>nextBday(a.d.date)-nextBday(b.d.date),
   card:i=>{const dd=daysToBday(i.d.date);return{t:esc(i.d.name),s:i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',
     pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
-stock:{title:'Stock of goods',freeze:1,color:'var(--orange)',hint:'Counts of what you keep at home. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'place',l:'Where',t:'text',ph:'drawer, bathroom…'}],
+stock:{title:'Bathroom',freeze:1,color:'var(--orange)',hint:'Counts of what you keep in the bathroom. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
+  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'place',l:'Where',t:'text',ph:'cabinet, shower, drawer…'}],
   chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0;
@@ -992,7 +992,7 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection
   sort:(a,b)=>(a.d.house||'zzz').localeCompare(b.d.house||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>{const c=+i.d.count||0,m=+i.d.min||0;
     // Stock lists the whole collection now, so a bottle you've run out of has to
-    // read as empty at a glance — same as Goods and the Living room. Unlike them
+    // read as empty at a glance — same as the Bathroom and the Living room. Unlike them
     // there's no 'ok' pill: this is a collection you browse, and a green badge on
     // every bottle is noise. Nothing comes back for the × N duplicate count.
     return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
@@ -1010,7 +1010,7 @@ supp:{title:'Supplements',freeze:1,color:'var(--blue)',hint:'Vitamins and supple
   sort:(a,b)=>(a.d.brand||'zzz').localeCompare(b.d.brand||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:[esc(i.d.brand||''),esc(i.d.kind||'')].filter(Boolean).join(' · '),step:'count'}),
   empty:'Nothing here yet — hit + to add a supplement.'},
-needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs, grouped by the stock page it came from. Anything low in Goods, the Living room or Supplements appears here on its own, and drops off once restocked.',
+needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs, grouped by the stock page it came from. Anything low in the Bathroom, the Living room or Supplements appears here on its own, and drops off once restocked.',
   fields:[{k:'name',l:'Item',t:'text',req:1},{k:'src',l:'Section',t:'dyn',opt:NEED_SRC},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
   toggle:'done',
@@ -1850,7 +1850,7 @@ const NAV=[
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
-  {t:'Stock',g:[['Goods','stock'],['Living room','kitchen'],['Perfume','perfume']]},
+  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest']]},
@@ -1929,7 +1929,16 @@ function renderActive(){
 }
 
 /* ---------------- seeds ---------------- */
-const SEED=[]; // personal starter data lives in the private cloud, not in this public file
+// Personal data lives in the private cloud, not in this public file. These five are the
+// bathroom staples, seeded once so every device picks them up: generic names, no detail.
+// They start at zero, so Orders → Necessities lists them the moment they land.
+const SEED=[
+  ['stock:shampoo',    'stock',{name:'Shampoo',                 count:0,min:1,par:4}],
+  ['stock:conditioner','stock',{name:'Conditioner',             count:0,min:1,par:4}],
+  ['stock:bodywash',   'stock',{name:'Body wash',               count:0,min:2,par:6}],
+  ['stock:loofah',     'stock',{name:'Loofah',                  count:0,min:1,par:4}],
+  ['stock:handsoap',   'stock',{name:'Hand soap refill bottle', count:0,min:1,par:3}],
+];
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
 /* ---------------- settings ---------------- */
