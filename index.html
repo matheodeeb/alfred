@@ -754,12 +754,15 @@ $('#modalOv').addEventListener('click',e=>{
 /* ---------------- generic list page ---------------- */
 const chipState={}, FROZEN={};
 function unfreeze(sec){Object.keys(FROZEN).forEach(k=>{if(k.split('|')[0]===sec)delete FROZEN[k]})}
+function statsHtml(m,items){
+  return m.stats(items).map(s=>`<div class="stat" style="--accent:${s.c||'var(--acc)'}"><div class="k">${s.k}</div><div class="v">${s.v}</div>${s.u?`<div class="u">${s.u}</div>`:''}</div>`).join('');
+}
 function genList(sec){
   const m=MODS[sec];
   let items=list(sec);
   const chips=m.chips;
   let html='';
-  if(m.stats){html+='<div class="grid stats">'+m.stats(items).map(s=>`<div class="stat" style="--accent:${s.c||'var(--acc)'}"><div class="k">${s.k}</div><div class="v">${s.v}</div>${s.u?`<div class="u">${s.u}</div>`:''}</div>`).join('')+'</div>'}
+  if(m.stats){html+='<div class="grid stats">'+statsHtml(m,items)+'</div>'}
   html+=`<div class="panel"><h2><span class="sw" style="background:${m.color||'var(--acc)'}"></span>${m.title}</h2><div class="hint">${m.hint||''}</div>`;
   const totalAll=items.length;
   if(chips){
@@ -861,7 +864,47 @@ function syncAutoOrders(){
     list(dest).forEach(i=>{
       if(i.id.startsWith(pre)&&!one(i.id.slice(pre.length))&&!i.d.done&&!i.d.got)kill(i.id)}));
 }
-function bump(id,k,dn){const i=one(id);if(!i)return;const v=Math.max(0,(+i.d[k]||0)+dn);put(i.sec,{[k]:v},id);renderActive()}
+// A count used to redraw the whole page, so the row you were tapping was thrown away and
+// rebuilt under your finger — it read as a flash and lost where you were on a long list.
+// Patch only what a count can actually change: the number, the badge, the title and
+// subtitle. Everything else on screen is left exactly where it is.
+function patchRow(sec,id){
+  const i=one(id),m=MODS[sec];
+  const box=document.querySelector('#pg-'+sec+' .rowBox[data-id="'+String(id).replace(/["\\]/g,'\\$&')+'"]');
+  if(!m||!box)return false;                      // not on screen — let the caller redraw
+  if(!i){box.remove();return true}
+  const c=m.card(i);
+  box.classList.toggle('dim',!!c.dim);
+  if(c.step){const q=box.querySelector('.qtyVal');if(q)q.textContent=+i.d[c.step]||0}
+  const info=box.querySelector('.rinfo');
+  if(info){
+    const t=info.querySelector('.t');if(t)t.innerHTML=c.t;
+    let s=info.querySelector('.s');
+    if(c.s){if(!s){s=document.createElement('div');s.className='s';info.appendChild(s)}s.innerHTML=c.s}
+    else if(s)s.remove();
+  }
+  const right=box.querySelector('.rright');
+  if(right){
+    let p=right.querySelector('.pill');
+    if(c.pill){
+      if(!p){p=document.createElement('span');right.insertBefore(p,right.querySelector('.editBtn'))}
+      p.className='pill '+(c.pill.cls||'');p.innerHTML=c.pill.txt;
+    } else if(p)p.remove();
+  }
+  return true;
+}
+function patchStats(sec){
+  const m=MODS[sec];if(!m||!m.stats)return;
+  const g=document.querySelector('#pg-'+sec+' .grid.stats');
+  if(g)g.innerHTML=statsHtml(m,list(sec));
+}
+function bump(id,k,dn){
+  const i=one(id);if(!i)return;
+  const v=Math.max(0,(+i.d[k]||0)+dn);
+  put(i.sec,{[k]:v},id);
+  syncAutoOrders();                              // Orders still keeps up; it just isn't on screen
+  if(patchRow(i.sec,id))patchStats(i.sec); else renderActive();
+}
 function togg(sec,id){
   const m=MODS[sec],i=one(id);if(!i)return;
   if(sec==='todo'&&id.startsWith('todo:recur:')){          // finishing the mirrored copy advances the cycle
