@@ -1932,21 +1932,22 @@ function renderActive(){
 // Personal data lives in the private cloud, not in this public file. These five are the
 // bathroom staples, seeded once so every device picks them up.
 // They start at zero, so Orders → Necessities lists them the moment they land.
-// The fourth slot is the name the row first went out under. A device that already seeded
-// the plain name gets it corrected in place — matched on that exact old name, so a name
-// you have since changed yourself is never overwritten.
+// The fourth slot lists every name the row has gone out under before. A device still on
+// any of them gets corrected in place — devices update at their own pace, so a row can be
+// a rename or two behind. Matching the list exactly means a name you have since changed
+// yourself is never overwritten; add to the list, never edit it, when a name changes again.
 const SEED=[
-  ['stock:shampoo',    'stock',{name:'OGX Thick & Full Shampoo',              count:0,min:1,par:4},'Shampoo'],
-  ['stock:conditioner','stock',{name:'OGX Thick & Full Conditioner',          count:0,min:1,par:4},'Conditioner'],
+  ['stock:shampoo',    'stock',{name:'OGX Thick & Full Shampoo 25.4 oz',      count:0,min:1,par:4},['Shampoo','OGX Thick & Full Shampoo']],
+  ['stock:conditioner','stock',{name:'OGX Thick & Full Conditioner 25.4 oz',  count:0,min:1,par:4},['Conditioner','OGX Thick & Full Conditioner']],
   ['stock:bodywash',   'stock',{name:'Body wash',                             count:0,min:2,par:6}],
   ['stock:loofah',     'stock',{name:'Loofah',                                count:0,min:1,par:4}],
-  ['stock:handsoap',   'stock',{name:'Mrs. Meyer’s Clean Day Hand Soap Refill',count:0,min:1,par:3},'Hand soap refill bottle'],
+  ['stock:handsoap',   'stock',{name:'Mrs. Meyer’s Clean Day Hand Soap Refill 33 oz',count:0,min:1,par:3},['Hand soap refill bottle','Mrs. Meyer’s Clean Day Hand Soap Refill']],
 ];
 function seed(){
-  SEED.forEach(([id,sec,d,was])=>{
+  SEED.forEach(([id,sec,d,prev])=>{
     const cur=S.items[id];
     if(!cur){S.items[id]={id,sec,d,up:1,dirty:1};return}
-    if(was&&!cur.del&&cur.d?.name===was)put(sec,{name:d.name},id);   // rename only; your count and par stay
+    if(prev&&!cur.del&&prev.includes(cur.d?.name))put(sec,{name:d.name},id);  // rename only; your count and par stay
   });
   save();
 }
