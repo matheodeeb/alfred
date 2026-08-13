@@ -185,6 +185,7 @@
   .ttCell{border-top:1px solid var(--line)}
   .ttBlock{border-radius:7px;padding:3px 6px;overflow:hidden;cursor:pointer;border-left:3px solid var(--bc,var(--acc));background:var(--panel2);box-shadow:0 1px 4px rgba(46,40,28,.08)}
   .ttBlock .n{font-weight:600;font-family:"Public Sans",sans-serif;font-size:10.5px;line-height:1.2}
+  .ttBlock .sp{font-family:"Public Sans",sans-serif;font-size:9px;color:var(--acc);font-weight:600;line-height:1.2}
   .ttBlock .t{font-family:"IBM Plex Mono";font-size:8.5px;color:var(--muted);margin-top:1px}
   /* finances */
   .ftWrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px}
@@ -1145,8 +1146,8 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
   sort:byStart,
-  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  card:i=>({t:esc(i.d.name),s:[(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
+  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'split',l:'Gym split',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.split||''),(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
 menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
   fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
@@ -1496,17 +1497,19 @@ function schedulePage(){
     h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
     for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span 2"></div>`;
   }
-  let ci=0,placed=0;
+  let ci=0,placed=0;const colOf={};
   acts.forEach(a=>{
     const st=toMin(a.d.start);
-    const color=cols[ci++%cols.length];
     if(st==null||!a.d.days)return;
+    // Colour by name, not by row: the four Gym days are one thing on the planner, not four.
+    // Assigning after the guard also stops activities with no day burning a colour each.
+    const key=a.d.name||a.id, color=colOf[key]||(colOf[key]=cols[ci++%cols.length]);
     const en=toMin(a.d.end)!=null?toMin(a.d.end):st+60;
     (a.d.days||'').split(',').map(x=>x.trim()).forEach(dn=>{
       const di=DOW.indexOf(dn);if(di<0)return;
       const r1=Math.min(rows+1,Math.max(2,2+Math.round((st-T0)/SLOT)));
       const span=Math.max(1,Math.min(rows+2-r1,Math.round((en-st)/SLOT)));
-      h+=`<div class="ttBlock" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
+      h+=`<div class="ttBlock" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}</div>${a.d.split?`<div class="sp">${esc(a.d.split)}</div>`:''}<div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
       placed++;
     });
   });
