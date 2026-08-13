@@ -148,7 +148,8 @@
   .field{display:flex;flex-direction:column;gap:4px}
   .field label{font-size:10.5px;color:var(--muted);font-family:"IBM Plex Mono";letter-spacing:.03em;text-transform:uppercase}
   .field input,.field textarea,.field select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);padding:9px 10px;font-family:"IBM Plex Mono";font-size:14px;width:100%;-webkit-appearance:none}
-  .field textarea{min-height:74px;resize:vertical;font-family:"Public Sans",sans-serif;line-height:1.5}
+  .field textarea{min-height:120px;resize:vertical;font-family:"Public Sans",sans-serif;line-height:1.5}
+  .field.full textarea{min-height:min(40vh,300px)}
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
   .modal .foot .spacer{flex:1}
@@ -310,6 +311,7 @@
   @media(max-width:560px){
     .stat .v{font-size:20px}
     .field input,.field textarea,.field select,.menuCell{font-size:16px}
+    .field.full textarea{min-height:min(34vh,240px)}
     .frow{grid-template-columns:1fr}
     .menuGrid{grid-template-columns:64px 1fr 1fr}
     .pad{grid-template-columns:repeat(3,64px)}
@@ -697,7 +699,7 @@ function openForm(sec,id,defs){
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
       let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
+      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   if(sec==='todo'){                       // order options follow the date / section as you pick them
