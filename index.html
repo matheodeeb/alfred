@@ -543,7 +543,10 @@ addEventListener('offline',()=>setPill());
 addEventListener('pageshow',e=>{if(e.persisted)syncSoon()});  // woken from the back/forward cache
 addEventListener('focus',()=>syncSoon());
 setInterval(()=>{if(document.visibilityState==='visible')sync()},45000);
-$('#pill').onclick=()=>{fails=0;sync()};             // tap the badge to pull now
+$('#pill').onclick=()=>{                             // tap the badge to pull now
+  if(!cfg){$('#gearBtn').click();return}               // ...or, with no cloud set up, to go and set one
+  fails=0;sync();
+};
 
 /* ---------------- PIN ---------------- */
 async function hash(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('alfred:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
