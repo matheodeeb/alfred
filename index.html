@@ -1982,44 +1982,6 @@ function renderActive(){
 const SEED=[]; // personal starter data lives in the private cloud, not in this public file
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
-/* ---------------- one-time backfill ---------------- */
-// Six watchlist rows were added by hand and never given a description, and the Gym was one
-// entry covering four days with its whole split buried in a notes string. Both are fixed
-// from here, on the device holding the cloud key, and sync out from there like any edit.
-// Every write is guarded: a field is only filled while it is still blank (or still holds
-// the exact stale value named in the third slot), and a row is only created when its id is
-// missing. Run it twice and the second run does nothing. Delete this block once applied.
-const BACKFILL=[
-  ['msm3knhjgaq39',{runtime:'1h 38m',notes:'Centuries after humans abandoned a garbage-choked Earth, the last waste-compacting robot still works alone, until a sleek probe named EVE arrives and he follows her across the galaxy. Nearly wordless for its first act.\n\n2008 · Pixar · Andrew Stanton'}],
-  ['msazqgy2hlnef',{notes:'Batman takes on Two-Face and the Riddler while an orphaned circus acrobat, Dick Grayson, forces his way into the cave as Robin. Schumacher\'s neon turn after Burton\'s two films.\n\n1995 · Val Kilmer, Jim Carrey, Tommy Lee Jones'}],
-  ['msqi7np51zh5u',{runtime:'1h 30m',notes:'A one-inch shell with a single eye and a pair of shoes lives in a rented house with his grandmother, and a documentary filmmaker helps him search for the family he lost. Stop-motion against live action.\n\n2021 · A24 · voiced by Jenny Slate'},{runtime:'1h30'}],
-  ['msg0puv38lpws',{runtime:'1h 39m',notes:'Two brothers raised as Egyptian princes are set against each other when one learns he was born a Hebrew slave, and returns to demand his people\'s freedom. DreamWorks\' animated Exodus.\n\n1998 · DreamWorks Animation'}],
-  ['ms7ooph47mkg3',{notes:'A self-made billionaire steals for the thrill of it, and the investigator sent to catch him falls for him while trying to prove it. A new take on the 1968 heist romance.\n\nRemake of the 1968 original and the 1999 Brosnan version'}],
-  ['msl0976ht2o2b',{plat:'FX / Hulu',notes:'Japan, 1600. An English pilot is shipwrecked on a coast closed to outsiders and becomes a piece in the game between a lord manoeuvring against his rivals and the noblewoman translating for them both.\n\n2024 · FX · from James Clavell\'s novel · 10 episodes'}],
-];
-const GYM_DAYS=[
-  ['act:gym:mon',{name:'Gym',split:'Chest day',   days:'Mon',start:'06:00',end:'07:15',notes:'chest ×3 + triceps ×2'}],
-  ['act:gym:tue',{name:'Gym',split:'Back day',    days:'Tue',start:'06:00',end:'07:15',notes:'back ×3 + biceps ×2'}],
-  ['act:gym:wed',{name:'Gym',split:'Leg day',     days:'Wed',start:'06:00',end:'07:15',notes:'legs ×3 + abs ×2'}],
-  ['act:gym:thu',{name:'Gym',split:'Shoulder day',days:'Thu',start:'06:00',end:'07:15',notes:'shoulders ×3 + forearms ×2'}],
-];
-function backfill(){
-  BACKFILL.forEach(([id,patch,stale])=>{
-    const it=S.items[id]; if(!it||it.del)return;
-    const add={};
-    for(const k in patch){
-      const cur=String(it.d?.[k]??'').trim();
-      if(!cur||(stale&&stale[k]===cur))add[k]=patch[k];
-    }
-    if(Object.keys(add).length)put(it.sec,add,id);
-  });
-  GYM_DAYS.forEach(([id,d])=>{if(!S.items[id])put('acts',d,id)});
-  // The combined entry is only retired once its replacements exist, and only while it still
-  // looks untouched — days as they were and no split of its own.
-  const old=one('act:gym');
-  if(old&&!old.d.split&&old.d.days==='Mon,Tue,Wed,Thu'&&GYM_DAYS.every(([id])=>one(id)))kill('act:gym');
-}
-
 /* ---------------- settings ---------------- */
 $('#gearBtn').onclick=()=>{
   $('#setSync').textContent=cfg?'configured':'not set up';
@@ -2092,7 +2054,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();backfill();initNav();initPad();
+  load();seed();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
