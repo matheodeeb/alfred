@@ -1148,7 +1148,7 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
   sort:byStart,
-  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'split',l:'Gym split',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'split',l:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
   card:i=>({t:esc(i.d.name),s:[esc(i.d.split||''),(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
 menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
