@@ -240,6 +240,8 @@
   .bkUl ul{padding-left:22px}
   .bkUl li{margin:6px 0}
   .bkStand{font-family:Georgia,serif;font-size:20.5px;line-height:1.6;margin:16px 0;color:var(--txt)}
+  .bkLink{color:var(--txt);text-decoration:none;border-bottom:1px solid var(--line2);padding-bottom:1px}
+  .bkLink:active{opacity:.55}
   .bkPara,.bkKick,.bkH3{scroll-margin-top:26px}
   .bkPara{transition:opacity .25s}
   .bkPara.bkRead{opacity:.38}
@@ -1528,7 +1530,10 @@ const fdate2=x=>{if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?
 function mdBlocks(md){
   const out=[];const lines=String(md||'').split(/\r?\n/);
   let para=[],ul=[];
-  const inline=t=>esc(t).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  // [text](url) → a link. http/https only, so an escaped body can never smuggle in javascript:.
+  const inline=t=>esc(t)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,(m,tx,u)=>`<a class="bkLink" href="${u}" target="_blank" rel="noopener noreferrer">${tx}</a>`)
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
   const fp=()=>{const t=para.join(' ').trim();if(t)out.push({t:'p',h:inline(t)});para=[]};
   const fl=()=>{if(ul.length){out.push({t:'ul',h:'<ul>'+ul.map(x=>`<li>${inline(x)}</li>`).join('')+'</ul>'});ul=[]}};
   for(const raw of lines){
