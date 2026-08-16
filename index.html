@@ -240,6 +240,14 @@
   .bkUl ul{padding-left:22px}
   .bkUl li{margin:6px 0}
   .bkStand{font-family:Georgia,serif;font-size:20.5px;line-height:1.6;margin:16px 0;color:var(--txt)}
+  .bkMeta>div+div{margin-top:6px}
+  .bkSrc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--txt)}
+  .bkSrcD{width:6px;height:6px;border-radius:50%;background:var(--faint);flex:none}
+  .bkSrc-economist .bkSrcD,.bkSrc-economist{color:var(--acc)}
+  .bkSrc-economist .bkSrcD{background:var(--acc)}
+  .bkSrc-mixed .bkSrcD{background:var(--gold)}
+  .bkSrc-own .bkSrcD{background:var(--blue)}
+  .bkSrcN{color:var(--faint);letter-spacing:.06em}
   .bkLink{color:var(--txt);text-decoration:none;border-bottom:1px solid var(--line2);padding-bottom:1px}
   .bkLink:active{opacity:.55}
   .bkPara,.bkKick,.bkH3{scroll-margin-top:26px}
@@ -1568,6 +1576,22 @@ function bUI(){return BRIEF_UI[briefLang()]}
 /* pick the edition written in the chosen language; fall back to English for older briefs */
 function briefTxt(b,base){const l=briefLang(),d=(b&&b.d)||{};return d[base+'_'+l]||d[base+'_en']||d[base]||''}
 function briefNative(b){const l=briefLang(),d=(b&&b.d)||{};return l==='en'?!!(d.body_en||d.body):!!d['body_'+l]}
+/* Where the day's reporting came from. data.source is 'economist' (every story read on
+   economist.com), 'mixed' (some read there, the rest from primary sources) or 'own' (the
+   paywall was unreachable, so it was researched from wires and institutions). Briefs written
+   before this existed carry no source field and simply show nothing. */
+const BRIEF_SRC={
+  en:{lab:'Source',economist:'The Economist',mixed:'The Economist + personalized',own:'Personalized'},
+  fr:{lab:'Source',economist:'The Economist',mixed:'The Economist + recherche personnelle',own:'Personnalisé'},
+  es:{lab:'Fuente',economist:'The Economist',mixed:'The Economist + investigación propia',own:'Personalizado'}
+};
+function briefSource(b){
+  const d=(b&&b.d)||{},s=d.source;
+  const M=BRIEF_SRC[briefLang()]||BRIEF_SRC.en;
+  if(!s||!M[s])return'';
+  const note=d.source_note?` <span class="bkSrcN">${esc(d.source_note)}</span>`:'';
+  return `<div class="bkSrc bkSrc-${esc(s)}"><span class="bkSrcD"></span>${esc(M.lab)} · ${esc(M[s])}${note}</div>`;
+}
 function fdateL(x){if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString(bUI().loc,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
 function briefLangBar(){
   const cur=briefLang(),n=vocabList().length;
@@ -1619,7 +1643,7 @@ function briefArticle(b){
     ${briefLangBar()}
     <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
-    <div class="bkMeta">${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>
+    <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
     ${briefNative(b)?'':`<div class="bkFallback">${esc(U.fb)}</div>`}`;
   let pi=0,firstP=blocks.findIndex(x=>x.t==='p');
   blocks.forEach((bl,i)=>{
