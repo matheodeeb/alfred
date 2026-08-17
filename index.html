@@ -613,7 +613,7 @@ function fieldHtml(f,v,sec,ctx){
     return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
   }
   if(f.t==='gord'){
-    const n=Math.max(1,allTodoGrps().length), cur=+v||0;
+    const n=Math.max(1,allTodoGrps(ctx?.due||'').length), cur=+v||0;
     return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
   }
   if(f.t==='dyn'){
@@ -691,19 +691,30 @@ function upNextSort(a,b){
   return (a.d.name||'').localeCompare(b.d.name||'');
 }
 // Sections used to print alphabetically, so their order was an accident of naming.
-// One cfg row holds them in the order you want; anything unranked falls in after,
-// still alphabetically. Position in the list is the priority.
-function grpOrder(){return String(one('cfg:todogrp')?.d?.order||'').split(',').map(x=>x.trim()).filter(Boolean)}
-function grpRank(g){const i=grpOrder().indexOf(g);return i<0?9999:i}
-function allTodoGrps(){
-  const s=new Set(grpOrder());
+// One cfg row keys an order by date, because the right order is not the same every
+// day — work first on a morning shift, last when you go in late. A day you have never
+// set inherits from the most recent day you did, so an order you set once carries
+// forward until you change it. Anything unranked still falls in after, alphabetically.
+function grpOrderFor(date){
+  const d=one('cfg:todogrp')?.d||{};
+  const keys=Object.keys(d).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&(!date||k<=date)).sort();
+  const src=keys.length?d[keys[keys.length-1]]:d.order;   // d.order: the flat pre-per-day setting
+  return String(src||'').split(',').map(x=>x.trim()).filter(Boolean);
+}
+function grpRankFor(date,g){const i=grpOrderFor(date).indexOf(g);return i<0?9999:i}
+function allTodoGrps(date){
+  const s=new Set(grpOrderFor(date));
   list('todo').forEach(i=>{const g=(i.d.grp||'').trim();if(g)s.add(g)});
   return [...s];
 }
-function setGrpRank(g,want){
-  const rest=grpOrder().filter(x=>x!==g);
-  const pos=Math.max(0,Math.min(rest.length,want-1));
-  put('cfg',{order:[...rest.slice(0,pos),g,...rest.slice(pos)].join(',')},'cfg:todogrp');
+function setGrpRank(date,g,want){
+  // Seed from every section in play that day, in the order it currently renders — ranked
+  // ones first, then the rest alphabetically. Storing only the ranked ones would make a
+  // position meaningless: "third" has to be third of something.
+  const all=allTodoGrps(date).filter(x=>x!==g)
+    .sort((x,y)=>grpRankFor(date,x)-grpRankFor(date,y)||x.localeCompare(y));
+  const pos=Math.max(0,Math.min(all.length,want-1));
+  put('cfg',{[date]:[...all.slice(0,pos),g,...all.slice(pos)].join(',')},'cfg:todogrp');
 }
 function todoSibs(d,exclId){
   const g=(d.grp||'').trim(), due=d.due||'';
@@ -722,10 +733,11 @@ function syncGordField(){
   if(!wrap||!sel)return;
   let grp=document.getElementById('f_grp')?.value||'';
   if(grp==='__new')grp=(document.getElementById('f_grp__new')?.value||'').trim();
-  if(!grp){wrap.style.display='none';return}          // no section, nothing to rank
+  const due=document.getElementById('f_due')?.value||'';
+  if(!grp||!due){wrap.style.display='none';return}    // an order belongs to a section on a day
   wrap.style.display='';
-  const known=allTodoGrps(), total=Math.max(1,known.includes(grp)?known.length:known.length+1);
-  const rank=grpRank(grp), cur=rank<9999?rank+1:total;
+  const known=allTodoGrps(due), total=Math.max(1,known.includes(grp)?known.length:known.length+1);
+  const rank=grpRankFor(due,grp), cur=rank<9999?rank+1:total;
   sel.innerHTML=Array.from({length:total},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
   sel.value=String(Math.min(cur,total));
 }
@@ -847,7 +859,7 @@ function genList(sec){
         Object.keys(sg).forEach(k=>{
           if(k)html+=`<div class="shead">${esc(k)}</div>`;
           if(m.subsub){const ss={};sg[k].forEach(i=>{const k2=m.subsub(i);(ss[k2]=ss[k2]||[]).push(i)});
-            Object.keys(ss).sort(m.subsubOrder||((a,b)=>a.localeCompare(b))).forEach(k2=>{
+            Object.keys(ss).sort(m.subsubOrder?((a,b)=>m.subsubOrder(a,b,ss)):((a,b)=>a.localeCompare(b))).forEach(k2=>{
               html+=`<div class="sshead">${esc(k2)}</div>`+ss[k2].map(i=>rowHtml(sec,i)).join('')})}
           else html+=sg[k].map(i=>rowHtml(sec,i)).join('');
         })}
@@ -1007,17 +1019,19 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, then the section each task belongs to.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority that day',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
   toggle:'done',stamp:'doneAt',
   group:i=>{const w=todoWhen(i);if(w){const d=new Date(w+'T12:00:00');
       if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
     return 'General';},
   subsub:i=>(i.d.grp||'').trim()||'General',
-  subsubOrder:(a,b)=>grpRank(a)-grpRank(b)||a.localeCompare(b),
-  // the priority belongs to the section, not to this task, so it goes to the cfg row
+  // every task in one of these blocks shares a day, so either side gives the date
+  subsubOrder:(a,b,ss)=>{const date=todoWhen(ss[a][0])||todoWhen(ss[b][0])||'';
+    return grpRankFor(date,a)-grpRankFor(date,b)||a.localeCompare(b)},
+  // the priority belongs to the section on that day, not to this task, so it goes to the cfg row
   formOut:d=>{const g=(d.grp||'').trim(),want=+d.gord||0;delete d.gord;
-    if(g&&want>0)setGrpRank(g,want);return d},
+    if(g&&want>0&&d.due)setGrpRank(d.due,g,want);return d},
   groupOrder:(a,b,gs)=>{const rank=g=>g==='General'?1:0;
     if(doneView()){                                  // newest month first
       const last=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i);return d>m?d:m},'');
