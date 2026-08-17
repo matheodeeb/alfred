@@ -1019,7 +1019,7 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, then the section each task belongs to.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority that day',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority that day',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Task order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
   toggle:'done',stamp:'doneAt',
   group:i=>{const w=todoWhen(i);if(w){const d=new Date(w+'T12:00:00');
