@@ -604,6 +604,10 @@ function fieldHtml(f,v,sec,ctx){
     const n=todoSibs(ctx||{},editCtx?.id).length+1, cur=+v||0;
     return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
   }
+  if(f.t==='gord'){
+    const n=Math.max(1,allTodoGrps().length), cur=+v||0;
+    return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
+  }
   if(f.t==='dyn'){
     const used=sec?[...new Set(list(sec).map(x=>x.d[f.k]).filter(Boolean))]:[];
     const opts=[...new Set([...(f.opt||[]),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
@@ -678,6 +682,21 @@ function upNextSort(a,b){
   if(da==null&&db!=null)return 1;
   return (a.d.name||'').localeCompare(b.d.name||'');
 }
+// Sections used to print alphabetically, so their order was an accident of naming.
+// One cfg row holds them in the order you want; anything unranked falls in after,
+// still alphabetically. Position in the list is the priority.
+function grpOrder(){return String(one('cfg:todogrp')?.d?.order||'').split(',').map(x=>x.trim()).filter(Boolean)}
+function grpRank(g){const i=grpOrder().indexOf(g);return i<0?9999:i}
+function allTodoGrps(){
+  const s=new Set(grpOrder());
+  list('todo').forEach(i=>{const g=(i.d.grp||'').trim();if(g)s.add(g)});
+  return [...s];
+}
+function setGrpRank(g,want){
+  const rest=grpOrder().filter(x=>x!==g);
+  const pos=Math.max(0,Math.min(rest.length,want-1));
+  put('cfg',{order:[...rest.slice(0,pos),g,...rest.slice(pos)].join(',')},'cfg:todogrp');
+}
 function todoSibs(d,exclId){
   const g=(d.grp||'').trim(), due=d.due||'';
   if(!due)return [];
@@ -689,6 +708,18 @@ function reRankTodo(item){
   const pos=want>0?Math.max(0,Math.min(sibs.length,want-1)):sibs.length;
   [...sibs.slice(0,pos),item,...sibs.slice(pos)].forEach((x,ix)=>{
     const np=ix+1;if((+x.d.ord||0)!==np)put('todo',{ord:np},x.id)});
+}
+function syncGordField(){
+  const wrap=document.getElementById('fw_gord'), sel=document.getElementById('f_gord');
+  if(!wrap||!sel)return;
+  let grp=document.getElementById('f_grp')?.value||'';
+  if(grp==='__new')grp=(document.getElementById('f_grp__new')?.value||'').trim();
+  if(!grp){wrap.style.display='none';return}          // no section, nothing to rank
+  wrap.style.display='';
+  const known=allTodoGrps(), total=Math.max(1,known.includes(grp)?known.length:known.length+1);
+  const rank=grpRank(grp), cur=rank<9999?rank+1:total;
+  sel.innerHTML=Array.from({length:total},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  sel.value=String(Math.min(cur,total));
 }
 function syncOrdField(){
   const wrap=document.getElementById('fw_ord'), sel=document.getElementById('f_ord');
@@ -717,8 +748,8 @@ function openForm(sec,id,defs){
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   if(sec==='todo'){                       // order options follow the date / section as you pick them
     ['f_due','f_grp','f_grp__new'].forEach(id=>{const e=document.getElementById(id);
-      if(e){e.addEventListener('change',syncOrdField);e.addEventListener('input',syncOrdField)}});
-    syncOrdField();
+      if(e){['change','input'].forEach(ev=>{e.addEventListener(ev,syncOrdField);e.addEventListener(ev,syncGordField)})}});
+    syncOrdField();syncGordField();
   }
   ov('modalOv',1);
   const first=$('#mBody input,#mBody textarea');if(first&&!('ontouchstart'in window))first.focus();
@@ -730,7 +761,7 @@ $('#mSave').onclick=()=>{
   for(const f of m.fields){
     let v;
     if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
-    if(f.t==='ord'&&document.getElementById('fw_ord')?.style.display==='none'){d[f.k]='';continue}
+    if((f.t==='ord'||f.t==='gord')&&document.getElementById('fw_'+f.k)?.style.display==='none'){d[f.k]='';continue}
     if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
     else if(f.t==='dyn'){v=$('#f_'+f.k).value;if(v==='__new')v=($('#f_'+f.k+'__new').value||'').trim()}
     else{v=$('#f_'+f.k).value.trim();
@@ -808,7 +839,7 @@ function genList(sec){
         Object.keys(sg).forEach(k=>{
           if(k)html+=`<div class="shead">${esc(k)}</div>`;
           if(m.subsub){const ss={};sg[k].forEach(i=>{const k2=m.subsub(i);(ss[k2]=ss[k2]||[]).push(i)});
-            Object.keys(ss).sort((a,b)=>a.localeCompare(b)).forEach(k2=>{
+            Object.keys(ss).sort(m.subsubOrder||((a,b)=>a.localeCompare(b))).forEach(k2=>{
               html+=`<div class="sshead">${esc(k2)}</div>`+ss[k2].map(i=>rowHtml(sec,i)).join('')})}
           else html+=sg[k].map(i=>rowHtml(sec,i)).join('');
         })}
@@ -968,13 +999,17 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, then the section each task belongs to.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
   toggle:'done',stamp:'doneAt',
   group:i=>{const w=todoWhen(i);if(w){const d=new Date(w+'T12:00:00');
       if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
     return 'General';},
   subsub:i=>(i.d.grp||'').trim()||'General',
+  subsubOrder:(a,b)=>grpRank(a)-grpRank(b)||a.localeCompare(b),
+  // the priority belongs to the section, not to this task, so it goes to the cfg row
+  formOut:d=>{const g=(d.grp||'').trim(),want=+d.gord||0;delete d.gord;
+    if(g&&want>0)setGrpRank(g,want);return d},
   groupOrder:(a,b,gs)=>{const rank=g=>g==='General'?1:0;
     if(doneView()){                                  // newest month first
       const last=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i);return d>m?d:m},'');
