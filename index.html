@@ -564,7 +564,9 @@ let pinBuf='',pinMode='enter',pinFirst='',hiddenAt=0;
 function pinHash(){return one('cfg:pin')?.d?.h||localStorage.alfred_pin||''}
 function showLock(mode){pinMode=mode;pinBuf='';pinFirst='';
   $('#lockMsg').textContent=mode==='set'?'CHOOSE A 4-DIGIT PIN':'ENTER PIN';
-  drawDots();$('#lock').classList.add('show')}
+  drawDots();$('#lock').classList.add('show');
+  try{document.activeElement?.blur?.()}catch(e){}   // so typed digits reach the PIN, not a field underneath
+}
 function drawDots(){$$('#lockDots .pdot').forEach((d,i)=>d.classList.toggle('on',i<pinBuf.length))}
 async function pinDigit(k){
   if(k==='⌫'){pinBuf=pinBuf.slice(0,-1);drawDots();return}
@@ -585,6 +587,12 @@ function wrong(msg){const d=$('#lockDots');d.classList.add('shake');$('#lockMsg'
 function initPad(){const pad=$('#lockPad');'123456789 0⌫'.split('').forEach(k=>{
   const b=document.createElement('button');b.className='pkey'+(k===' '?' ghost':'');b.textContent=k===' '?'':k;
   if(k!==' ')b.onclick=()=>pinDigit(k);pad.appendChild(b)})}
+addEventListener('keydown',e=>{
+  if(!$('#lock').classList.contains('show'))return;
+  if(e.metaKey||e.ctrlKey||e.altKey)return;          // leave ⌘R and friends alone
+  if(/^[0-9]$/.test(e.key)){e.preventDefault();pinDigit(e.key);return}
+  if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();pinDigit('⌫')}
+});
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden')hiddenAt=Date.now();
   else{syncSoon();
