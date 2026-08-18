@@ -1600,19 +1600,14 @@ function schedulePage(){
     });
   });
   const placed=place.length;
-  // A row carrying the top of a block needs room for its title and time. The long middle of
-  // a block carries nothing, and on a nine-hour working day that middle was most of the
-  // page, so those rows shrink. Free time keeps full scale, so an empty afternoon still
-  // reads as an empty afternoon rather than a hairline.
-  const FULL=32, THIN=13;
-  const tops=new Set(place.map(x=>x.r1)), middles=new Set();
-  place.forEach(x=>{for(let r=x.r1+1;r<x.r1+x.span;r++)middles.add(r)});
-  const rowH=[];
-  for(let r=2;r<=rows+1;r++)rowH.push((middles.has(r)&&!tops.has(r))?THIN:FULL);
+  // Every row the same height, so an hour on the page is an hour of the day wherever it
+  // falls. 32px is what a half-hour block needs to print its title and its time: 12.6 for
+  // the title, 11.2 for the time, 6 of padding. The chart is as tall as the day is long.
+  const ROW=32;
 
   let h=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Week planner</h2>
   <div class="hint">Drawn from your activities below — tap a block to edit it.</div>
-  <div class="ttWrap"><div class="tt" style="grid-template-rows:24px ${rowH.map(v=>v+'px').join(' ')}">`;
+  <div class="ttWrap"><div class="tt" style="grid-template-rows:24px repeat(${rows},${ROW}px)">`;
   h+=`<span></span>`+DOW.map((d,i)=>`<div class="ttHead ${i===todayIdx?'today':''}" style="grid-column:${i+2};grid-row:1">${d}</div>`).join('');
   for(let mn=T0;mn<T1;mn+=60){const r=2+(mn-T0)/SLOT;
     h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
