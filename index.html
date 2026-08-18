@@ -188,7 +188,7 @@
   .ttBlock .n{font-weight:600;font-family:"Public Sans",sans-serif;font-size:10.5px;line-height:1.2}
   /* a block sitting inside another — lunch inside work — needs to read as its own thing */
   .ttBlock.over{background:var(--line);box-shadow:0 1px 5px rgba(46,40,28,.16)}
-  .ttBlock .sp{font-family:"Public Sans",sans-serif;font-size:9px;color:var(--acc);font-weight:600;line-height:1.2}
+  .ttBlock .sp{font-family:"Public Sans",sans-serif;font-size:9px;color:var(--acc);font-weight:600;margin-left:6px;white-space:nowrap}
   .ttBlock .t{font-family:"IBM Plex Mono";font-size:8.5px;color:var(--muted);margin-top:1px}
   /* finances */
   .ftWrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px}
@@ -1625,7 +1625,7 @@ function schedulePage(){
     for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span ${60/SLOT}"></div>`;
   }
   place.forEach(({a,di,r1,span,over,color})=>{
-    h+=`<div class="ttBlock${over?' over':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}</div>${a.d.split?`<div class="sp">${esc(a.d.split)}</div>`:''}<div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
+    h+=`<div class="ttBlock${over?' over':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}${a.d.split?`<span class="sp">${esc(a.d.split)}</span>`:''}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
   });
   h+=`</div></div>`;
   if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
