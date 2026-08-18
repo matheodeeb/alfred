@@ -2134,6 +2134,29 @@ function renderActive(){
 const SEED=[]; // personal starter data lives in the private cloud, not in this public file
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
+/* ---------------- one-time: fold the four Gym rows into one ---------------- */
+// Gym needed an entry per day only because an entry could carry one specific. Now that it
+// can carry one per day, the four fold into Monday's row: it gains the other three days,
+// each day's specific, and their exercise notes kept under the day they belong to — a plain
+// merge would have dropped three of the four. The rest are retired.
+// Runs on the device holding the cloud key and syncs out from there. Guarded: it wants all
+// four present and untouched, so a second run does nothing and a merge already done by hand
+// is left alone. Delete this block once it has applied.
+const GYM_ROWS=[['act:gym:mon','Mon'],['act:gym:tue','Tue'],['act:gym:wed','Wed'],['act:gym:thu','Thu']];
+function mergeGym(){
+  const rows=GYM_ROWS.map(([id,dn])=>[one(id),dn]);
+  if(rows.some(([it])=>!it))return;              // one is already gone — do not guess at it
+  const base=rows[0][0];
+  if(base.d.splitDaily)return;                   // already folded
+  const d={days:GYM_ROWS.map(([,dn])=>dn).join(','),splitDaily:1};
+  rows.forEach(([it,dn])=>{d['split_'+dn]=String(it.d.split||'').trim()});
+  const notes=rows.map(([it,dn])=>{const n=String(it.d.notes||'').trim();return n?dn+' — '+n:''})
+    .filter(Boolean).join('\n');
+  if(notes)d.notes=notes;                        // start and end are left exactly as they are
+  put('acts',d,base.id);
+  rows.slice(1).forEach(([it])=>kill(it.id));
+}
+
 /* ---------------- settings ---------------- */
 $('#gearBtn').onclick=()=>{
   $('#setSync').textContent=cfg?'configured':'not set up';
@@ -2206,7 +2229,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();initNav();initPad();
+  load();seed();mergeGym();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
