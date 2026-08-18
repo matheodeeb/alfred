@@ -186,6 +186,8 @@
   .ttCell{border-top:1px solid var(--line)}
   .ttBlock{border-radius:7px;padding:3px 6px;overflow:hidden;cursor:pointer;border-left:3px solid var(--bc,var(--acc));background:var(--panel2);box-shadow:0 1px 4px rgba(46,40,28,.08)}
   .ttBlock .n{font-weight:600;font-family:"Public Sans",sans-serif;font-size:10.5px;line-height:1.2}
+  /* a block sitting inside another — lunch inside work — needs to read as its own thing */
+  .ttBlock.over{background:var(--line);box-shadow:0 1px 5px rgba(46,40,28,.16)}
   .ttBlock .sp{font-family:"Public Sans",sans-serif;font-size:9px;color:var(--acc);font-weight:600;line-height:1.2}
   .ttBlock .t{font-family:"IBM Plex Mono";font-size:8.5px;color:var(--muted);margin-top:1px}
   /* finances */
@@ -1558,32 +1560,66 @@ function byStart(a,b){const t=x=>{const m=toMin(x.d.start);return m==null?99999:
 function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);return isNaN(p)?null:p*60+(q||0)}
 function schedulePage(){
   const acts=list('acts');
-  const T0=6*60,T1=22*60,SLOT=30,rows=(T1-T0)/SLOT;
+  const SLOT=30;
   const todayIdx=(new Date().getDay()+6)%7;
   const cols=['var(--green)','var(--blue)','var(--orange)','var(--purple)','var(--red)','var(--gold)','var(--acc)'];
+  const drawable=acts.filter(a=>toMin(a.d.start)!=null&&a.d.days);
+  // An end at or before the start means it runs past midnight — sleep, mostly. It ends
+  // when the chart does rather than collapsing to a single slot, which is what subtracting
+  // a bigger number from a smaller one used to give it.
+  const span2=a=>{const st=toMin(a.d.start);let en=toMin(a.d.end);
+    if(en==null)en=st+60; if(en<=st)en=Infinity; return[st,en]};
+  // The window stretches to whatever is actually scheduled, so nothing lands outside the
+  // chart and gets silently clamped onto its first or last row.
+  let T0=6*60,T1=22*60;
+  drawable.forEach(a=>{const[st,en]=span2(a);
+    if(st<T0)T0=Math.floor(st/60)*60;
+    if(en!==Infinity&&en>T1)T1=Math.ceil(en/60)*60});
+  const rows=(T1-T0)/SLOT;
+
+  let ci=0;const colOf={},busy={};
+  // Colour by name, not by row: the four Gym days are one thing on the planner, not four.
+  // Assigned in the list's own order so a block keeps its colour whatever we draw first.
+  drawable.forEach(a=>{const k=a.d.name||a.id;if(!colOf[k])colOf[k]=cols[ci++%cols.length]});
+  const mins=a=>{const[st,en]=span2(a);return (en===Infinity?T1:en)-st};
+  // Longest first: lunch sitting inside work is then the one found overlapping, and being
+  // later in the DOM it paints on top of the block it sits in rather than under it.
+  const place=[];
+  [...drawable].sort((x,y)=>mins(y)-mins(x)).forEach(a=>{
+    const[st0,en0]=span2(a), en1=en0===Infinity?T1:en0;
+    const st=Math.max(T0,Math.min(T1,st0)), en=Math.max(st+1,Math.min(T1,en1));
+    (a.d.days||'').split(',').map(x=>x.trim()).forEach(dn=>{
+      const di=DOW.indexOf(dn);if(di<0)return;
+      const over=(busy[di]||[]).some(([s,e])=>st<e&&en>s);   // shares the day and the hours
+      (busy[di]=busy[di]||[]).push([st,en]);
+      // Floor the start and ceil the end. Rounding both put a 7:45 start on the 8:00 row,
+      // which is how the shower ended up sitting on top of dinner.
+      const r1=2+Math.floor((st-T0)/SLOT);
+      const span=Math.max(1,(2+Math.ceil((en-T0)/SLOT))-r1);
+      place.push({a,di,r1,span,over,color:colOf[a.d.name||a.id]});
+    });
+  });
+  const placed=place.length;
+  // A row carrying the top of a block needs room for its title and time. The long middle of
+  // a block carries nothing, and on a nine-hour working day that middle was most of the
+  // page, so those rows shrink. Free time keeps full scale, so an empty afternoon still
+  // reads as an empty afternoon rather than a hairline.
+  const FULL=32, THIN=13;
+  const tops=new Set(place.map(x=>x.r1)), middles=new Set();
+  place.forEach(x=>{for(let r=x.r1+1;r<x.r1+x.span;r++)middles.add(r)});
+  const rowH=[];
+  for(let r=2;r<=rows+1;r++)rowH.push((middles.has(r)&&!tops.has(r))?THIN:FULL);
+
   let h=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Week planner</h2>
   <div class="hint">Drawn from your activities below — tap a block to edit it.</div>
-  <div class="ttWrap"><div class="tt" style="grid-template-rows:24px repeat(${rows},32px)">`;
+  <div class="ttWrap"><div class="tt" style="grid-template-rows:24px ${rowH.map(v=>v+'px').join(' ')}">`;
   h+=`<span></span>`+DOW.map((d,i)=>`<div class="ttHead ${i===todayIdx?'today':''}" style="grid-column:${i+2};grid-row:1">${d}</div>`).join('');
   for(let mn=T0;mn<T1;mn+=60){const r=2+(mn-T0)/SLOT;
     h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
     for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span 2"></div>`;
   }
-  let ci=0,placed=0;const colOf={};
-  acts.forEach(a=>{
-    const st=toMin(a.d.start);
-    if(st==null||!a.d.days)return;
-    // Colour by name, not by row: the four Gym days are one thing on the planner, not four.
-    // Assigning after the guard also stops activities with no day burning a colour each.
-    const key=a.d.name||a.id, color=colOf[key]||(colOf[key]=cols[ci++%cols.length]);
-    const en=toMin(a.d.end)!=null?toMin(a.d.end):st+60;
-    (a.d.days||'').split(',').map(x=>x.trim()).forEach(dn=>{
-      const di=DOW.indexOf(dn);if(di<0)return;
-      const r1=Math.min(rows+1,Math.max(2,2+Math.round((st-T0)/SLOT)));
-      const span=Math.max(1,Math.min(rows+2-r1,Math.round((en-st)/SLOT)));
-      h+=`<div class="ttBlock" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}</div>${a.d.split?`<div class="sp">${esc(a.d.split)}</div>`:''}<div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
-      placed++;
-    });
+  place.forEach(({a,di,r1,span,over,color})=>{
+    h+=`<div class="ttBlock${over?' over':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}</div>${a.d.split?`<div class="sp">${esc(a.d.split)}</div>`:''}<div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
   });
   h+=`</div></div>`;
   if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
