@@ -761,12 +761,12 @@ let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
   const it=id?one(id):null;
-  editCtx={sec,id};
+  editCtx={sec,id,day:(defs&&defs._day)||''};   // set when a planner block was tapped
   $('#mTitle').textContent=(it?'Edit — ':'Add — ')+m.title;
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
       let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
+      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(typeof f.l==='function'?f.l(Object.assign({},it?.d,defs)):f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   if(sec==='todo'){                       // order options follow the date / section as you pick them
@@ -1012,6 +1012,11 @@ const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's orde
 const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
 const doneView=()=>(chipState.todo??0)===1;
+// The specific for one day of an activity, and every one it carries, for the list card.
+const actSplit=(i,dn)=>String((i.d.splitDaily?i.d['split_'+dn]:i.d.split)||'').trim();
+const actSplits=i=>i.d.splitDaily
+  ? [...new Set((i.d.days||'').split(',').map(x=>x.trim()).filter(Boolean).map(dn=>actSplit(i,dn)).filter(Boolean))].join(' · ')
+  : String(i.d.split||'').trim();
 const todoWhen=i=>(doneView()?(i.d.doneAt||i.d.due):i.d.due)||'';
 const ST_SEL=['Idea','Planned','In progress','Done'];
 const MODS={
@@ -1221,8 +1226,17 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
   sort:byStart,
-  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'split',l:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.split||''),(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
+  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'splitDaily',l:'Choose specifics daily',t:'check'},{k:'split',l:d=>d&&d.splitDaily&&editCtx?.day?'Specifics — '+editCtx.day:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  // One activity can carry a different specific for each of its days: Gym is one section
+  // Monday to Thursday, and each of those days has its own split. The form edits the day
+  // whose block you tapped; opened from the list, with no day in hand, it edits the shared
+  // value the untouched days fall back on.
+  formIn:(it,k,v)=>(k==='split'&&it?.d?.splitDaily&&editCtx?.day)?(it.d['split_'+editCtx.day]??''):v,
+  formOut:d=>{const day=editCtx?.day;
+    if(d.splitDaily&&day){d['split_'+day]=d.split;
+      d.split=(editCtx.id?one(editCtx.id)?.d?.split:'')||''}
+    return d},
+  card:i=>({t:esc(i.d.name),s:[esc(actSplits(i)),(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
 menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
   fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
@@ -1634,7 +1648,8 @@ function schedulePage(){
     for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span ${60/SLOT}"></div>`;
   }
   place.forEach(({a,di,r1,span,alt,color})=>{
-    h+=`<div class="ttBlock${alt?' alt':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}${a.d.split?`<span class="sp">${esc(a.d.split)}</span>`:''}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
+    const dn=DOW[di], sp=actSplit(a,dn);
+    h+=`<div class="ttBlock${alt?' alt':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}',{_day:'${dn}'})"><div class="n">${esc(a.d.name)}${sp?`<span class="sp">${esc(sp)}</span>`:''}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
   });
   h+=`</div></div>`;
   if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
