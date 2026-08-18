@@ -186,8 +186,9 @@
   .ttCell{border-top:1px solid var(--line)}
   .ttBlock{border-radius:7px;padding:3px 6px;overflow:hidden;cursor:pointer;border-left:3px solid var(--bc,var(--acc));background:var(--panel2);box-shadow:0 1px 4px rgba(46,40,28,.08)}
   .ttBlock .n{font-weight:600;font-family:"Public Sans",sans-serif;font-size:10.5px;line-height:1.2}
-  /* a block sitting inside another — lunch inside work — needs to read as its own thing */
-  .ttBlock.over{background:var(--line);box-shadow:0 1px 5px rgba(46,40,28,.16)}
+  /* a block touching or inside its neighbour takes the other shade, so a run of them
+     reads as separate things rather than one continuous band */
+  .ttBlock.alt{background:var(--line);box-shadow:0 1px 5px rgba(46,40,28,.16)}
   .ttBlock .sp{font-family:"Public Sans",sans-serif;font-size:9px;color:var(--acc);font-weight:600;margin-left:6px;white-space:nowrap}
   .ttBlock .t{font-family:"IBM Plex Mono";font-size:8.5px;color:var(--muted);margin-top:1px}
   /* finances */
@@ -1587,7 +1588,7 @@ function schedulePage(){
   if(!isFinite(shortest))shortest=SLOT;
   const rows=(T1-T0)/SLOT;
 
-  let ci=0;const colOf={},busy={};
+  let ci=0;const colOf={};
   // Colour by name, not by row: the four Gym days are one thing on the planner, not four.
   // Assigned in the list's own order so a block keeps its colour whatever we draw first.
   drawable.forEach(a=>{const k=a.d.name||a.id;if(!colOf[k])colOf[k]=cols[ci++%cols.length]});
@@ -1600,13 +1601,25 @@ function schedulePage(){
     const st=Math.max(T0,Math.min(T1,st0)), en=Math.max(st+1,Math.min(T1,en1));
     (a.d.days||'').split(',').map(x=>x.trim()).forEach(dn=>{
       const di=DOW.indexOf(dn);if(di<0)return;
-      const over=(busy[di]||[]).some(([s,e])=>st<e&&en>s);   // shares the day and the hours
-      (busy[di]=busy[di]||[]).push([st,en]);
       // Floor the start and ceil the end. Rounding both put a 7:45 start on the 8:00 row,
       // which is how the shower ended up sitting on top of dinner.
       const r1=2+Math.floor((st-T0)/SLOT);
       const span=Math.max(1,(2+Math.ceil((en-T0)/SLOT))-r1);
-      place.push({a,di,r1,span,over,color:colOf[a.d.name||a.id]});
+      place.push({a,di,st,en,r1,span,color:colOf[a.d.name||a.id]});
+    });
+  });
+  // Anything running into its neighbour takes the other shade, so a morning of back-to-back
+  // quarter-hours reads as four things rather than one long band. It is the lunch-inside-
+  // work idea widened to blocks that merely touch. A real gap starts the run over on the
+  // light shade, so the alternation always begins from the same place after a break.
+  const byDay={};
+  place.forEach(x=>{(byDay[x.di]=byDay[x.di]||[]).push(x)});
+  Object.values(byDay).forEach(day=>{
+    let alt=false, prevEnd=-1;
+    day.slice().sort((u,v)=>u.st-v.st||v.en-u.en).forEach(x=>{
+      alt = x.st<=prevEnd ? !alt : false;
+      x.alt = alt;
+      prevEnd = Math.max(prevEnd, x.en);
     });
   });
   const placed=place.length;
@@ -1624,8 +1637,8 @@ function schedulePage(){
     h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
     for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span ${60/SLOT}"></div>`;
   }
-  place.forEach(({a,di,r1,span,over,color})=>{
-    h+=`<div class="ttBlock${over?' over':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}${a.d.split?`<span class="sp">${esc(a.d.split)}</span>`:''}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
+  place.forEach(({a,di,r1,span,alt,color})=>{
+    h+=`<div class="ttBlock${alt?' alt':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}')"><div class="n">${esc(a.d.name)}${a.d.split?`<span class="sp">${esc(a.d.split)}</span>`:''}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
   });
   h+=`</div></div>`;
   if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
