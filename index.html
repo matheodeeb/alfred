@@ -248,6 +248,9 @@
   .bkUl li{margin:6px 0}
   .bkStand{font-family:Georgia,serif;font-size:20.5px;line-height:1.6;margin:16px 0;color:var(--txt)}
   .bkMeta>div+div{margin-top:6px}
+  .bkEd{display:flex;justify-content:center;gap:0;margin:0 0 12px;border:1px solid var(--line2);border-radius:999px;overflow:hidden;width:fit-content;margin-left:auto;margin-right:auto}
+  .bkEd button{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 15px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+  .bkEd button.on{background:var(--acc);color:#fff}
   .bkSrc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--txt)}
   .bkSrcD{width:6px;height:6px;border-radius:50%;background:var(--faint);flex:none}
   .bkSrc-economist .bkSrcD,.bkSrc-economist{color:var(--acc)}
@@ -1801,13 +1804,56 @@ function briefLangBar(){
     `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div>${
     n?`<button class="bkVocab" onclick="wtOpenVocab()">★ ${n}</button>`:''}</div>`;
 }
-function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
+/* ---------- two editions a day ----------
+   The cloud routine writes every morning without fail, from wires: id `brief:DATE`.
+   A Mac, when it is awake, writes a second edition read from The Economist itself:
+   id `brief:DATE:local`. Neither overwrites the other — they sit side by side and a
+   switch at the top of the page chooses between them. The Economist edition is the
+   one he wants, so it is the default whenever it exists. ------------------------- */
+function briefEdition(b){
+  if(!b)return 'cloud';
+  if(/:local$/.test(b.id))return 'local';
+  return (b.d&&b.d.edition==='local')?'local':'cloud';
+}
+/* date → {cloud, local}, newest day first */
+function briefsByDay(){
+  const days=new Map();
+  list('brief').filter(b=>b.d.date).forEach(b=>{
+    const d=b.d.date;
+    if(!days.has(d))days.set(d,{date:d,cloud:null,local:null});
+    days.get(d)[briefEdition(b)]=b;
+  });
+  return [...days.values()].sort((a,b)=>b.date.localeCompare(a.date));
+}
+function briefDay(date){return briefsByDay().find(x=>x.date===date)||null}
+/* which edition to show: his explicit pick if that edition exists that day, else The
+   Economist one, else the cloud's. The pick is deliberately NOT persisted across days —
+   he asked that the local edition be the default whenever it has been written. */
+let briefEd=null;
+function briefPick(day){
+  if(!day)return null;
+  if(briefEd&&day[briefEd])return day[briefEd];
+  return day.local||day.cloud;
+}
+function setBriefEd(k){briefEd=k;renderActive();scrollTo(0,0)}
+function briefEdBar(day,cur){
+  if(!day||!day.cloud||!day.local)return '';        // nothing to switch between
+  const U=bUI();
+  return `<div class="bkEd">${[['local',U.edLocal],['cloud',U.edCloud]].map(([k,lab])=>
+    `<button class="${k===cur?'on':''}" onclick="setBriefEd('${k}')">${esc(lab)}</button>`).join('')}</div>`;
+}
+/* one representative row per day, for the archive and for older callers */
+function briefsSorted(){return briefsByDay().map(d=>briefPick(d)).filter(Boolean)}
 /* read-marks are shared across all three editions: one paragraph, one tick, whatever
    language it was ticked in. The editions run block-for-block parallel, so the index
    points at the same paragraph in each. Older per-language keys get folded in once. */
-function briefReadKey(date){return 'alfred_briefread_'+date}
-function briefReadSet(date){
-  const key=briefReadKey(date);
+/* Read-marks are per EDITION as well as per day: the two editions are written from
+   different material and do not run block-for-block parallel with each other, so a tick
+   at paragraph 7 of the cloud brief means nothing at paragraph 7 of the Economist one.
+   The cloud edition keeps the original key so existing ticks survive. */
+function briefReadKey(date,ed){return 'alfred_briefread_'+date+(ed==='local'?'_local':'')}
+function briefReadSet(date,ed){
+  const key=briefReadKey(date,ed);
   let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
   let merged=false;
   BRIEF_LANGS.forEach(l=>{
@@ -1820,9 +1866,9 @@ function briefReadSet(date){
   if(merged)localStorage[key]=JSON.stringify([...st]);
   return st;
 }
-function briefMark(date,id){
-  const key=briefReadKey(date);
-  let st=briefReadSet(date);
+function briefMark(date,id,ed){
+  const key=briefReadKey(date,ed);
+  let st=briefReadSet(date,ed);
   st.has(id)?st.delete(id):st.add(id);
   localStorage[key]=JSON.stringify([...st]);
   const se=document.scrollingElement||document.documentElement,keep=se.scrollTop;
@@ -1837,12 +1883,14 @@ function briefArticle(b){
   const words=String(body).split(/\s+/).filter(Boolean).length;
   const mins=Math.max(1,Math.round(words/200));
   const isToday=b.d.date===today();
+  const ed=briefEdition(b),day=briefDay(b.d.date);
   let readSet=new Set();
-  if(isToday)readSet=briefReadSet(b.d.date);
-  const all=briefsSorted(),idx=all.findIndex(x=>x.id===b.id);
+  if(isToday)readSet=briefReadSet(b.d.date,ed);
+  const all=briefsSorted(),idx=all.findIndex(x=>x.d.date===b.d.date);
   const older=all[idx+1],newer=all[idx-1];
-  let h=`<div class="bkWrap" data-brief="${b.d.date}">
+  let h=`<div class="bkWrap" data-brief="${b.d.date}" data-brief-id="${esc(b.id)}">
     ${briefLangBar()}
+    ${briefEdBar(day,ed)}
     <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
     <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
@@ -1856,7 +1904,7 @@ function briefArticle(b){
     const id=pi++;
     if(isToday){
       const rd=readSet.has(id);
-      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}" data-bi="${i}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?esc(U.read):esc(U.mark)}</button></div>`;
+      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}" data-bi="${i}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id},'${ed}')">${rd?esc(U.read):esc(U.mark)}</button></div>`;
     }else h+=`<div class="${cls}" data-bi="${i}">${bl.h}</div>`;
   });
   h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdateL(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdateL(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
@@ -1873,7 +1921,7 @@ const WT_UI={
   fr:{gloss:'Sens',para:'Le même paragraphe en',save:'＋ Retenir',saved:'✓ Retenu',close:'Fermer',miss:"Pas encore dans le lexique — il sera ajouté avec le brief de demain. Le paragraphe parallèle est ci-dessous.",vocab:'Mots retenus',vempty:'Aucun mot retenu. Touche un mot dans le brief puis « Retenir ».',from:'du',help:'Expliquer en'},
   es:{gloss:'Significado',para:'El mismo párrafo en',save:'＋ Guardar',saved:'✓ Guardado',close:'Cerrar',miss:'Todavía no está en el léxico — se añadirá con el brief de mañana. Abajo tienes el párrafo paralelo.',vocab:'Palabras guardadas',vempty:'Aún no hay palabras guardadas. Toca una palabra del brief y pulsa Guardar.',from:'del',help:'Explicar en'}
 };
-const WT={term:'',bi:null,date:'',srcLang:'',mode:'word'};
+const WT={term:'',bi:null,date:'',rowId:'',srcLang:'',mode:'word'};
 function wtUI(){return WT_UI[briefLang()]||WT_UI.en}
 function wtHelpLang(){
   const v=localStorage['alfred_briefhelp'];
@@ -1920,7 +1968,7 @@ function wtLexIndex(lang){
 /* per-brief gloss wins (it can carry the sense used that day), then the lexicon */
 function wtLookup(term){
   const lang=WT.srcLang,n=wtNorm(term),de=wtDeElide(n);
-  const b=S.items['brief:'+WT.date];
+  const b=S.items[WT.rowId||('brief:'+WT.date)];
   const g=(b&&b.d.gloss&&b.d.gloss[lang])||null;
   if(g){
     for(const t of [n,de,n.replace(/(es|s|x)$/,'')]){if(t&&g[t])return g[t]}
@@ -1943,7 +1991,7 @@ function wtFields(g,helpLang){
   return {def:g[helpLang]||g.en||g.m||'',eq:'',pos:g.pos||'',note:g.note||''};
 }
 function wtParallel(){
-  const b=S.items['brief:'+WT.date];if(!b||WT.bi==null)return null;
+  const b=S.items[WT.rowId||('brief:'+WT.date)];if(!b||WT.bi==null)return null;
   const src=briefTxtIn(b,'body',wtHelpLang());if(!src)return null;
   const blocks=mdBlocks(src);
   const mine=mdBlocks(briefTxtIn(b,'body',WT.srcLang)||b.d.body||'');
@@ -2038,7 +2086,7 @@ function wtOpen(term,bi){
   if(!/\s/.test(term))term=wtDeElide(term);
   WT.term=term;WT.bi=bi;WT.mode='word';WT.srcLang=briefLang();
   const w=document.querySelector('.bkWrap[data-brief]');
-  if(w)WT.date=w.getAttribute('data-brief');
+  if(w){WT.date=w.getAttribute('data-brief');WT.rowId=w.getAttribute('data-brief-id')||('brief:'+WT.date)}
   wtRender();
   wtEl().classList.add('on');document.getElementById('wtBack').classList.add('on');
   wtChipHide();
@@ -2114,8 +2162,8 @@ function briefArchive(){
 }
 function briefPage(){
   const all=briefsSorted();
-  if(briefSel&&briefSel!=='archive'){const b=all.find(x=>x.d.date===briefSel);if(b)return briefArticle(b)}
-  if(briefSel!=='archive'){const t=all.find(x=>x.d.date===today());if(t)return briefArticle(t)}
+  if(briefSel&&briefSel!=='archive'){const b=briefPick(briefDay(briefSel));if(b)return briefArticle(b)}
+  if(briefSel!=='archive'){const t=briefPick(briefDay(today()));if(t)return briefArticle(t)}
   return briefArchive();
 }
 function overviewPage(){
