@@ -2199,6 +2199,27 @@ function renderActive(){
 const SEED=[]; // personal starter data lives in the private cloud, not in this public file
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
+/* ---------------- one-time: the four projects ---------------- */
+// A project exists only through its tasks — the name lives on each row and the heading is
+// built from them — so a project with nothing under it cannot appear. The gym's three are
+// the ones actually asked for; the other three carry one placeholder each, marked as such
+// in its notes, so the project shows up and has something to rename. No dates: a made-up
+// window would read as a plan. Created only when the id is missing, so it runs once.
+const PROJ_SEED=[
+  ['proj:gym:terrace','Home gym on Tariq roof','Cover terrace',''],
+  ['proj:gym:choose', 'Home gym on Tariq roof','Choose equipment',''],
+  ['proj:gym:order',  'Home gym on Tariq roof','Order equipment',''],
+  ['proj:closet:1','Walk-in closet','Measure the space and draw the layout','Placeholder — replace with the real first step.'],
+  ['proj:car:1',   'Car arrival',   'Confirm the shipping date','Placeholder — replace with the real first step.'],
+  ['proj:bonsai:1','Bonsai tree',   'Choose the species and where it will live','Placeholder — replace with the real first step.'],
+];
+function seedProjects(){
+  PROJ_SEED.forEach(([id,project,name,notes])=>{
+    if(S.items[id])return;
+    put('projects',Object.assign({project,name,status:'Idea'},notes?{notes}:{}),id);
+  });
+}
+
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
 // Gym needed an entry per day only because an entry could carry one specific. Now that it
 // can carry one per day, the four fold into Monday's row: it gains the other three days,
@@ -2294,7 +2315,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();mergeGym();initNav();initPad();
+  load();seed();mergeGym();seedProjects();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
