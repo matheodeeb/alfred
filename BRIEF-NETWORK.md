@@ -59,8 +59,9 @@ Tested repeatedly on 19 Aug 2026. **Do not spend a run rediscovering this.**
 
 Two consequences worth internalising:
 
-1. **A Mac is the primary runner**, because only a Mac has Chrome. The cloud is the safety net
-   that guarantees a brief exists by 06:00, but it can only ever write `own`.
+1. **Neither runner can do the whole job alone.** The cloud is always awake but can never write
+   better than `own`. A Mac can write `economist` but may be asleep. So they run as a **relay**,
+   not as rivals — see §3.
 2. **Matheo being logged in does not help the cloud.** The cloud never had his cookie and cannot
    load the page regardless. The tell is in the failure mode: signed-out Chrome still returns
    *1 of 8* stories, whereas the cloud returns *nothing*. Truncation means paywall; nothing means
@@ -92,9 +93,42 @@ into the brief; it is Matheo's subscription to read, not to republish.
 
 ---
 
-## 3. The claim protocol
+## 3. The relay: cloud writes, a Mac upgrades
 
-Exactly one runner may write a given day. The lock is the primary key on `items.id`.
+The day happens in **two legs**, and both finish before Matheo reads at 06:00.
+
+| Leg | Who | When | Does |
+|---|---|---|---|
+| **1 — guarantee** | Cloud | 05:00 | claims `briefclaim:DATE`, writes a complete brief from wires, `source: own` |
+| **2 — upgrade** | Mac mini, else MacBook | 05:45 / 06:15 | if `source != 'economist'`, rewrites the day from economist.com |
+
+Why this way round: the cloud can never miss, so a brief always exists; the Mac can always beat it
+on sourcing, so it improves the day when it is awake. Neither blocks the other, and a sleeping Mac
+costs Matheo only the source label, never the brief.
+
+**Leg 2 has its own lock, `briefupgrade:DATE`** — never the main claim, which is already `done` by
+then and must stay that way. Same insert-or-stand-down mechanics as §3.1 below.
+
+The upgrade decision tree, for a Mac:
+
+1. Read `brief:DATE`.
+   - **Missing** → the cloud failed entirely. Do the *full* job: take `briefclaim:DATE` by the
+     normal steal path and write the whole brief yourself.
+   - **`source == 'economist'`** → already upgraded, by the other Mac. Stop. Success.
+   - **Otherwise** → try to claim `briefupgrade:DATE` and continue.
+2. Open economist.com in Chrome. **Signed out → release nothing, leave the cloud's brief alone,
+   and report that the session needs re-authenticating.** An `own` brief is a perfectly good
+   brief; a broken one is not.
+3. Signed in → rewrite all three editions from their reporting, set `source: economist`, republish
+   the same `brief:DATE` row, extend the lexicon, then mark `briefupgrade:DATE` done.
+
+**Never upgrade after 06:30.** Read-marks are stored by paragraph position, so rewriting a brief
+he has started reading scrambles which paragraphs are ticked. Past that hour, leave the day alone
+and let the next morning be better.
+
+### 3.1 The claim mechanics
+
+Exactly one runner may write a given leg. The lock is the primary key on `items.id`.
 
 1. **Claim** — a plain insert of `briefclaim:DATE`, no upsert (an upsert would defeat the lock).
    `201`/row returned → you own the day. `409`/no row → someone else has it.
@@ -115,7 +149,8 @@ finishes the day. Deleting it would let two machines start at once.
 
 ## 4. What gets written
 
-Exactly four rows may be written: `briefclaim:DATE`, `brief:DATE`, `lexicon:fr`, `lexicon:es`.
+Exactly five rows may be written: `briefclaim:DATE`, `briefupgrade:DATE`, `brief:DATE`,
+`lexicon:fr`, `lexicon:es`.
 `vocab:saved` is **read-only** — it belongs to the app, and overwriting it would destroy words
 Matheo saved on another device. Never delete anything.
 
@@ -180,16 +215,18 @@ the step entirely rather than overwriting with a partial map, and say so.
 
 All America/New_York.
 
-| Runner | Fires | Notes |
+| Runner | Fires | Leg |
 |---|---|---|
-| Mac (primary) | **04:45–04:51** | needs `sudo pmset repeat wakeorpoweron MTWRFSU 04:40:00` and the Claude app running |
-| Cloud (backstop) | 05:00, 07:00 | guarantees a brief exists by 06:00, always `own` |
-| Mac (recovery) | 08:00 / 10:00 / 12:00 | |
+| Cloud — "Economist Daily Brief - Cloud" | **05:00**, 07:00 retry | 1: guarantee |
+| Mac mini — "Economist daily brief - Local" | **05:45**, then 08:00 / 10:00 | 2: upgrade |
+| MacBook — "Economist daily brief - Local" | **06:15** | 2: upgrade, if the mini was asleep |
 
-The old "never claim before 07:30" rule is **retired**. It existed to keep a Mac behind the cloud,
-which is now backwards — a Mac run is never worse and is usually better. Its hazard (a Mac claims
-then sleeps, holding the morning hostage) is handled by the heartbeat: stop heartbeating and the
-cloud steals the claim and still delivers in time.
+The Macs need `sudo pmset repeat wakeorpoweron MTWRFSU 05:40:00` and the Claude app left running,
+or they simply never fire and the cloud's `own` brief stands.
+
+The old "never claim before 07:30" rule is **retired**. It existed when a Mac writing first could
+hold the morning hostage by falling asleep mid-run. Under the relay a Mac never writes first, so
+the hazard is gone — and the rule would now block the upgrade window entirely.
 
 ---
 
