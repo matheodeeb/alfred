@@ -748,6 +748,13 @@ function syncGordField(){
   sel.innerHTML=Array.from({length:total},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
   sel.value=String(Math.min(cur,total));
 }
+function syncWhenField(){
+  const sel=document.getElementById('f_when');if(!sel)return;
+  const v=sel.value||'Specific period';
+  const show=(k,on)=>{const e=document.getElementById('fw_'+k);if(e)e.style.display=on?'':'none'};
+  show('start',v==='Specific period'); show('end',v==='Specific period');
+  show('wk',v==='Week'); show('mon',v==='Week'||v==='Month');
+}
 function syncOrdField(){
   const wrap=document.getElementById('fw_ord'), sel=document.getElementById('f_ord');
   if(!wrap||!sel)return;
@@ -773,6 +780,11 @@ function openForm(sec,id,defs){
       return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(typeof f.l==='function'?f.l(Object.assign({},it?.d,defs)):f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  if(sec==='projects'){                   // an estimate shows only the fields its kind needs
+    const w=document.getElementById('f_when');
+    if(w)['change','input'].forEach(ev=>w.addEventListener(ev,syncWhenField));
+    syncWhenField();
+  }
   if(sec==='todo'){                       // order options follow the date / section as you pick them
     ['f_due','f_grp','f_grp__new'].forEach(id=>{const e=document.getElementById(id);
       if(e){['change','input'].forEach(ev=>{e.addEventListener(ev,syncOrdField);e.addEventListener(ev,syncGordField)})}});
@@ -1047,7 +1059,30 @@ function spanLabel(a,b){
   const A=one(a),B=one(b);
   return A&&B?(A===B?A:A+' – '+B):(A||B);
 }
-const projStart=i=>i.d.start||i.d.end||'';
+// An estimate is only ever as precise as it honestly is. Say a month when that is all you
+// know, a week of a month when you know that much, and exact dates when you have them —
+// rather than being made to invent a day to satisfy a date field.
+const WHEN_SEL=['Specific period','Week','Month'];
+const WK_SEL=['First week of','Second week of','Third week of','Fourth week of'];
+const MON_SEL=(()=>{const out=[],d=new Date();d.setDate(1);
+  for(let i=0;i<18;i++){out.push(MONTHS[d.getMonth()]+' '+d.getFullYear());d.setMonth(d.getMonth()+1)}
+  return out})();
+const monKey=v=>{const m=String(v||'').match(/^(\w+)\s+(\d{4})$/);if(!m)return'';
+  const ix=MONTHS.indexOf(m[1]);return ix<0?'':m[2]+'-'+String(ix+1).padStart(2,'0')};
+// Every kind reduces to one date so the page can still be read in order: a month starts on
+// the 1st, a week on the day that week opens.
+function whenStart(d){
+  if(d.when==='Month')  {const k=monKey(d.mon);return k?k+'-01':''}
+  if(d.when==='Week')   {const k=monKey(d.mon);if(!k)return'';
+    const n=Math.max(0,WK_SEL.indexOf(d.wk));return k+'-'+String(n*7+1).padStart(2,'0')}
+  return d.start||d.end||'';
+}
+function whenLabel(d){
+  if(d.when==='Month')return String(d.mon||'');
+  if(d.when==='Week') return [d.wk,d.mon].filter(Boolean).join(' ');
+  return spanLabel(d.start,d.end);
+}
+const projStart=i=>whenStart(i.d);
 const MODS={
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
@@ -1277,7 +1312,11 @@ brief:{title:'Daily brief',color:'var(--gold)',
   fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
   card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
 projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its tasks. Each one can carry a window of dates rather than a single day.',
-  fields:[{k:'project',l:'Project',t:'dyn',req:1,opt:['Walk-in closet','Car arrival','Bonsai tree','Home gym on Tariq roof']},{k:'name',l:'Item / task',t:'text',req:1},{k:'start',l:'Expect from',t:'date'},{k:'end',l:'Expect by',t:'date'},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'project',l:'Project',t:'dyn',req:1,opt:['Walk-in closet','Car arrival','Bonsai tree','Home gym on Tariq roof']},{k:'name',l:'Item / task',t:'text',req:1},
+          {k:'when',l:'Expect it',t:'sel',opt:WHEN_SEL,def:'Specific period'},
+          {k:'wk',l:'Which week',t:'sel',opt:WK_SEL},{k:'mon',l:'Month',t:'sel',opt:MON_SEL},
+          {k:'start',l:'From',t:'date'},{k:'end',l:'By',t:'date'},
+          {k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.project||'Other',
   collapse:1, toggle:'done', stamp:'doneAt',
   // Projects run in the order they start, and so do the tasks inside them — the page is
@@ -1285,13 +1324,13 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its 
   groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=projStart(i);return d&&d<m?d:m},'9999-99-99');
     return first(a).localeCompare(first(b))||a.localeCompare(b)},
   groupNote:its=>{const done=its.filter(i=>i.d.done).length;
-    const ds=its.map(projStart).filter(Boolean).sort(), es=its.map(i=>i.d.end||i.d.start).filter(Boolean).sort();
-    const span=spanLabel(ds[0],es[es.length-1]);
-    return esc(done+'/'+its.length+(span?' · '+span:''))},
+    const dated=its.filter(i=>projStart(i)).sort((a,b)=>projStart(a).localeCompare(projStart(b)));
+    const first=dated[0]?whenLabel(dated[0].d):'';
+    return esc(done+'/'+its.length+(first?' · from '+first:''))},
   sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)
     ||(projStart(a)||'9999').localeCompare(projStart(b)||'9999')
     ||ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
-  card:i=>({t:esc(i.d.name),s:[esc(spanLabel(i.d.start,i.d.end)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
+  card:i=>({t:esc(i.d.name),s:[esc(whenLabel(i.d)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
     pill:i.d.done?{cls:'mut',txt:'done'}:{cls:i.d.status==='In progress'?'ok':'acc',txt:esc(i.d.status||'')}})},
 invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month — the balance, and anything you put in. The chart above draws itself from these.',
   fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
