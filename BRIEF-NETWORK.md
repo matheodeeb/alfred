@@ -112,8 +112,14 @@ then and must stay that way. Same insert-or-stand-down mechanics as §3.1 below.
 The upgrade decision tree, for a Mac:
 
 1. Read `brief:DATE`.
-   - **Missing** → the cloud failed entirely. Do the *full* job: take `briefclaim:DATE` by the
-     normal steal path and write the whole brief yourself.
+   - **Missing** → do **not** conclude the cloud failed. At 05:45 it is very likely still writing
+     (see the arithmetic in §5). Read `briefclaim:DATE` and split on *it*:
+     - claim is `running` and its `up` is **inside** the staleness window → the cloud is mid-run.
+       **Wait and re-read every few minutes** until the claim turns `done` (then continue at the
+       `source == 'own'` branch below, as a normal upgrade) or goes stale (then treat it as failed).
+       Exiting here is the silent failure that costs the day its upgrade entirely.
+     - claim is absent, or `running` and **stale** → the cloud genuinely failed. Do the *full* job:
+       take `briefclaim:DATE` by the normal steal path and write the whole brief yourself.
    - **`source == 'economist'`** → already upgraded, by the other Mac. Stop. Success.
    - **Otherwise** → try to claim `briefupgrade:DATE` and continue.
 2. Open economist.com in Chrome. **Signed out → release nothing, leave the cloud's brief alone,
@@ -139,6 +145,11 @@ Exactly one runner may write a given leg. The lock is the primary key on `items.
 3. **Heartbeat while you work** — re-stamp `up` after research, after the three editions, and
    after the lexicon. `up` must mean "last sign of life", not "when I started", or a healthy run
    gets robbed for merely taking a while. A full run takes roughly 50 minutes.
+   **Compute a fresh timestamp at each write.** Capturing `NOW` once at the top of the run and
+   reusing that one value everywhere — including for the release — is the same bug wearing a
+   heartbeat's clothes: the row reads as an hour stale the instant you write it. The cloud run of
+   19 Aug 2026 did exactly this and released a `done` claim stamped 45 minutes in the past.
+   In SQL that is `up = (extract(epoch from now())*1000)::bigint`, evaluated then and there.
 4. **Release** — set `status: done` only after the brief row *and* both lexicon rows are written.
    `done` is permanent; the steal filter can never take it back.
 
@@ -209,6 +220,20 @@ thin; under 10 means you over-filtered.
 Merge only the new words into the row; never resend the whole map. If the lexicon read fails, skip
 the step entirely rather than overwriting with a partial map, and say so.
 
+Two footguns, both tripped on 19 Aug 2026:
+
+- **Recompute `n` from the merged map, then verify it.** If the merge and the count are split into
+  two statements, the count in the second one still sees the *old* map and `n` silently drifts below
+  the real key count. Either do both in one statement, or set `n` afterwards from what is actually
+  there and check the two agree:
+  `update ... set data = data || jsonb_build_object('n', (select count(*) from jsonb_object_keys(data->'w')))
+   ... returning data->>'n', (select count(*) from jsonb_object_keys(data->'w'));`
+- **Test coverage against the full key list, not a shortcut.** Narrowing the existing headwords by
+  prefix before stemming them is *not* equivalent to the app's exact → de-elided → stem chain: a
+  stored key can stem onto your candidate without sharing its prefix. That shortcut silently
+  overwrote three existing Spanish entries. If you cannot test the whole list, skip the doubtful
+  word — a missing entry costs one dead tap, a redefinition destroys a definition he already had.
+
 ---
 
 ## 5. Timing
@@ -223,6 +248,44 @@ All America/New_York.
 
 The Macs need `sudo pmset repeat wakeorpoweron MTWRFSU 05:40:00` and the Claude app left running,
 or they simply never fire and the cloud's `own` brief stands.
+
+Cloud cron verified 19 Aug 2026: `0 9,11 * * *` **UTC** = 05:00 / 07:00 ET while EDT is in effect.
+**It will drift to 04:00 / 06:00 ET when the clocks go back on 1 Nov 2026** — cron is stored in UTC
+and does not follow New York. Re-point it to `0 10,12 * * *` that week, or the cloud starts an hour
+early all winter.
+
+### 5.1 The arithmetic does not currently close — needs a decision
+
+Take the numbers in this file at face value and the two legs overlap:
+
+| | starts | a full run ≈ 50 min | so it finishes |
+|---|---|---|---|
+| Cloud | 05:00 | | **05:50** |
+| Mac mini | 05:45 | *while the cloud is still writing* | 06:35 |
+| MacBook | 06:15 | | 07:05 |
+
+Two separate problems fall out of that, and they want different fixes:
+
+1. **The mini wakes into a half-written day.** At 05:45 there is usually no `brief:DATE` row yet.
+   The old decision tree read that as "the cloud failed", sent the mini at `briefclaim:DATE`, got
+   refused by a healthy claim, and exited — losing the upgrade on any morning the MacBook was also
+   asleep. §3 now handles this by waiting on the claim instead of guessing. **That fix is in.**
+
+2. **An upgrade can land while he is already reading.** Matheo reads at 06:00. The mini's rewrite
+   finishes ~06:35 and the MacBook's ~07:05, so the 06:30 rule — which both Mac playbooks apply to
+   when a rewrite *starts* — does not actually protect the read-marks it exists to protect.
+   **This one is not fixed, because fixing it means moving all three runners and re-pointing
+   `pmset` on two machines, which is Matheo's call, not a runner's.** The schedule that closes it:
+
+   | | fires | finishes | pmset |
+   |---|---|---|---|
+   | Cloud | 03:30 ET (`30 7 * * *` UTC) | 04:20 | — |
+   | Mac mini | 04:30 ET | 05:20 | `04:25:00` |
+   | MacBook | 05:00 ET | 05:50 | `04:55:00` |
+
+   Every leg then completes before 06:00 and the 06:30 cutoff becomes a backstop rather than the
+   thing holding the design together. Until that is adopted, treat 06:30 as a *start* cutoff and
+   accept that a late upgrade may scramble read-marks.
 
 The old "never claim before 07:30" rule is **retired**. It existed when a Mac writing first could
 hold the morning hostage by falling asleep mid-run. Under the relay a Mac never writes first, so
@@ -254,6 +317,10 @@ unbalanced editions.
 | Confusing paywall with block | signed-out Chrome truncates; the cloud gets nothing | truncation ≠ unreachable |
 | Assuming the app can see saved words | `alfred_vocab` was localStorage-only and never left the phone | if a writer must act on something, it has to be in a synced row |
 | Voice mistaken for sourcing | the brief is always in The Economist's register, sourced or not | only `source` can answer "where did this come from" |
+| One `NOW` for the whole run | 19 Aug: the cloud stamped its release with the timestamp it captured 45 min earlier, so a healthy run looked dead | a heartbeat is only a heartbeat if the clock is read again |
+| "No brief row" read as "the cloud failed" | at 05:45 the cloud is usually still writing; the mini then bounced off a healthy claim and exited without upgrading | distinguish *mid-run* from *failed* by the claim's heartbeat, and wait |
+| Prefix-narrowing the lexicon before stemming | 3 Spanish entries silently redefined | replicate the app's lookup chain exactly, or skip the word |
+| Assuming the repo checkout is current | 19 Aug: the cloud container had cloned *before* `BRIEF-NETWORK.md` was pushed, so the file it was told to read was simply absent | fetch before you read; "it is checked out for you" is not "it is up to date" |
 
 ---
 
