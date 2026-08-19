@@ -10,27 +10,31 @@ Last verified: **19 August 2026**.
 
 ## 1. Why this file exists
 
-The brief is written by whichever of three runners claims the day first, and **each one carries
-its own private copy of the instructions**:
+The brief is written by three runners, and **each one carries its own private copy of the
+instructions**:
 
 | Runner | Its instructions live in | Syncs with the others? |
 |---|---|---|
-| Cloud routine `trig_01RcKHHVXKPVsu2yTvzcpurZ` | the trigger's prompt (edit with `RemoteTrigger`) | **no** |
+| Cloud routine `trig_01RcKHHVXKPVsu2yTvzcpurZ` | the trigger's prompt, edited by hand in the Claude app | **no** |
 | Mac mini | `~/.claude/scheduled-tasks/economist-daily-brief/SKILL.md` | **no** |
 | MacBook Pro | its own copy of that same path | **no** |
 
-`~/.claude` is not in git. A fix applied on one machine reaches neither of the others. This has
-already caused two visible regressions:
+`~/.claude` is not in git, and the cloud trigger was created through the HTTP API so an agent
+cannot edit it — only Matheo can. A fix applied in one place reaches neither of the others. This
+has already caused visible regressions:
 
 - **18 Aug** — the Mac mini wrote the brief with no `source` field, because only the MacBook and
-  the cloud had been told about it. Matheo saw no source line and reasonably concluded nothing
-  had been fixed.
-- **19 Aug** — the cloud's prompt had been rewritten the previous afternoon into a WebSearch-only
-  version that dropped the Economist step entirely. It produced a search digest.
+  the cloud had been told about it.
+- **19 Aug** — the cloud's prompt had been rewritten into a WebSearch-only version that dropped
+  the Economist step, and separately still *opened* with "READ THE ECONOMIST FIRST" while the
+  runner could not reach the site, so it burned two tool calls on a host it cannot load.
 
 **The rule:** when you change how the brief is written, change **all three** copies in the same
 sitting, and update this file. If you can only reach one, say so explicitly in your report so the
 gap is visible instead of silent.
+
+**Canonical copies of the three prompts live in `routines/`.** They are the source; the machines
+hold pasted copies. Credentials are redacted there — this repo is public.
 
 ---
 
@@ -43,7 +47,9 @@ This is the single most important fact in this document.
 | Always awake | **yes** | only if awake + Claude app open | only if awake + app open |
 | Can reach economist.com | **no** | **yes**, via Chrome | **yes**, via Chrome |
 | Database access | `mcp__Supabase_Alfred__execute_sql` (curl is 403'd) | curl REST works | curl REST works |
-| Best it can produce | `source: own` | `source: economist` | `source: economist` |
+| Writes row | `brief:DATE` | `brief:DATE:local` | `brief:DATE:local` |
+| Its lock | `briefclaim:DATE:cloud` | `briefclaim:DATE:local` | `briefclaim:DATE:local` |
+| Source it may write | `own` only | `economist` / `mixed` | `economist` / `mixed` |
 
 ### Getting to The Economist — the full matrix
 
@@ -60,8 +66,8 @@ Tested repeatedly on 19 Aug 2026. **Do not spend a run rediscovering this.**
 Two consequences worth internalising:
 
 1. **Neither runner can do the whole job alone.** The cloud is always awake but can never write
-   better than `own`. A Mac can write `economist` but may be asleep. So they run as a **relay**,
-   not as rivals — see §3.
+   better than `own`. A Mac can write `economist` but may be asleep. So they publish **side by
+   side** — see §3.
 2. **Matheo being logged in does not help the cloud.** The cloud never had his cookie and cannot
    load the page regardless. The tell is in the failure mode: signed-out Chrome still returns
    *1 of 8* stories, whereas the cloud returns *nothing*. Truncation means paywall; nothing means
@@ -82,8 +88,8 @@ Check the session is alive. Signed out you get the first story and then *"Alread
 account? Log in"*. Signed in you get the whole bulletin, and articles show
 *"Listen to this story / ai narrated"*.
 
-**If it is signed out: do not log in and never type credentials.** Fall back to research, set
-`source: own`, and say so in your report so Matheo knows to re-authenticate.
+**If it is signed out: do not log in and never type credentials.** Write nothing, and report that
+the session needs re-authenticating (§3).
 
 Use `read_page` with `filter: interactive` on the homepage to collect the day's article headlines
 *with* their URLs — you need those for the closing lineup section.
@@ -93,58 +99,49 @@ into the brief; it is Matheo's subscription to read, not to republish.
 
 ---
 
-## 3. The relay: cloud writes, a Mac upgrades
+## 3. Two rows, one switch — not a relay
 
-The day happens in **two legs**, and both finish before Matheo reads at 06:00.
+Each runner owns its **own row** and never touches the other's.
 
-| Leg | Who | When | Does |
+| Row | Written by | Source | Meaning |
 |---|---|---|---|
-| **1 — guarantee** | Cloud | 05:00 | claims `briefclaim:DATE`, writes a complete brief from wires, `source: own` |
-| **2 — upgrade** | Mac mini, else MacBook | 05:45 / 06:15 | if `source != 'economist'`, rewrites the day from economist.com |
+| `brief:DATE` | Cloud, 05:00 | always `own` | the guarantee — exists every morning |
+| `brief:DATE:local` | a Mac, 05:45 / 06:15 | `economist` or `mixed` | the paper he pays for, when a Mac was awake |
 
-Why this way round: the cloud can never miss, so a brief always exists; the Mac can always beat it
-on sourcing, so it improves the day when it is awake. Neither blocks the other, and a sleeping Mac
-costs Matheo only the source label, never the brief.
+The app renders a switch at the top of the brief page — **Wires** and **The Economist** — and
+**defaults to the Economist row whenever it exists**. If only one exists, there is no switch and
+that one is shown.
 
-**Leg 2 has its own lock, `briefupgrade:DATE`** — never the main claim, which is already `done` by
-then and must stay that way. Same insert-or-stand-down mechanics as §3.1 below.
+This replaces the earlier *relay*, in which a Mac overwrote the cloud's row. The relay is retired
+and its machinery — `briefupgrade:DATE`, the upgrade decision tree, the 06:30 rewrite cutoff — is
+**gone**. Nothing should reference them. Three problems went with it:
 
-The upgrade decision tree, for a Mac:
+- a Mac waking at 05:45 into a half-written cloud row had to guess whether the cloud had failed;
+- an upgrade finishing after 06:00 rewrote a brief he had begun reading, scrambling read-marks,
+  which are stored by paragraph position;
+- one bad Mac run destroyed the only copy of the day.
 
-1. Read `brief:DATE`.
-   - **Missing** → do **not** conclude the cloud failed. At 05:45 it is very likely still writing
-     (see the arithmetic in §5). Read `briefclaim:DATE` and split on *it*:
-     - claim is `running` and its `up` is **inside** the staleness window → the cloud is mid-run.
-       **Wait and re-read every few minutes** until the claim turns `done` (then continue at the
-       `source == 'own'` branch below, as a normal upgrade) or goes stale (then treat it as failed).
-       Exiting here is the silent failure that costs the day its upgrade entirely.
-     - claim is absent, or `running` and **stale** → the cloud genuinely failed. Do the *full* job:
-       take `briefclaim:DATE` by the normal steal path and write the whole brief yourself.
-   - **`source == 'economist'`** → already upgraded, by the other Mac. Stop. Success.
-   - **Otherwise** → try to claim `briefupgrade:DATE` and continue.
-2. Open economist.com in Chrome. **Signed out → release nothing, leave the cloud's brief alone,
-   and report that the session needs re-authenticating.** An `own` brief is a perfectly good
-   brief; a broken one is not.
-3. Signed in → rewrite all three editions from their reporting, set `source: economist`, republish
-   the same `brief:DATE` row, extend the lexicon, then mark `briefupgrade:DATE` done.
+Because the rows are separate, **no runner needs to know anything about the others' state.** The
+cloud writes unconditionally. A Mac checks only whether `brief:DATE:local` already exists.
 
-**Never upgrade after 06:30.** Read-marks are stored by paragraph position, so rewriting a brief
-he has started reading scrambles which paragraphs are ticked. Past that hour, leave the day alone
-and let the next morning be better.
+### The rule that defines a Mac's job
+
+**If it cannot read The Economist, it writes nothing at all.** A wire-researched `:local` row
+would duplicate the cloud's and put two identical things in the switch. `brief:DATE:local`
+existing must always mean "this was read on economist.com". Standing down is a clean outcome.
 
 ### 3.1 The claim mechanics
 
-Exactly one runner may write a given leg. The lock is the primary key on `items.id`.
+Exactly one runner may write a given row. The lock is the primary key on `items.id`.
 
-1. **Claim** — a plain insert of `briefclaim:DATE`, no upsert (an upsert would defeat the lock).
-   `201`/row returned → you own the day. `409`/no row → someone else has it.
+1. **Claim** — a plain insert of the runner's own lock id, no upsert (an upsert defeats the lock).
+   `201`/row returned → you own it. `409`/no row → someone else does.
 2. **Steal only a dead claim** — conditional update filtered on
    `status <> 'done' AND up < now - staleness`. A returned row means you took over; `[]` means
-   stop immediately and report *"brief already handled by <worker> — nothing to do."*
-   **That is a success, not a failure.** Do not research, do not write, do not touch the lexicon.
+   stop immediately and report *"already handled by &lt;worker&gt;."*
+   **That is a success, not a failure.**
 3. **Heartbeat while you work** — re-stamp `up` after research, after the three editions, and
-   after the lexicon. `up` must mean "last sign of life", not "when I started", or a healthy run
-   gets robbed for merely taking a while. A full run takes roughly 50 minutes.
+   after the lexicon. `up` must mean "last sign of life", not "when I started".
    **Compute a fresh timestamp at each write.** Capturing `NOW` once at the top of the run and
    reusing that one value everywhere — including for the release — is the same bug wearing a
    heartbeat's clothes: the row reads as an hour stale the instant you write it. The cloud run of
@@ -154,25 +151,29 @@ Exactly one runner may write a given leg. The lock is the primary key on `items.
    `done` is permanent; the steal filter can never take it back.
 
 **On failure, leave the claim `running` and do not delete it.** A later runner finds it stale and
-finishes the day. Deleting it would let two machines start at once.
+finishes. Deleting it would let two machines start at once.
 
 ---
 
 ## 4. What gets written
 
-Exactly five rows may be written: `briefclaim:DATE`, `briefupgrade:DATE`, `brief:DATE`,
-`lexicon:fr`, `lexicon:es`.
+Rows that may ever be written: `briefclaim:DATE:cloud`, `briefclaim:DATE:local`, `brief:DATE`,
+`brief:DATE:local`, `lexicon:fr`, `lexicon:es`.
 `vocab:saved` is **read-only** — it belongs to the app, and overwriting it would destroy words
 Matheo saved on another device. Never delete anything.
 
-### `brief:DATE`
+**Never write the other side's brief row.** The cloud writing `brief:DATE:local` would destroy his
+Economist edition; a Mac writing `brief:DATE` would destroy his safety net.
+
+### `brief:DATE` / `brief:DATE:local`
 
 `date`, `title`, `body`, `title_en`/`body_en`, `title_fr`/`body_fr`, `title_es`/`body_es`,
-`langs: ["en","fr","es"]`, plus:
+`langs: ["en","fr","es"]`, `edition` (`cloud` or `local`), plus:
 
 - **`source`** — exactly `economist`, `mixed`, or `own`. **Nothing else.** The app looks the value
-  up in a map and renders *nothing* on a miss, so a plausible-looking `"The Economist"` silently
-  produces no source line at all. That exact mistake is what made it look broken.
+  up in a map (`BRIEF_SRC`) and renders *nothing* on a miss, so a plausible-looking
+  `"The Economist"` silently produces no source line at all. That exact mistake is what made it
+  look broken.
 - **`source_note`** — a short phrase with the count, e.g.
   `8 of 8 world-in-brief stories plus 2 features read in full on economist.com`.
 
@@ -186,26 +187,38 @@ Written natively, never translated: The Economist in English, *Le Monde*/*Les É
 *El País*/*Expansión* in Spanish, with each language's own number formatting and quotation marks.
 Each gets its own ≤60-character headline written in that language.
 
-**They must be block-parallel.** The app pairs paragraphs across languages *by position*, for both
+**They must be block-parallel.** The app pairs paragraphs across *languages* by position, for both
 the shared read-marks and the "same paragraph in English" panel. Same section kickers, same report
 headlines, same paragraph count, same order. Sentences *inside* a paragraph need not correspond —
 that is where each language should sound like itself. The app degrades safely when counts differ,
 but the feature is lost.
 
+Read-marks are shared across the three *languages* of one edition, and deliberately **not** shared
+between the wires and Economist editions — those are different reporting with different paragraph
+counts, so a shared tick would mark a story he never read.
+
 Close with `## The Economist today` — one markdown link per line, `[headline](url)`. The app
-renders http/https links as tappable. **Omit the section entirely when `source` is `own`.**
+renders http/https links as tappable. **The cloud never writes this section**; it belongs to an
+Economist-sourced edition.
 
 ### The lexicon and saved words
 
-Definitions accumulate permanently in `lexicon:fr` / `lexicon:es`; each morning you define only
-what is *new*. Shape: `data.w = {headword: {p, e, d}}` — `e` is the closest English word, `d` is a
-real definition, because Matheo often knows the equivalent and still does not know what it means.
+Both editions merge into the same `lexicon:fr` / `lexicon:es`. Merges are additive and a Mac may
+add an hour after the cloud, so **always re-read the rows immediately before merging** rather than
+working from a copy pulled earlier in the run.
+
+Definitions accumulate permanently; each morning define only what is *new*. Shape:
+`data.w = {headword: {p, e, d}}` — `e` is the closest English word, `d` is a real definition,
+because Matheo often knows the equivalent and still does not know what it means.
 
 **His saved words come first.** Words he taps and saves land in `vocab:saved`
 (`data.w = [{w, l, d}]`). Any without a lexicon entry show a bare dash in his saved-words list.
 Define every one the lexicon does not cover, **before** the day's harvested words, and **exempt
 from every filter** — not the 4-letter minimum, not the everyday-word stop-list. `où` gets an
 entry because he asked for it, however common it is.
+
+The row is live: it appeared on 19 Aug 2026 holding seven French words, two of which
+(`hypothétique`, `raréfient`) had no entry and were showing him a dash. Both are now defined.
 
 **Key saved words on the exact surface form he saved.** `wtStem` is lossy in both directions:
 `faucons` stems to `fauc` while `faucon` stems to `faucon`, so they never meet and a base-form
@@ -223,11 +236,9 @@ the step entirely rather than overwriting with a partial map, and say so.
 Two footguns, both tripped on 19 Aug 2026:
 
 - **Recompute `n` from the merged map, then verify it.** If the merge and the count are split into
-  two statements, the count in the second one still sees the *old* map and `n` silently drifts below
-  the real key count. Either do both in one statement, or set `n` afterwards from what is actually
-  there and check the two agree:
-  `update ... set data = data || jsonb_build_object('n', (select count(*) from jsonb_object_keys(data->'w')))
-   ... returning data->>'n', (select count(*) from jsonb_object_keys(data->'w'));`
+  two statements, the count in the second one still sees the *old* map and `n` silently drifts
+  below the real key count. Either do both in one statement, or set `n` afterwards from what is
+  actually there and check the two agree.
 - **Test coverage against the full key list, not a shortcut.** Narrowing the existing headwords by
   prefix before stemming them is *not* equivalent to the app's exact → de-elided → stem chain: a
   stored key can stem onto your candidate without sharing its prefix. That shortcut silently
@@ -240,63 +251,33 @@ Two footguns, both tripped on 19 Aug 2026:
 
 All America/New_York.
 
-| Runner | Fires | Leg |
+| Runner | Fires | Writes |
 |---|---|---|
-| Cloud — "Economist Daily Brief - Cloud" | **05:00**, 07:00 retry | 1: guarantee |
-| Mac mini — "Economist daily brief - Local" | **05:45**, then 08:00 / 10:00 | 2: upgrade |
-| MacBook — "Economist daily brief - Local" | **06:15** | 2: upgrade, if the mini was asleep |
+| Cloud — "Economist Daily Brief - Cloud" | **05:00**, 07:00 retry | `brief:DATE` |
+| Mac mini — "Economist daily brief - Local" | **05:45**, then 08:00 / 10:00 | `brief:DATE:local` |
+| MacBook — "Economist daily brief - Local" | **06:15** | `brief:DATE:local`, if the mini didn't |
 
 The Macs need `sudo pmset repeat wakeorpoweron MTWRFSU 05:40:00` and the Claude app left running,
-or they simply never fire and the cloud's `own` brief stands.
+or they simply never fire and only the cloud's edition exists — which is a perfectly good morning,
+just without the switch.
+
+Because the rows are separate, **overlap is now harmless**. A Mac starting while the cloud is still
+writing costs nothing; a Mac finishing after he has started reading adds a second edition rather
+than rewriting the one in front of him. The old "never claim before 07:30" and "never upgrade after
+06:30" rules are both **retired** — they existed only to protect a single shared row.
 
 Cloud cron verified 19 Aug 2026: `0 9,11 * * *` **UTC** = 05:00 / 07:00 ET while EDT is in effect.
 **It will drift to 04:00 / 06:00 ET when the clocks go back on 1 Nov 2026** — cron is stored in UTC
 and does not follow New York. Re-point it to `0 10,12 * * *` that week, or the cloud starts an hour
 early all winter.
 
-### 5.1 The arithmetic does not currently close — needs a decision
-
-Take the numbers in this file at face value and the two legs overlap:
-
-| | starts | a full run ≈ 50 min | so it finishes |
-|---|---|---|---|
-| Cloud | 05:00 | | **05:50** |
-| Mac mini | 05:45 | *while the cloud is still writing* | 06:35 |
-| MacBook | 06:15 | | 07:05 |
-
-Two separate problems fall out of that, and they want different fixes:
-
-1. **The mini wakes into a half-written day.** At 05:45 there is usually no `brief:DATE` row yet.
-   The old decision tree read that as "the cloud failed", sent the mini at `briefclaim:DATE`, got
-   refused by a healthy claim, and exited — losing the upgrade on any morning the MacBook was also
-   asleep. §3 now handles this by waiting on the claim instead of guessing. **That fix is in.**
-
-2. **An upgrade can land while he is already reading.** Matheo reads at 06:00. The mini's rewrite
-   finishes ~06:35 and the MacBook's ~07:05, so the 06:30 rule — which both Mac playbooks apply to
-   when a rewrite *starts* — does not actually protect the read-marks it exists to protect.
-   **This one is not fixed, because fixing it means moving all three runners and re-pointing
-   `pmset` on two machines, which is Matheo's call, not a runner's.** The schedule that closes it:
-
-   | | fires | finishes | pmset |
-   |---|---|---|---|
-   | Cloud | 03:30 ET (`30 7 * * *` UTC) | 04:20 | — |
-   | Mac mini | 04:30 ET | 05:20 | `04:25:00` |
-   | MacBook | 05:00 ET | 05:50 | `04:55:00` |
-
-   Every leg then completes before 06:00 and the 06:30 cutoff becomes a backstop rather than the
-   thing holding the design together. Until that is adopted, treat 06:30 as a *start* cutoff and
-   accept that a late upgrade may scramble read-marks.
-
-The old "never claim before 07:30" rule is **retired**. It existed when a Mac writing first could
-hold the morning hostage by falling asleep mid-run. Under the relay a Mac never writes first, so
-the hazard is gone — and the rule would now block the upgrade window entirely.
-
 ---
 
 ## 6. Before you publish — assert, don't hope
 
 - all three headlines ≤ 60 characters
-- `source in ('economist','mixed','own')`
+- `source in ('economist','mixed','own')`, and matching the runner (`own` for the cloud only)
+- `edition` matches the row id (`cloud` ↔ `brief:DATE`, `local` ↔ `brief:DATE:local`)
 - the three bodies have **equal block counts and the same sequence of block kinds**
 - `up` is an **integer** millisecond timestamp — a float (`1787144300007.0`) is rejected by
   Postgres with `invalid input syntax for type bigint`
@@ -318,20 +299,25 @@ unbalanced editions.
 | Assuming the app can see saved words | `alfred_vocab` was localStorage-only and never left the phone | if a writer must act on something, it has to be in a synced row |
 | Voice mistaken for sourcing | the brief is always in The Economist's register, sourced or not | only `source` can answer "where did this come from" |
 | One `NOW` for the whole run | 19 Aug: the cloud stamped its release with the timestamp it captured 45 min earlier, so a healthy run looked dead | a heartbeat is only a heartbeat if the clock is read again |
-| "No brief row" read as "the cloud failed" | at 05:45 the cloud is usually still writing; the mini then bounced off a healthy claim and exited without upgrading | distinguish *mid-run* from *failed* by the claim's heartbeat, and wait |
+| An unmarked override | the cloud's prompt opens "READ THE ECONOMIST FIRST" and the prepended block did not say it overrode that, so the run obeyed whichever it read last | when two instruction blocks are concatenated, say in the newer one which parts of the older it replaces |
 | Prefix-narrowing the lexicon before stemming | 3 Spanish entries silently redefined | replicate the app's lookup chain exactly, or skip the word |
 | Assuming the repo checkout is current | 19 Aug: the cloud container had cloned *before* `BRIEF-NETWORK.md` was pushed, so the file it was told to read was simply absent | fetch before you read; "it is checked out for you" is not "it is up to date" |
+| Credentials in a public repo | the routine files carry a live `x-alfred-key`; the repo is public | redact before committing — the machines keep the real values in their own `SKILL.md` |
 
 ---
 
 ## 8. Related app internals
 
-- `briefSource()` / `BRIEF_SRC` in `index.html` — renders the source line, strict 3-value map
+- `briefEds()` / `briefPick()` / `briefEdBar()` / `briefsSorted()` in `index.html` — the two-row
+  switch, the default-to-Economist rule, and one archive card per day
+- `briefReadKey(date, ed)` — read-marks, per edition, wires keeping the legacy unsuffixed key
+- `briefSource()` / `BRIEF_SRC` — renders the source line, strict 3-value map
 - `vocabMirror()` — mirrors saved words into `vocab:saved`
 - `vocabDef()` — looks a saved word's meaning up **live**, so a dash fills itself in the morning
   the lexicon gains the word, with no migration
 - `mdBlocks()` / `inline()` — block splitting and `[text](url)` rendering (http/https only)
-- `wtLookup()` / `wtStem()` / `wtLexIndex()` — tap-to-understand lookup chain
+- `wtLookup()` / `wtStem()` / `wtLexIndex()` — tap-to-understand lookup chain, reading the edition
+  currently on screen via `WT.bid`
 
 **Known open bug:** the `wtStem` asymmetry above also affects tapping words in the brief itself —
 a tap on `faucons` finds nothing even when `faucon` is defined. Worked around for saved words;

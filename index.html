@@ -446,7 +446,11 @@ function trimLocal(){                          // drop the oldest already-synced
   Object.values(S.items).forEach(i=>{if(i.del&&!i.dirty&&(i.up||0)<cut)delete S.items[i.id]});
   const briefs=Object.values(S.items).filter(i=>i.sec==='brief'&&!i.dirty)
     .sort((a,b)=>(b.d?.date||'').localeCompare(a.d?.date||''));
-  briefs.slice(KEEP_BRIEFS).forEach(i=>delete S.items[i.id]);
+  /* a day can hold two editions, so count days kept rather than rows, or KEEP_BRIEFS
+     silently halves to ~22 mornings */
+  const keep=new Set();
+  briefs.forEach(i=>{const d=i.d?.date||'';if(keep.size<KEEP_BRIEFS)keep.add(d)});
+  briefs.forEach(i=>{if(!keep.has(i.d?.date||''))delete S.items[i.id]});
 }
 let saveT=null,savePending=false;
 function flushSave(){
@@ -1762,9 +1766,9 @@ let briefSel=null;
 /* --- brief language: three separately-written editions, last choice sticks --- */
 const BRIEF_LANGS=[{k:'en',lab:'English'},{k:'fr',lab:'Français'},{k:'es',lab:'Español'}];
 const BRIEF_UI={
-  en:{all:'All briefs',arch:'Daily brief — archive',hint:"Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.",empty:'No briefs yet — the agent posts every morning.',masthead:'The Daily Brief',min:'min read',read:'✓ read',mark:'mark read',today:'today',fb:'Not written in this language — showing the English edition.',loc:'en-GB'},
-  fr:{all:'Toutes les éditions',arch:'Brief quotidien — archives',hint:"Chaque édition du matin, de la plus récente à la plus ancienne. Publiée automatiquement par ton agent Claude ; + pour en écrire une à la main.",empty:"Aucune édition pour l'instant — l'agent publie chaque matin.",masthead:'Le Brief Quotidien',min:'min de lecture',read:'✓ lu',mark:'marquer lu',today:"aujourd'hui",fb:"Pas d'édition française ce jour-là — version anglaise affichée.",loc:'fr-FR'},
-  es:{all:'Todas las ediciones',arch:'Brief diario — archivo',hint:'Cada edición de la mañana, de la más reciente a la más antigua. La publica automáticamente tu agente de Claude; + para escribir una a mano.',empty:'Aún no hay ediciones — el agente publica cada mañana.',masthead:'El Brief Diario',min:'min de lectura',read:'✓ leído',mark:'marcar leído',today:'hoy',fb:'No hay edición en español de ese día — se muestra la inglesa.',loc:'es-ES'}
+  en:{all:'All briefs',arch:'Daily brief — archive',hint:"Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.",empty:'No briefs yet — the agent posts every morning.',masthead:'The Daily Brief',min:'min read',read:'✓ read',mark:'mark read',today:'today',fb:'Not written in this language — showing the English edition.',loc:'en-GB',edEc:'The Economist',edWi:'Wires'},
+  fr:{all:'Toutes les éditions',arch:'Brief quotidien — archives',hint:"Chaque édition du matin, de la plus récente à la plus ancienne. Publiée automatiquement par ton agent Claude ; + pour en écrire une à la main.",empty:"Aucune édition pour l'instant — l'agent publie chaque matin.",masthead:'Le Brief Quotidien',min:'min de lecture',read:'✓ lu',mark:'marquer lu',today:"aujourd'hui",fb:"Pas d'édition française ce jour-là — version anglaise affichée.",loc:'fr-FR',edEc:'The Economist',edWi:'Dépêches'},
+  es:{all:'Todas las ediciones',arch:'Brief diario — archivo',hint:'Cada edición de la mañana, de la más reciente a la más antigua. La publica automáticamente tu agente de Claude; + para escribir una a mano.',empty:'Aún no hay ediciones — el agente publica cada mañana.',masthead:'El Brief Diario',min:'min de lectura',read:'✓ leído',mark:'marcar leído',today:'hoy',fb:'No hay edición en español de ese día — se muestra la inglesa.',loc:'es-ES',edEc:'The Economist',edWi:'Teletipos'}
 };
 function briefLang(){const v=localStorage['alfred_brieflang'];return BRIEF_LANGS.some(l=>l.k===v)?v:'en'}
 function setBriefLang(k){
@@ -1801,13 +1805,48 @@ function briefLangBar(){
     `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div>${
     n?`<button class="bkVocab" onclick="wtOpenVocab()">★ ${n}</button>`:''}</div>`;
 }
-function briefsSorted(){return list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))}
+/* Two runners publish the same morning, independently and into separate rows: the cloud writes
+   `brief:DATE` from wires and never misses, a Mac writes `brief:DATE:local` from The Economist
+   on the mornings it is awake. Neither overwrites the other, so a day can hold both and the
+   reader chooses. The Economist wins by default — it is the paper he pays for; the cloud's is
+   the safety net. A brief written by hand carries a uid, so classify on the id suffix rather
+   than on a guessed name. */
+const BRIEF_ED_KEY='alfred_brief_ed';
+function briefIsEc(b){return /:local$/.test(b.id||'')}
+function briefEd(){return localStorage[BRIEF_ED_KEY]==='wires'?'wires':'economist'}
+function setBriefEd(e){localStorage[BRIEF_ED_KEY]=e;const se=document.scrollingElement||document.documentElement,keep=se.scrollTop;renderActive();se.scrollTop=keep}
+function briefEds(date){
+  const all=list('brief').filter(b=>b.d.date===date);
+  return {economist:all.find(briefIsEc)||null,wires:all.find(b=>!briefIsEc(b))||null};
+}
+/* the edition actually shown for a day: the preferred one when it exists, else whatever does */
+function briefPick(date){const e=briefEds(date);return e[briefEd()]||e.economist||e.wires||null}
+/* only worth a switch when there is something to switch between */
+function briefEdBar(date){
+  const e=briefEds(date);
+  if(!e.economist||!e.wires)return'';
+  const cur=briefEd(),U=bUI();
+  return `<div class="bkLangRow"><div class="bkLang">`+
+    `<button class="${cur==='economist'?'on':''}" onclick="setBriefEd('economist')">${esc(U.edEc)}</button>`+
+    `<button class="${cur==='wires'?'on':''}" onclick="setBriefEd('wires')">${esc(U.edWi)}</button>`+
+    `</div></div>`;
+}
+function briefsSorted(){
+  const seen=new Set(),out=[];
+  list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''))
+    .forEach(b=>{if(seen.has(b.d.date))return;seen.add(b.d.date);const p=briefPick(b.d.date);if(p)out.push(p)});
+  return out;
+}
 /* read-marks are shared across all three editions: one paragraph, one tick, whatever
    language it was ticked in. The editions run block-for-block parallel, so the index
    points at the same paragraph in each. Older per-language keys get folded in once. */
-function briefReadKey(date){return 'alfred_briefread_'+date}
-function briefReadSet(date){
-  const key=briefReadKey(date);
+/* ...but NOT across the two source-editions. Wires and The Economist are different reporting of
+   the same morning, with different paragraph counts, so position means nothing between them and
+   a shared tick would mark a story he never read. The wires edition keeps the original unsuffixed
+   key so existing marks survive; The Economist gets its own. */
+function briefReadKey(date,ed){return 'alfred_briefread_'+date+(ed==='economist'?'_ec':'')}
+function briefReadSet(date,ed){
+  const key=briefReadKey(date,ed);
   let st=new Set();try{st=new Set(JSON.parse(localStorage[key]||'[]'))}catch(e){}
   let merged=false;
   BRIEF_LANGS.forEach(l=>{
@@ -1820,9 +1859,9 @@ function briefReadSet(date){
   if(merged)localStorage[key]=JSON.stringify([...st]);
   return st;
 }
-function briefMark(date,id){
-  const key=briefReadKey(date);
-  let st=briefReadSet(date);
+function briefMark(date,ed,id){
+  const key=briefReadKey(date,ed);
+  let st=briefReadSet(date,ed);
   st.has(id)?st.delete(id):st.add(id);
   localStorage[key]=JSON.stringify([...st]);
   const se=document.scrollingElement||document.documentElement,keep=se.scrollTop;
@@ -1837,12 +1876,15 @@ function briefArticle(b){
   const words=String(body).split(/\s+/).filter(Boolean).length;
   const mins=Math.max(1,Math.round(words/200));
   const isToday=b.d.date===today();
+  const ed=briefIsEc(b)?'economist':'wires';
   let readSet=new Set();
-  if(isToday)readSet=briefReadSet(b.d.date);
-  const all=briefsSorted(),idx=all.findIndex(x=>x.id===b.id);
+  if(isToday)readSet=briefReadSet(b.d.date,ed);
+  /* match on date, not id: briefsSorted carries one edition per day and it may not be this one */
+  const all=briefsSorted(),idx=all.findIndex(x=>x.d.date===b.d.date);
   const older=all[idx+1],newer=all[idx-1];
-  let h=`<div class="bkWrap" data-brief="${b.d.date}">
+  let h=`<div class="bkWrap" data-brief="${b.d.date}" data-bid="${esc(b.id)}">
     ${briefLangBar()}
+    ${briefEdBar(b.d.date)}
     <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
     <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
@@ -1856,7 +1898,7 @@ function briefArticle(b){
     const id=pi++;
     if(isToday){
       const rd=readSet.has(id);
-      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}" data-bi="${i}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id})">${rd?esc(U.read):esc(U.mark)}</button></div>`;
+      h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}" data-bi="${i}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}','${ed}',${id})">${rd?esc(U.read):esc(U.mark)}</button></div>`;
     }else h+=`<div class="${cls}" data-bi="${i}">${bl.h}</div>`;
   });
   h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdateL(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdateL(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
@@ -1873,7 +1915,7 @@ const WT_UI={
   fr:{gloss:'Sens',para:'Le même paragraphe en',save:'＋ Retenir',saved:'✓ Retenu',close:'Fermer',miss:"Pas encore dans le lexique — il sera ajouté avec le brief de demain. Le paragraphe parallèle est ci-dessous.",vocab:'Mots retenus',vempty:'Aucun mot retenu. Touche un mot dans le brief puis « Retenir ».',from:'du',help:'Expliquer en'},
   es:{gloss:'Significado',para:'El mismo párrafo en',save:'＋ Guardar',saved:'✓ Guardado',close:'Cerrar',miss:'Todavía no está en el léxico — se añadirá con el brief de mañana. Abajo tienes el párrafo paralelo.',vocab:'Palabras guardadas',vempty:'Aún no hay palabras guardadas. Toca una palabra del brief y pulsa Guardar.',from:'del',help:'Explicar en'}
 };
-const WT={term:'',bi:null,date:'',srcLang:'',mode:'word'};
+const WT={term:'',bi:null,date:'',bid:'',srcLang:'',mode:'word'};
 function wtUI(){return WT_UI[briefLang()]||WT_UI.en}
 function wtHelpLang(){
   const v=localStorage['alfred_briefhelp'];
@@ -1920,7 +1962,7 @@ function wtLexIndex(lang){
 /* per-brief gloss wins (it can carry the sense used that day), then the lexicon */
 function wtLookup(term){
   const lang=WT.srcLang,n=wtNorm(term),de=wtDeElide(n);
-  const b=S.items['brief:'+WT.date];
+  const b=S.items[WT.bid]||S.items['brief:'+WT.date];
   const g=(b&&b.d.gloss&&b.d.gloss[lang])||null;
   if(g){
     for(const t of [n,de,n.replace(/(es|s|x)$/,'')]){if(t&&g[t])return g[t]}
@@ -1943,7 +1985,7 @@ function wtFields(g,helpLang){
   return {def:g[helpLang]||g.en||g.m||'',eq:'',pos:g.pos||'',note:g.note||''};
 }
 function wtParallel(){
-  const b=S.items['brief:'+WT.date];if(!b||WT.bi==null)return null;
+  const b=S.items[WT.bid]||S.items['brief:'+WT.date];if(!b||WT.bi==null)return null;
   const src=briefTxtIn(b,'body',wtHelpLang());if(!src)return null;
   const blocks=mdBlocks(src);
   const mine=mdBlocks(briefTxtIn(b,'body',WT.srcLang)||b.d.body||'');
@@ -2038,7 +2080,7 @@ function wtOpen(term,bi){
   if(!/\s/.test(term))term=wtDeElide(term);
   WT.term=term;WT.bi=bi;WT.mode='word';WT.srcLang=briefLang();
   const w=document.querySelector('.bkWrap[data-brief]');
-  if(w)WT.date=w.getAttribute('data-brief');
+  if(w){WT.date=w.getAttribute('data-brief');WT.bid=w.getAttribute('data-bid')||('brief:'+WT.date)}
   wtRender();
   wtEl().classList.add('on');document.getElementById('wtBack').classList.add('on');
   wtChipHide();
