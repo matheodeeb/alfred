@@ -266,14 +266,17 @@
   .bkNav{display:flex;justify-content:space-between;gap:10px;margin:32px 0 10px;border-top:1px solid var(--line2);padding-top:14px}
   @media(max-width:560px){.bkP,.bkUl{font-size:17.5px}.bkStand{font-size:19px}.bkH3{font-size:20px}}
   /* brief language switch */
-  .bkLangRow{display:flex;justify-content:center;margin:12px 0 0}
+  .bkLangRow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+  .bkSel{appearance:none;-webkit-appearance:none;background-color:var(--line);border:1px solid var(--line2);border-radius:999px;color:var(--txt);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:7px 28px 7px 14px;cursor:pointer;transition:.12s;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 11px center;background-size:9px 5px}
+  .bkSel:hover{border-color:var(--gold)}
+  .bkSel:focus{outline:none;border-color:var(--gold)}
   .bkLang{display:inline-flex;gap:2px;background:var(--line);border:1px solid var(--line2);border-radius:999px;padding:2px}
   .bkLang button{background:none;border:0;border-radius:999px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:6px 14px;cursor:pointer;transition:.12s;white-space:nowrap}
   .bkLang button:hover{color:var(--txt)}
   .bkLang button.on{background:var(--gold);color:#faf6ec}
   .bkFallback{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:center;margin:9px 0 0}
   @media(max-width:400px){.bkLang button{padding:6px 10px;font-size:9.5px}}
-  .bkVocab{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;margin-left:8px}
+  .bkVocab{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer}
   .bkVocab:hover{border-color:var(--gold);color:var(--gold)}
   /* tap-to-understand */
   .bkP,.bkStand,.bkUl,.bkH3{cursor:text}
@@ -1799,10 +1802,14 @@ function briefSource(b){
   return `<div class="bkSrc bkSrc-${esc(s)}"><span class="bkSrcD"></span>${esc(M.lab)} · ${esc(M[s])}${note}</div>`;
 }
 function fdateL(x){if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString(bUI().loc,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-function briefLangBar(){
+/* One control strip. Language is a dropdown — three fixed options that rarely change and do not
+   deserve the width — which frees the pill switch for the choice that actually varies by morning:
+   which edition of the day you are reading. */
+function briefLangBar(date){
   const cur=briefLang(),n=vocabList().length;
-  return `<div class="bkLangRow"><div class="bkLang">${BRIEF_LANGS.map(l=>
-    `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div>${
+  const sel=`<select class="bkSel" aria-label="Language" onchange="setBriefLang(this.value)">${
+    BRIEF_LANGS.map(l=>`<option value="${l.k}"${l.k===cur?' selected':''}>${esc(l.lab)}</option>`).join('')}</select>`;
+  return `<div class="bkLangRow">${sel}${briefEdPills(date)}${
     n?`<button class="bkVocab" onclick="wtOpenVocab()">★ ${n}</button>`:''}</div>`;
 }
 /* Two runners publish the same morning, independently and into separate rows: the cloud writes
@@ -1821,15 +1828,23 @@ function briefEds(date){
 }
 /* the edition actually shown for a day: the preferred one when it exists, else whatever does */
 function briefPick(date){const e=briefEds(date);return e[briefEd()]||e.economist||e.wires||null}
-/* only worth a switch when there is something to switch between */
-function briefEdBar(date){
-  const e=briefEds(date);
-  if(!e.economist||!e.wires)return'';
+/* only worth a switch when there is something to switch between. With a date, ask about that
+   morning; without one (the archive) ask whether any morning has both, since the choice decides
+   which edition every card opens. */
+function briefHasBoth(date){
+  if(date){const e=briefEds(date);return !!(e.economist&&e.wires)}
+  const byDate={};
+  list('brief').forEach(b=>{const d=b.d&&b.d.date;if(!d)return;
+    (byDate[d]=byDate[d]||{})[briefIsEc(b)?'ec':'wi']=1});
+  return Object.values(byDate).some(v=>v.ec&&v.wi);
+}
+function briefEdPills(date){
+  if(!briefHasBoth(date))return'';
   const cur=briefEd(),U=bUI();
-  return `<div class="bkLangRow"><div class="bkLang">`+
+  return `<div class="bkLang">`+
     `<button class="${cur==='economist'?'on':''}" onclick="setBriefEd('economist')">${esc(U.edEc)}</button>`+
     `<button class="${cur==='wires'?'on':''}" onclick="setBriefEd('wires')">${esc(U.edWi)}</button>`+
-    `</div></div>`;
+    `</div>`;
 }
 function briefsSorted(){
   const seen=new Set(),out=[];
@@ -1883,8 +1898,7 @@ function briefArticle(b){
   const all=briefsSorted(),idx=all.findIndex(x=>x.d.date===b.d.date);
   const older=all[idx+1],newer=all[idx-1];
   let h=`<div class="bkWrap" data-brief="${b.d.date}" data-bid="${esc(b.id)}">
-    ${briefLangBar()}
-    ${briefEdBar(b.d.date)}
+    ${briefLangBar(b.d.date)}
     <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
     <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
@@ -2116,7 +2130,7 @@ function wtBlockOf(node){
 }
 document.addEventListener('click',e=>{
   if(activePage!=='brief')return;
-  if(e.target.closest('#wtSheet,#wtChip,.wtBack,button,a,.bkLang,.bkTop,.bkNav'))return;
+  if(e.target.closest('#wtSheet,#wtChip,.wtBack,button,a,select,.bkLang,.bkSel,.bkTop,.bkNav'))return;
   const host=e.target.closest('.bkP,.bkStand,.bkUl,.bkH3,.bkH1');
   if(!host)return;
   const sel=String(getSelection()).trim();
