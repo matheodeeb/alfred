@@ -248,7 +248,7 @@
   .bkUl li{margin:6px 0}
   .bkStand{font-family:Georgia,serif;font-size:20.5px;line-height:1.6;margin:16px 0;color:var(--txt)}
   .bkMeta>div+div{margin-top:6px}
-  .bkEd{display:flex;justify-content:center;gap:0;margin:0 0 12px;border:1px solid var(--line2);border-radius:999px;overflow:hidden;width:fit-content;margin-left:auto;margin-right:auto}
+  .bkEd{display:flex;justify-content:center;gap:0;margin:0;border:1px solid var(--line2);border-radius:999px;overflow:hidden;width:fit-content}
   .bkEd button{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 15px;border:0;background:transparent;color:var(--muted);cursor:pointer}
   .bkEd button.on{background:var(--acc);color:#fff}
   .bkSrc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--txt)}
@@ -269,14 +269,16 @@
   .bkNav{display:flex;justify-content:space-between;gap:10px;margin:32px 0 10px;border-top:1px solid var(--line2);padding-top:14px}
   @media(max-width:560px){.bkP,.bkUl{font-size:17.5px}.bkStand{font-size:19px}.bkH3{font-size:20px}}
   /* brief language switch */
-  .bkLangRow{display:flex;justify-content:center;margin:12px 0 0}
+  .bkLangRow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+  .bkSel{appearance:none;-webkit-appearance:none;background-color:var(--line);border:1px solid var(--line2);border-radius:999px;color:var(--txt);font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 28px 7px 15px;cursor:pointer;transition:.12s;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 11px center;background-size:9px 5px}
+  .bkSel:hover,.bkSel:focus{outline:none;border-color:var(--acc)}
   .bkLang{display:inline-flex;gap:2px;background:var(--line);border:1px solid var(--line2);border-radius:999px;padding:2px}
   .bkLang button{background:none;border:0;border-radius:999px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:6px 14px;cursor:pointer;transition:.12s;white-space:nowrap}
   .bkLang button:hover{color:var(--txt)}
   .bkLang button.on{background:var(--gold);color:#faf6ec}
   .bkFallback{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:center;margin:9px 0 0}
   @media(max-width:400px){.bkLang button{padding:6px 10px;font-size:9.5px}}
-  .bkVocab{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;margin-left:8px}
+  .bkVocab{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer}
   .bkVocab:hover{border-color:var(--gold);color:var(--gold)}
   /* tap-to-understand */
   .bkP,.bkStand,.bkUl,.bkH3{cursor:text}
@@ -1765,9 +1767,9 @@ let briefSel=null;
 /* --- brief language: three separately-written editions, last choice sticks --- */
 const BRIEF_LANGS=[{k:'en',lab:'English'},{k:'fr',lab:'Français'},{k:'es',lab:'Español'}];
 const BRIEF_UI={
-  en:{all:'All briefs',arch:'Daily brief — archive',hint:"Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.",empty:'No briefs yet — the agent posts every morning.',masthead:'The Daily Brief',min:'min read',read:'✓ read',mark:'mark read',today:'today',fb:'Not written in this language — showing the English edition.',loc:'en-GB'},
-  fr:{all:'Toutes les éditions',arch:'Brief quotidien — archives',hint:"Chaque édition du matin, de la plus récente à la plus ancienne. Publiée automatiquement par ton agent Claude ; + pour en écrire une à la main.",empty:"Aucune édition pour l'instant — l'agent publie chaque matin.",masthead:'Le Brief Quotidien',min:'min de lecture',read:'✓ lu',mark:'marquer lu',today:"aujourd'hui",fb:"Pas d'édition française ce jour-là — version anglaise affichée.",loc:'fr-FR'},
-  es:{all:'Todas las ediciones',arch:'Brief diario — archivo',hint:'Cada edición de la mañana, de la más reciente a la más antigua. La publica automáticamente tu agente de Claude; + para escribir una a mano.',empty:'Aún no hay ediciones — el agente publica cada mañana.',masthead:'El Brief Diario',min:'min de lectura',read:'✓ leído',mark:'marcar leído',today:'hoy',fb:'No hay edición en español de ese día — se muestra la inglesa.',loc:'es-ES'}
+  en:{all:'All briefs',arch:'Daily brief — archive',hint:"Every morning's brief, newest first. Posted automatically by your Claude agent; + writes one by hand.",empty:'No briefs yet — the agent posts every morning.',masthead:'The Daily Brief',min:'min read',read:'✓ read',mark:'mark read',today:'today',fb:'Not written in this language — showing the English edition.',loc:'en-GB',edLocal:'Local',edCloud:'Claude'},
+  fr:{all:'Toutes les éditions',arch:'Brief quotidien — archives',hint:"Chaque édition du matin, de la plus récente à la plus ancienne. Publiée automatiquement par ton agent Claude ; + pour en écrire une à la main.",empty:"Aucune édition pour l'instant — l'agent publie chaque matin.",masthead:'Le Brief Quotidien',min:'min de lecture',read:'✓ lu',mark:'marquer lu',today:"aujourd'hui",fb:"Pas d'édition française ce jour-là — version anglaise affichée.",loc:'fr-FR',edLocal:'Local',edCloud:'Claude'},
+  es:{all:'Todas las ediciones',arch:'Brief diario — archivo',hint:'Cada edición de la mañana, de la más reciente a la más antigua. La publica automáticamente tu agente de Claude; + para escribir una a mano.',empty:'Aún no hay ediciones — el agente publica cada mañana.',masthead:'El Brief Diario',min:'min de lectura',read:'✓ leído',mark:'marcar leído',today:'hoy',fb:'No hay edición en español de ese día — se muestra la inglesa.',loc:'es-ES',edLocal:'Local',edCloud:'Claude'}
 };
 function briefLang(){const v=localStorage['alfred_brieflang'];return BRIEF_LANGS.some(l=>l.k===v)?v:'en'}
 function setBriefLang(k){
@@ -1798,10 +1800,13 @@ function briefSource(b){
   return `<div class="bkSrc bkSrc-${esc(s)}"><span class="bkSrcD"></span>${esc(M.lab)} · ${esc(M[s])}${note}</div>`;
 }
 function fdateL(x){if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString(bUI().loc,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-function briefLangBar(){
+/* One control strip. Language is three fixed options that rarely change, so it collapses to a
+   dropdown and leaves the pills to the choice that actually varies by morning: which edition. */
+function briefLangBar(day,ed){
   const cur=briefLang(),n=vocabList().length;
-  return `<div class="bkLangRow"><div class="bkLang">${BRIEF_LANGS.map(l=>
-    `<button class="${l.k===cur?'on':''}" onclick="setBriefLang('${l.k}')">${l.lab}</button>`).join('')}</div>${
+  const sel=`<select class="bkSel" aria-label="Language" onchange="setBriefLang(this.value)">${
+    BRIEF_LANGS.map(l=>`<option value="${l.k}"${l.k===cur?' selected':''}>${esc(l.lab)}</option>`).join('')}</select>`;
+  return `<div class="bkLangRow">${sel}${briefEdBar(day,ed)}${
     n?`<button class="bkVocab" onclick="wtOpenVocab()">★ ${n}</button>`:''}</div>`;
 }
 /* ---------- two editions a day ----------
@@ -1889,8 +1894,7 @@ function briefArticle(b){
   const all=briefsSorted(),idx=all.findIndex(x=>x.d.date===b.d.date);
   const older=all[idx+1],newer=all[idx-1];
   let h=`<div class="bkWrap" data-brief="${b.d.date}" data-brief-id="${esc(b.id)}">
-    ${briefLangBar()}
-    ${briefEdBar(day,ed)}
+    ${briefLangBar(day,ed)}
     <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
     <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
@@ -2122,7 +2126,7 @@ function wtBlockOf(node){
 }
 document.addEventListener('click',e=>{
   if(activePage!=='brief')return;
-  if(e.target.closest('#wtSheet,#wtChip,.wtBack,button,a,.bkLang,.bkTop,.bkNav'))return;
+  if(e.target.closest('#wtSheet,#wtChip,.wtBack,button,a,select,.bkLang,.bkSel,.bkEd,.bkTop,.bkNav'))return;
   const host=e.target.closest('.bkP,.bkStand,.bkUl,.bkH3,.bkH1');
   if(!host)return;
   const sel=String(getSelection()).trim();
