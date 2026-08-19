@@ -1873,7 +1873,32 @@ function wtParallel(){
   return blocks[WT.bi]?blocks[WT.bi].h:null;
 }
 function vocabList(){try{const v=JSON.parse(localStorage['alfred_vocab']||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
-function vocabSave(v){localStorage['alfred_vocab']=JSON.stringify(v.slice(0,500))}
+function vocabSave(v){localStorage['alfred_vocab']=JSON.stringify(v.slice(0,500));vocabMirror()}
+/* Saved words live in localStorage, which never leaves the device they were tapped on. Mirror
+   them into a synced row so the morning writer can see which ones are still undefined and
+   define them into the lexicon. Only the word, its language and the day he saved it — the
+   definition is the lexicon's job. */
+function vocabMirror(){
+  const want=vocabList().map(x=>({w:x.w,l:x.l,d:x.d||''}));
+  if(!want.length)return;
+  const cur=(S.items['vocab:saved']||{}).d;
+  if(cur&&JSON.stringify(cur.w||[])===JSON.stringify(want))return;
+  try{put('vocab',{w:want},'vocab:saved')}catch(e){}
+}
+/* What to show beside a saved word. x.m is frozen at the moment he saved it, so a word saved
+   before the lexicon knew it would show a dash for ever. Look it up live instead: the morning
+   the lexicon gains the word, the dash fills itself in with no migration. */
+function vocabDef(x){
+  const lex=wtLex(x.l);
+  if(lex){
+    const n=wtNorm(x.w),de=wtDeElide(n);
+    for(const t of [n,de]){const g=t&&lex[t];if(g)return (wtFields(g)||{}).def||''}
+    for(const k in lex){if(k.indexOf(' ')>0&&(' '+k+' ').includes(' '+n+' '))return (wtFields(lex[k])||{}).def||''}
+    const idx=wtLexIndex(x.l);
+    if(idx){const hit=idx[wtStem(n,x.l)];if(hit)return (wtFields(hit)||{}).def||''}
+  }
+  return x.m||'';
+}
 function vocabIdx(term,lang){const n=wtNorm(term);return vocabList().findIndex(x=>wtNorm(x.w)===n&&x.l===lang)}
 function vocabToggle(){
   const v=vocabList(),i=vocabIdx(WT.term,WT.srcLang);
@@ -1907,7 +1932,7 @@ function wtRender(){
   if(WT.mode==='vocab'){
     const v=vocabList();
     el.innerHTML=`<div class="wtGrab"></div><div class="wtTerm">${esc(U.vocab)}</div>
-      ${v.length?v.map((x,i)=>`<div class="wtVrow"><div class="vw">${esc(x.w)}</div><div class="vm">${x.m?esc(x.m):'<span style="opacity:.6">—</span>'}</div><button class="vx" onclick="vocabDel(${i})" aria-label="remove">✕</button></div>`).join(''):`<div class="wtEmpty">${esc(U.vempty)}</div>`}
+      ${v.length?v.map((x,i)=>{const dm=vocabDef(x);return `<div class="wtVrow"><div class="vw">${esc(x.w)}</div><div class="vm">${dm?esc(dm):'<span style="opacity:.6">—</span>'}</div><button class="vx" onclick="vocabDel(${i})" aria-label="remove">✕</button></div>`}).join(''):`<div class="wtEmpty">${esc(U.vempty)}</div>`}
       <div class="wtRow"><button class="wtBtn" onclick="wtClose()">${esc(U.close)}</button></div>`;
     return;
   }
@@ -2238,6 +2263,7 @@ $('#impFile').onchange=e=>{
   const recent=+localStorage.alfred_unlocked||0;
   if(!pinHash())showLock('set');
   else if(Date.now()-recent>GRACE)showLock('enter');
+  vocabMirror();                                // words saved before this existed still upload
   sync();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
