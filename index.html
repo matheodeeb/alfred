@@ -136,6 +136,10 @@
   .gtot{margin-left:auto;font-family:"IBM Plex Mono";font-size:12px;font-weight:600;color:var(--muted)}
   .ghead:first-child{margin-top:4px}
   .ghead .gsub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);font-weight:400;margin-left:7px}
+  .ghead.clk{cursor:pointer;user-select:none}
+  .ghead .gchev{font-size:12px;color:var(--muted);transition:transform .15s;display:inline-block}
+  .ghead.shut .gchev{transform:rotate(-90deg)}
+  .gbody.hide{display:none}
   .empty{padding:36px 16px;text-align:center;color:var(--faint);font-size:13px;line-height:1.6}
   .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:40;box-shadow:0 8px 24px rgba(46,40,28,.22);width:54px;height:54px;border-radius:16px;font-size:24px;justify-content:center;padding:0}
   .overlay{position:fixed;inset:0;background:rgba(46,40,28,.42);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:20px 12px calc(20px + env(safe-area-inset-bottom));overflow-y:auto}
@@ -857,7 +861,9 @@ function genList(sec){
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
     order.forEach((g,gi)=>{
-      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead">${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
+      const shut=m.collapse&&!GRPOPEN.has(sec+'|'+g);
+      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead${m.collapse?' clk':''}${shut?' shut':''}"${m.collapse?` data-sec="${sec}" data-g="${esc(g)}" onclick="toggleGrp(this)"`:''}>${m.collapse?'<span class="gchev">▾</span>':''}${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
+      if(m.collapse)html+=`<div class="gbody${shut?' hide':''}">`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
         Object.keys(sg).forEach(k=>{
           if(k)html+=`<div class="shead">${esc(k)}</div>`;
@@ -867,6 +873,7 @@ function genList(sec){
           else html+=sg[k].map(i=>rowHtml(sec,i)).join('');
         })}
       else html+=gs[g].map(i=>rowHtml(sec,i)).join('');
+      if(m.collapse)html+='</div>';
     });
   }
   else html+=items.map(i=>rowHtml(sec,i)).join('');
@@ -880,6 +887,17 @@ function detailHtml(sec,i){
   tas.forEach(f=>{const v=String(i.d[f.k]||'').trim();
     if(v)parts.push((tas.length>1?`<div class="rDetL">${esc(f.l)}</div>`:'<div class="rDetL"></div>')+`<div class="rDetB">${esc(v)}</div>`)});
   return parts.join('');
+}
+// Which groups are open. A collapsing page starts every group shut, so the page is a list
+// of projects until you ask one to show its work. Toggled in place — re-rendering would
+// throw away where you were on the page for what is a show/hide.
+const GRPOPEN=new Set();
+function toggleGrp(el){
+  const k=el.dataset.sec+'|'+el.dataset.g;
+  GRPOPEN.has(k)?GRPOPEN.delete(k):GRPOPEN.add(k);
+  el.classList.toggle('shut');
+  const body=el.nextElementSibling;
+  if(body&&body.classList.contains('gbody'))body.classList.toggle('hide');
 }
 const OPEN=new Set();
 function toggleDet(el){const b=el.closest('.rowBox'),id=b.dataset.id;
@@ -1019,6 +1037,17 @@ const actSplits=i=>i.d.splitDaily
   : String(i.d.split||'').trim();
 const todoWhen=i=>(doneView()?(i.d.doneAt||i.d.due):i.d.due)||'';
 const ST_SEL=['Idea','Planned','In progress','Done'];
+// A project task is due "somewhere in here", not on a date. One date reads as itself, two
+// as the window to expect it in, and the year is dropped unless it is not this one.
+function spanLabel(a,b){
+  const one=x=>{if(!x)return'';const d=new Date(x+'T12:00:00');if(isNaN(d))return String(x);
+    const o={weekday:'short',month:'short',day:'numeric'};
+    if(d.getFullYear()!==new Date().getFullYear())o.year='numeric';
+    return d.toLocaleDateString('en-US',o)};
+  const A=one(a),B=one(b);
+  return A&&B?(A===B?A:A+' – '+B):(A||B);
+}
+const projStart=i=>i.d.start||i.d.end||'';
 const MODS={
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
@@ -1247,12 +1276,23 @@ menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house 
 brief:{title:'Daily brief',color:'var(--gold)',
   fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
   card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
-projects:{title:'Projects',color:'var(--purple)',hint:'Future room and whatever comes next.',
-  fields:[{k:'project',l:'Project',t:'dyn',req:1,opt:['Future room']},{k:'name',l:'Item / task',t:'text',req:1},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
+projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its tasks. Each one can carry a window of dates rather than a single day.',
+  fields:[{k:'project',l:'Project',t:'dyn',req:1,opt:['Walk-in closet','Car arrival','Bonsai tree','Home gym on Tariq roof']},{k:'name',l:'Item / task',t:'text',req:1},{k:'start',l:'Expect from',t:'date'},{k:'end',l:'Expect by',t:'date'},{k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.project||'Other',
-  sort:(a,b)=>ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
-  card:i=>({t:esc(i.d.name),s:esc(i.d.notes||'').slice(0,90),dim:i.d.status==='Done',
-    pill:{cls:i.d.status==='In progress'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
+  collapse:1, toggle:'done', stamp:'doneAt',
+  // Projects run in the order they start, and so do the tasks inside them — the page is
+  // meant to be read as what happens next. Anything undated waits at the end.
+  groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=projStart(i);return d&&d<m?d:m},'9999-99-99');
+    return first(a).localeCompare(first(b))||a.localeCompare(b)},
+  groupNote:its=>{const done=its.filter(i=>i.d.done).length;
+    const ds=its.map(projStart).filter(Boolean).sort(), es=its.map(i=>i.d.end||i.d.start).filter(Boolean).sort();
+    const span=spanLabel(ds[0],es[es.length-1]);
+    return esc(done+'/'+its.length+(span?' · '+span:''))},
+  sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)
+    ||(projStart(a)||'9999').localeCompare(projStart(b)||'9999')
+    ||ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
+  card:i=>({t:esc(i.d.name),s:[esc(spanLabel(i.d.start,i.d.end)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
+    pill:i.d.done?{cls:'mut',txt:'done'}:{cls:i.d.status==='In progress'?'ok':'acc',txt:esc(i.d.status||'')}})},
 invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month — the balance, and anything you put in. The chart above draws itself from these.',
   fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
           {k:'acct',l:'Account',t:'dyn',opt:['Citi','Other'],def:'Citi'},
