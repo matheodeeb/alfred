@@ -203,6 +203,12 @@ entry because he asked for it, however common it is.
 entry is unreachable from the plural he tapped. Exact match is tried first, so the saved form
 always hits.
 
+**Strip the `## The Economist today` section before extracting harvested words.** Its headlines
+are English and sit inside the French and Spanish bodies, so leaving it in floods the candidates
+with `blockbuster`, `happens`, `tobacco`, `what`, `when`. Measured 19 Aug 2026: a single day
+yielded 308 French candidates instead of 40–60, largely for this reason. Also drop bare proper
+nouns that are only the day's cast, unless the person or institution earns a `"p":"name"` entry.
+
 For harvested words, test membership the way the app does — exact, then de-elided, then stem —
 porting `wtStem`, `wtDeElide`, `wtDeaccent` and `WT_SUF` out of `index.html` rather than inventing
 a stemmer. Expect roughly 40–60 genuinely new words per language. 250+ means the stop-list is too
