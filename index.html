@@ -128,8 +128,15 @@
   .qtyBtn:hover{border-color:var(--acc);color:var(--acc)}
   .qtyVal{min-width:28px;text-align:center;font-family:"IBM Plex Mono";font-size:14px;font-weight:600}
   .gsep{height:1px;background:var(--line2);margin:26px 2px 0;opacity:.85}
-  .shead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;letter-spacing:-.005em;color:var(--txt);margin:20px 2px 2px;padding-bottom:5px;border-bottom:1px solid var(--line2)}
+  .shead{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:14px;letter-spacing:-.005em;color:var(--txt);margin:20px 2px 2px;padding-bottom:5px;border-bottom:1px solid var(--line2);display:flex;align-items:baseline;gap:6px}
   .shead:first-of-type{margin-top:8px}
+  .shead.clk{cursor:pointer;user-select:none}
+  .shead .gchev{font-size:11px;color:var(--muted);transition:transform .15s;display:inline-block}
+  .shead.shut .gchev{transform:rotate(-90deg)}
+  .shead .gsub{font-family:"IBM Plex Mono";font-size:10px;color:var(--muted);font-weight:400;margin-left:auto}
+  .dbody.hide{display:none}
+  .shead.sboxh{border-left:3px solid var(--line2);padding-left:9px}
+  .sbox{border-left:3px solid var(--line2);padding-left:9px;margin-bottom:12px}
   .lnk{color:var(--muted);font-style:italic}
   .sshead{font-family:"IBM Plex Mono";font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:13px 2px 3px}
   .ghead{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:17px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2);display:flex;align-items:baseline;gap:7px}
@@ -870,6 +877,7 @@ function genList(sec){
     } else html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
   }
   else if(m.group){
+    const defDays=m.subCollapse&&m.subOpen?m.subOpen(items):null;
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
     order.forEach((g,gi)=>{
@@ -878,11 +886,22 @@ function genList(sec){
       if(m.collapse)html+=`<div class="gbody${shut?' hide':''}">`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
         Object.keys(sg).forEach(k=>{
-          if(k)html+=`<div class="shead">${esc(k)}</div>`;
+          // A key starting with NUL is a block that carries no heading — it lets rows that
+          // belong to nothing keep their own place in the order instead of being swept
+          // together into one unnamed lump.
+          const kv=k.charCodeAt(0)===0?'':k;
+          const col=!!(m.subCollapse&&kv), dk=sec+'|'+g+'|'+kv;
+          const dshut=col&&!(DAYSET.has(dk)?DAYSET.get(dk):(defDays?defDays.has(kv):false));
+          const snote=kv&&m.subNote?m.subNote(sg[k],kv):'';
+          if(kv)html+=`<div class="shead${col?' clk':''}${m.subBox?' sboxh':''}${dshut?' shut':''}"${col?` data-k="${esc(dk)}" onclick="toggleDay(this)"`:''}>${col?'<span class="gchev">▾</span>':''}${esc(kv)}${snote?`<span class="gsub">${snote}</span>`:''}${col?`<span class="gsub">${sg[k].length}</span>`:''}</div>`;
+          // A named block gets a body of its own, so it is visible where it ends and the
+          // rows that belong to nothing in particular start again.
+          if(kv)html+=`<div class="sbody${col?' dbody':''}${m.subBox?' sbox':''}${dshut?' hide':''}">`;
           if(m.subsub){const ss={};sg[k].forEach(i=>{const k2=m.subsub(i);(ss[k2]=ss[k2]||[]).push(i)});
             Object.keys(ss).sort(m.subsubOrder?((a,b)=>m.subsubOrder(a,b,ss)):((a,b)=>a.localeCompare(b))).forEach(k2=>{
               html+=`<div class="sshead">${esc(k2)}</div>`+ss[k2].map(i=>rowHtml(sec,i)).join('')})}
           else html+=sg[k].map(i=>rowHtml(sec,i)).join('');
+          if(kv)html+='</div>';
         })}
       else html+=gs[g].map(i=>rowHtml(sec,i)).join('');
       if(m.collapse)html+='</div>';
@@ -910,6 +929,17 @@ function toggleGrp(el){
   el.classList.toggle('shut');
   const body=el.nextElementSibling;
   if(body&&body.classList.contains('gbody'))body.classList.toggle('hide');
+}
+// Day headings can fold too. The default follows the date rather than being remembered,
+// so the page opens on today every time; DAYSET holds only the days you have opened or
+// shut by hand, and those win for the rest of the session.
+const DAYSET=new Map();
+function toggleDay(el){
+  const shut=el.classList.contains('shut');
+  DAYSET.set(el.dataset.k,shut);
+  el.classList.toggle('shut');
+  const body=el.nextElementSibling;
+  if(body&&body.classList.contains('dbody'))body.classList.toggle('hide');
 }
 const OPEN=new Set();
 function toggleDet(el){const b=el.closest('.rowBox'),id=b.dataset.id;
@@ -1038,6 +1068,17 @@ function showLen(d){
   return p.join(' · ');
 }
 const tripWhen=d=>d.start||d.end||'';        // a trip counts as dated if either end is filled
+// Places you'd go on the same journey get tied together by naming a trip on each of them —
+// "Middle East trip" on both Oman and Saudi Arabia and they sit under one heading. A trip is
+// only the name they share; there's no separate record to keep in step.
+const tripName=i=>String(i.d.trip||'').trim();
+const tripMates=n=>list('travels').filter(i=>tripName(i)===n);
+// A trip is as dated as its earliest place — one booked leg pulls the whole journey up into
+// Planned, rather than splitting the same trip across both halves of the page.
+function tripBlockWhen(i){
+  const n=tripName(i);if(!n)return tripWhen(i.d);
+  return tripMates(n).map(x=>tripWhen(x.d)).filter(Boolean).sort()[0]||'';
+}
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
 const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
@@ -1090,7 +1131,7 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up),
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
-todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, then the section each task belongs to.',
+todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. Tap a day to open it; today is open already.',
   fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority that day',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Task order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
   toggle:'done',stamp:'doneAt',
@@ -1111,6 +1152,13 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day, t
     const first=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i)||'9999-99-99';return d<m?d:m},'9999-99-99');
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
   subgroup:i=>{const w=todoWhen(i);return w?dlabel(w,doneView()):''},
+  // Every day folds, and one starts open: today, or failing that the first day on the page,
+  // so there is always something to read without hunting for the day you are in.
+  subCollapse:1,
+  subOpen:its=>{const t=today(),lab=i=>MODS.todo.subgroup(i);
+    const cur=its.find(i=>todoWhen(i)===t&&lab(i));
+    const open=cur?lab(cur):(its.map(lab).find(Boolean)||'');
+    return new Set(open?[open]:[])},
   sort:(a,b)=>doneView()
     ? (todoWhen(b)||'').localeCompare(todoWhen(a)||'')||((+a.d.ord||9999)-(+b.d.ord||9999))
     : (a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
@@ -1237,11 +1285,20 @@ tlspoils:{title:'Timeline — spoils',color:'var(--acc)',hint:'The treats — da
   fields:[{k:'date',l:'Date',t:'date'},{k:'name',l:'What',t:'text',req:1},{k:'cost',l:'Cost',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
   card:i=>({t:esc(i.d.name),s:[fdate(i.d.date),i.d.cost?money(i.d.cost):''].filter(Boolean).join(' · ')})},
-travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming up first sits on top; unplanned ideas live below.',
-  fields:[{k:'place',l:'Destination',t:'text',req:1},{k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>tripWhen(i.d)?'Planned':'To be planned',       // any date at all counts as planned
+travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming up first sits on top; unplanned ideas live below. Give two places the same trip name and they sit together as one journey.',
+  fields:[{k:'place',l:'Destination',t:'text',req:1},{k:'trip',l:'Part of a trip',t:'dyn'},{k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>tripBlockWhen(i)?'Planned':'To be planned',    // any date on any leg counts as planned
   groupOrder:(a,b)=>(a==='Planned'?0:1)-(b==='Planned'?0:1),
-  sort:(a,b)=>(tripWhen(a.d)||'9999').localeCompare(tripWhen(b.d)||'9999')||(a.d.place||'').localeCompare(b.d.place||''),
+  subgroup:i=>tripName(i)||'\0'+i.id,                     // named trips head their own block…
+  subBox:1,                                               // …drawn as a block, so it reads as one journey
+  subNote:its=>{const ds=its.map(i=>tripWhen(i.d)).filter(Boolean).sort();
+    return esc(its.length+(its.length===1?' place':' places')+(ds.length?' · from '+fdate(ds[0]).replace(/, \d{4}$/,''):''))},
+  // Blocks fall in date order, and an undated block after them: a named trip ahead of the
+  // loose ideas, since the ideas are the part with nothing decided about them yet.
+  sort:(a,b)=>(tripBlockWhen(a)||'9999').localeCompare(tripBlockWhen(b)||'9999')
+    ||(tripName(a)||'\uffff').localeCompare(tripName(b)||'\uffff')
+    ||(tripWhen(a.d)||'9999').localeCompare(tripWhen(b.d)||'9999')
+    ||(a.d.place||'').localeCompare(b.d.place||''),
   card:i=>{const a=i.d.start,b=i.d.end,w=tripWhen(i.d);
     return{t:esc(i.d.place),s:a&&b?fdate(a)+' → '+fdate(b):(a?fdate(a):(b?fdate(b):'')),
       pill:w&&w>today()?{cls:'acc',txt:'upcoming'}:null}}},
