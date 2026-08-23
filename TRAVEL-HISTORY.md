@@ -1,27 +1,32 @@
 # Places already travelled — to be imported
 
-Dictated 22 August 2026. **Not yet in Alfred.** This is the raw list, kept here so it
-cannot be lost between sessions; it gets refined and imported once the page for places
-already travelled to is settled. 54 entries, 2016 → 2026.
+Dictated 22 August 2026, edited 23 August. **Not yet in Alfred.** This is the raw list,
+kept here so it cannot be lost between sessions; it gets refined and imported once it is
+ready. 51 entries, 2016 → 2026.
 
 ## When importing
 
-- Travels already has a **History** group: any place with its tick set drops into it, kept
-  below Planned and To be planned. If that group is where these belong, each entry becomes
-  one `travels` row with `done` set; a month with no day can go in as the 1st, or the date
-  fields can be left empty and the month carried in the section name.
-- Entries that name two places ("orlando, florida & new york", "turkey & greece") are one
-  trip with two legs — they want a shared section name so they sit together, the same way
-  Oman and Saudi Arabia do.
+- These belong on **Timeline → Past**, which lists them by the year they happened. Each
+  entry becomes one `travels` row with `done` set — the same rows Travels holds, filed on
+  the other side of the tick.
+- A month with no day is the open question: it can go in as the 1st of that month, or the
+  date fields can stay empty and the month ride in the section name.
+- Entries still naming two places ("turkey & greece", "washington, d.c. & new york",
+  "croatia & france") read as one trip with two legs — a shared section name puts them
+  under one heading, the way Oman and Saudi Arabia sit together. **Ask first:** orlando and
+  new york in August 2021 were split into separate entries on request, so the same may be
+  wanted for some of these.
 - **Check before importing:** "kocaeli, turkey — june 2026" is in this list as taken, while
-  the Planned group holds "Kocaeli, Türkiye — Jun 1, 2027". Confirm whether those are two
-  separate trips or one entry that needs correcting.
+  Planned holds "Kocaeli, Türkiye — Jun 1, 2027". Confirm whether those are two separate
+  trips or one entry that needs correcting.
 
-## The list, as dictated
+## The list
+
+Removed on request: texas & las vegas (Feb 2016), bahamas (May 2019), orlando (Nov 2019),
+new york (Jan 2020).
 
 2016
 
-* texas & las vegas, nevada - february 2016
 * hawaii (oʻahu) - august 2016
 * new york - october 2016
 
@@ -39,21 +44,19 @@ already travelled to is settled. 54 entries, 2016 → 2026.
 
 2019
 
-* bahamas - may 2019
 * australia (sydney) - july 2019
 * indonesia (bali) - august 2019
-* orlando, florida - november 2019
 
 2020
 
-* new york - january 2020
 * môle-saint-nicolas, haiti - july 2020
 
 2021
 
 * colorado (vail) - april 2021
 * boston, massachusetts - july 2021
-* orlando, florida & new york - august 2021
+* orlando, florida - august 2021
+* new york - august 2021
 * washington, d.c. & new york - november 2021
 
 2022
