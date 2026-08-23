@@ -631,7 +631,7 @@ function fieldHtml(f,v,sec,ctx){
     return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
   }
   if(f.t==='dyn'){
-    const used=sec?[...new Set(list(sec).map(x=>x.d[f.k]).filter(Boolean))]:[];
+    const used=sec?[...new Set(list(secData(sec)).map(x=>x.d[f.k]).filter(Boolean))]:[];
     const opts=[...new Set([...(f.opt||[]),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
     if(v&&!opts.includes(v))opts.unshift(v);
     return`<select ${base} onchange="dynSel(this)"><option value="">—</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}<option value="__new">+ Add new…</option></select>`+
@@ -823,7 +823,7 @@ $('#mSave').onclick=()=>{
   if(m.formOut)m.formOut(d);
   if(m.ranked&&isFinished(d))d.pri='';        // read / watched drops out of the ranking
   try{
-    const saved=put(editCtx.sec,d,editCtx.id);
+    const saved=put(secData(editCtx.sec),d,editCtx.id);
     if(m.ranked)reRank(editCtx.sec,saved);
     if(editCtx.sec==='todo')reRankTodo(saved);
   }catch(err){
@@ -850,9 +850,14 @@ function unfreeze(sec){Object.keys(FROZEN).forEach(k=>{if(k.split('|')[0]===sec)
 function statsHtml(m,items){
   return m.stats(items).map(s=>`<div class="stat" style="--accent:${s.c||'var(--acc)'}"><div class="k">${s.k}</div><div class="v">${s.v}</div>${s.u?`<div class="u">${s.u}</div>`:''}</div>`).join('');
 }
+// A page normally owns its rows, but two pages can share one set and show different parts
+// of it: `data` names where the rows live and `only` picks the half this page is for. The
+// row itself never moves, so a tick is all it takes to cross from one page to the other.
+const secData=sec=>MODS[sec]?.data||sec;
 function genList(sec){
   const m=MODS[sec];
-  let items=list(sec);
+  let items=list(secData(sec));
+  if(m.only)items=items.filter(m.only);
   const chips=m.chips;
   let html='';
   if(m.stats){html+='<div class="grid stats">'+statsHtml(m,items)+'</div>'}
@@ -1045,7 +1050,7 @@ function togg(sec,id){
   if(typeof m.onToggle==='function'){m.onToggle(i)}
   else{const k=m.toggle.k||m.toggle, on=!i.d[k], patch={[k]:on?1:''};
     if(m.stamp)patch[m.stamp]=on?today():'';        // remember when it was finished
-    put(sec,patch,id)}
+    put(secData(sec),patch,id)}
   renderActive();
 }
 
@@ -1082,6 +1087,18 @@ function tripBlockWhen(i){
   const done=!!i.d.done;
   return tripMates(n).filter(x=>!!x.d.done===done).map(x=>tripWhen(x.d)).filter(Boolean).sort()[0]||'';
 }
+const tripDates=d=>d.start&&d.end?fdate(d.start)+' → '+fdate(d.end):(d.start?fdate(d.start):(d.end?fdate(d.end):''));
+const tripNote=(its,pre)=>{const ds=its.map(i=>tripWhen(i.d)).filter(Boolean).sort();
+  return esc(its.length+(its.length===1?' place':' places')+(ds.length?' · '+(pre??'from ')+fdate(ds[0]).replace(/, \d{4}$/,''):''))};
+// dir 1 reads forwards, for what is still ahead; dir -1 backwards, for what is behind. Either
+// way a named journey stays whole and its legs stay in the order they were travelled.
+const tripSort=(a,b,dir)=>{const miss=dir>0?'9999':'0000', key=i=>tripBlockWhen(i)||miss;
+  return dir*key(a).localeCompare(key(b))
+    ||(tripName(a)||'\uffff').localeCompare(tripName(b)||'\uffff')
+    ||(tripWhen(a.d)||'9999').localeCompare(tripWhen(b.d)||'9999')
+    ||(a.d.place||'').localeCompare(b.d.place||'')};
+const TRAVEL_FIELDS=[{k:'place',l:'Destination',t:'text',req:1},{k:'trip',l:'Section',t:'dyn'},
+  {k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}];
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
 const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
@@ -1288,31 +1305,39 @@ tlspoils:{title:'Timeline — spoils',color:'var(--acc)',hint:'The treats — da
   fields:[{k:'date',l:'Date',t:'date'},{k:'name',l:'What',t:'text',req:1},{k:'cost',l:'Cost',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
   card:i=>({t:esc(i.d.name),s:[fdate(i.d.date),i.d.cost?money(i.d.cost):''].filter(Boolean).join(' · ')})},
-travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming up first sits on top; unplanned ideas live below. Give two places the same section and they sit together as one trip. Tick a place off once you have been and it drops into History.',
-  fields:[{k:'place',l:'Destination',t:'text',req:1},{k:'trip',l:'Section',t:'dyn'},{k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
+travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming up first sits on top; unplanned ideas live below. Give two places the same section and they sit together as one trip. Tick a place off once you have been and it moves to Past.',
+  fields:TRAVEL_FIELDS,
   // The tick sits on the place, not the section: you come back from one leg of a journey
   // before the others, and a place is the thing you have actually been to.
   toggle:'done',stamp:'doneAt',
-  group:i=>i.d.done?'History':(tripBlockWhen(i)?'Planned':'To be planned'),  // any date on any leg counts as planned
-  groupOrder:(a,b)=>{const r=g=>g==='Planned'?0:g==='To be planned'?1:2;return r(a)-r(b)},
+  only:i=>!i.d.done,                                      // once ticked it belongs to Past
+  group:i=>tripBlockWhen(i)?'Planned':'To be planned',    // any date on any leg counts as planned
+  groupOrder:(a,b)=>(a==='Planned'?0:1)-(b==='Planned'?0:1),
   subgroup:i=>tripName(i)||'\0'+i.id,                     // named trips head their own block…
   subBox:1,                                               // …drawn as a block, so it reads as one journey
-  subNote:its=>{const ds=its.map(i=>tripWhen(i.d)).filter(Boolean).sort();
-    return esc(its.length+(its.length===1?' place':' places')+(ds.length?' · from '+fdate(ds[0]).replace(/, \d{4}$/,''):''))},
+  subNote:tripNote,
   // Blocks fall in date order, and an undated block after them: a named trip ahead of the
-  // loose ideas, since the ideas are the part with nothing decided about them yet. History
-  // runs the other way — the last place you went is the one you look for first — and an
-  // undated memory settles at the bottom of it rather than the top.
-  sort:(a,b)=>{const A=a.d.done?1:0,B=b.d.done?1:0;
-    if(A!==B)return A-B;
-    const dir=A?-1:1, miss=A?'0000':'9999', key=i=>tripBlockWhen(i)||miss;
-    return dir*key(a).localeCompare(key(b))
-      ||(tripName(a)||'\uffff').localeCompare(tripName(b)||'\uffff')
-      ||(tripWhen(a.d)||'9999').localeCompare(tripWhen(b.d)||'9999')   // a journey keeps its itinerary order, even in History
-      ||(a.d.place||'').localeCompare(b.d.place||'')},
-  card:i=>{const a=i.d.start,b=i.d.end,w=tripWhen(i.d);
-    return{t:esc(i.d.place),s:a&&b?fdate(a)+' → '+fdate(b):(a?fdate(a):(b?fdate(b):'')),dim:!!i.d.done,
-      pill:i.d.done?{cls:'mut',txt:'been'}:(w&&w>today()?{cls:'acc',txt:'upcoming'}:null)}}},
+  // loose ideas, since the ideas are the part with nothing decided about them yet.
+  sort:(a,b)=>tripSort(a,b,1),
+  card:i=>({t:esc(i.d.place),s:tripDates(i.d),
+    pill:tripWhen(i.d)>today()?{cls:'acc',txt:'upcoming'}:null})},
+// The same rows, the other half of them: everywhere he has actually been, filed by the year
+// he went. Ticking a place on Travels lands it here; clearing the tick sends it back.
+travpast:{title:'Timeline — past',color:'var(--gold)',data:'travels',only:i=>!!i.d.done,
+  hint:'Everywhere you have been, by year. Tick a place off on Travels and it arrives here; untick it and it goes back.',
+  fields:TRAVEL_FIELDS,
+  toggle:'done',stamp:'doneAt',
+  formOut:d=>{d.done=1;return d},                         // anything written on this page is somewhere you have been
+  group:i=>{const w=tripWhen(i.d);return /^\d{4}/.test(w)?w.slice(0,4):'No date'},
+  groupOrder:(a,b)=>(a==='No date'?1:0)-(b==='No date'?1:0)||b.localeCompare(a),
+  subgroup:i=>tripName(i)||'\0'+i.id,
+  subBox:1,
+  subNote:its=>tripNote(its,''),                          // nothing is "from" a date once it has happened
+  // The most recent trip is the one you look for, so the years and the trips inside them
+  // both run backwards — but a single journey keeps the order you actually travelled it.
+  sort:(a,b)=>tripSort(a,b,-1),
+  card:i=>({t:esc(i.d.place),s:tripDates(i.d),pill:{cls:'mut',txt:'travelled'}}),
+  empty:'Nothing here yet — tick a place off on Travels and it lands here.'},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
   fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
@@ -2209,7 +2234,7 @@ function overviewPage(){
   if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
   const pd=list('payroll').filter(i=>!paidThis(i));
   if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
-  const tr=list('travels').filter(i=>tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
+  const tr=list('travels').filter(i=>!i.d.done&&tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
   if(tr)h+=`<div class="panel ovCard" onclick="go('travels')"><h2><span class="sw" style="background:var(--blue)"></span>Next trip</h2><div class="ovRow"><span class="d">${fdate(tripWhen(tr.d))}</span><span>${esc(tr.d.place)}</span></div></div>`;
   const bd=list('bdays').map(i=>({i,dd:daysToBday(i.d.date)})).filter(x=>x.dd!=null&&x.dd<=14).sort((a,b)=>a.dd-b.dd);
   if(bd.length)h+=`<div class="panel ovCard" onclick="go('bdays')"><h2><span class="sw" style="background:var(--purple)"></span>Birthdays coming up</h2>${bd.map(x=>`<div class="ovRow"><span class="d">${x.dd===0?'today!':'in '+x.dd+'d'}</span><span>${esc(x.i.d.name)}</span></div>`).join('')}</div>`;
@@ -2230,7 +2255,7 @@ const NAV=[
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest']]},
   {t:'Net worth',p:'networth'},
   {t:'Schedule',p:'schedule'},
-  {t:'Timeline',g:[['Travels','travels'],['Spoils','tlspoils']]},
+  {t:'Timeline',g:[['Travels','travels'],['Past','travpast'],['Spoils','tlspoils']]},
   {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
   {t:'Learnings',g:[['Books','books'],['To learn','courses']]},
   {t:'Projects',p:'projects'},
