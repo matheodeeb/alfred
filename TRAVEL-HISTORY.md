@@ -2,7 +2,7 @@
 
 Dictated 22 August 2026, edited 23 August. **Not yet in Alfred.** This is the raw list,
 kept here so it cannot be lost between sessions; it gets refined and imported once it is
-ready. 51 entries, 2016 → 2026.
+ready. 49 entries, 2016 → 2026.
 
 ## When importing
 
@@ -11,11 +11,14 @@ ready. 51 entries, 2016 → 2026.
   the other side of the tick.
 - A month with no day is the open question: it can go in as the 1st of that month, or the
   date fields can stay empty and the month ride in the section name.
-- Entries still naming two places ("turkey & greece", "washington, d.c. & new york",
-  "croatia & france") read as one trip with two legs — a shared section name puts them
-  under one heading, the way Oman and Saudi Arabia sit together. **Ask first:** orlando and
-  new york in August 2021 were split into separate entries on request, so the same may be
-  wanted for some of these.
+- Entries still naming two places — "turkey & greece (istanbul, muğla, mykonos)",
+  "washington, d.c. & new york", "croatia & france", "washington, d.c. & arlington",
+  "london & paris", "massachusetts & rhode island (newport)", "egypt (cairo & luxor)",
+  "morocco (errachidia & er-rissani)", "mougins & paris, france", "kocaeli, turkey
+  (başiskele & izmit)" — read as one trip with two stops, and a shared section name puts
+  them under one heading the way Oman and Saudi Arabia sit together. **Ask first:** two
+  pairs have already been split into separate entries on request, so others may want the
+  same treatment.
 - **Check before importing:** "kocaeli, turkey — june 2026" is in this list as taken, while
   Planned holds "Kocaeli, Türkiye — Jun 1, 2027". Confirm whether those are two separate
   trips or one entry that needs correcting.
@@ -23,7 +26,9 @@ ready. 51 entries, 2016 → 2026.
 ## The list
 
 Removed on request: texas & las vegas (Feb 2016), bahamas (May 2019), orlando (Nov 2019),
-new york (Jan 2020).
+new york (Jan 2020), bahamas (Jun 2023), dominican republic (Jan 2025), boston (Jun 2025).
+Split into separate entries on request: orlando / new york (Aug 2021), spain / france
+(Jul 2025).
 
 2016
 
@@ -72,7 +77,6 @@ new york (Jan 2020).
 * dominican republic (la romana) - march 2023
 * washington, d.c. - march 2023
 * washington, d.c. - may 2023
-* bahamas - june 2023
 * turkey & greece (istanbul, muğla, mykonos) - july 2023
 * washington, d.c. - october 2023
 * new york - october 2023
@@ -92,13 +96,12 @@ new york (Jan 2020).
 
 2025
 
-* dominican republic - january 2025
 * killington, vermont - january 2025
 * madrid, spain - march 2025
 * new york - april 2025
 * washington, d.c. & arlington - may 2025
-* boston, massachusetts - june 2025
-* spain & france (ibiza, ramatuelle) - july 2025
+* spain (ibiza) - july 2025
+* france (ramatuelle) - july 2025
 * dominican republic - august 2025
 * washington, d.c. - october 2025
 * london & paris - november 2025
