@@ -25,10 +25,10 @@ of the choices made turning it into rows.
   that month and no end date, and Past prints it as "July 2023" rather than a weekday it
   cannot know. Fill in both ends on a row and the full range shows instead.
 
-## Still open
-
-- "kocaeli, turkey — june 2026" is now in Past, while Travels still holds "Kocaeli,
-  Türkiye — Jun 1, 2027". Two separate trips, or one of them wrong?
+The seed that wrote these rows has been removed now that they are in and have been edited
+by hand; the rows live in the cloud and this file is only the record of where they came
+from. Kocaeli appears twice on purpose — June 2026 in Past, summer 2027 still ahead on
+Travels — because it is a place he has been and means to return to.
 
 ## The list, as dictated
 

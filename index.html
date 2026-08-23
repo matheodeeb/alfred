@@ -2412,77 +2412,6 @@ function seedProjects(){
   });
 }
 
-/* ---------------- one-time: everywhere he has already been ---------------- */
-// Fifty-four places, 2016 to 2026, dictated from memory and so known to the month rather
-// than the day: each goes in on the 1st with no end date, which is what Past prints as a
-// month. Ticked, so they land on Past and never appear among what is still ahead.
-// A trip that covered two countries is two rows — the way orlando and new york were split —
-// while two stops in one country stay one row. Every id is derived from its month and
-// place, so a second run recreates nothing. Delete this block once it has applied.
-const PAST_SEED=[
-  ['2016-08','Oʻahu, Hawaii'],
-  ['2016-10','New York'],
-  ['2017-07','Errachidia & Er-Rissani, Morocco'],
-  ['2017-11','New York'],
-  ['2018-04','Panama'],
-  ['2018-07','Massachusetts'],
-  ['2018-07','Newport, Rhode Island'],
-  ['2018-08','San Carlos, Costa Rica'],
-  ['2018-11','Orlando, Florida'],
-  ['2019-07','Sydney, Australia'],
-  ['2019-08','Bali, Indonesia'],
-  ['2020-07','Môle-Saint-Nicolas, Haiti'],
-  ['2021-04','Vail, Colorado'],
-  ['2021-07','Boston, Massachusetts'],
-  ['2021-08','Orlando, Florida'],
-  ['2021-08','New York'],
-  ['2021-11','Washington, D.C.'],
-  ['2021-11','New York'],
-  ['2022-03','Colorado'],
-  ['2022-04','Mexico'],
-  ['2022-07','Mougins & Paris, France'],
-  ['2022-07','Madrid, Spain'],
-  ['2023-02','New York'],
-  ['2023-03','La Romana, Dominican Republic'],
-  ['2023-03','Washington, D.C.'],
-  ['2023-05','Washington, D.C.'],
-  ['2023-07','Istanbul & Muğla, Turkey'],
-  ['2023-07','Mykonos, Greece'],
-  ['2023-10','Washington, D.C.'],
-  ['2023-10','New York'],
-  ['2023-11','Madrid, Spain'],
-  ['2024-01','Washington, D.C.'],
-  ['2024-01','Lincoln & Concord, New Hampshire'],
-  ['2024-02','Washington, D.C.'],
-  ['2024-04','Washington, D.C.'],
-  ['2024-07','Cairo & Luxor, Egypt'],
-  ['2024-08','Croatia'],
-  ['2024-08','France'],
-  ['2024-08','Washington, D.C.'],
-  ['2024-11','New York'],
-  ['2024-11','Santo Domingo, Dominican Republic'],
-  ['2025-01','Killington, Vermont'],
-  ['2025-03','Madrid, Spain'],
-  ['2025-04','New York'],
-  ['2025-05','Washington, D.C.'],
-  ['2025-07','Ibiza, Spain'],
-  ['2025-07','Ramatuelle, France'],
-  ['2025-08','Dominican Republic'],
-  ['2025-10','Washington, D.C.'],
-  ['2025-11','London'],
-  ['2025-11','Paris'],
-  ['2026-03','Epsom, England'],
-  ['2026-04','Austin, Texas'],
-  ['2026-06','Kocaeli, Turkey'],
-];
-function seedPast(){
-  PAST_SEED.forEach(([mon,place])=>{
-    const id='travel:past:'+mon+':'+place.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-    if(S.items[id])return;
-    put('travels',{place,start:mon+'-01',done:1,doneAt:mon+'-01'},id);
-  });
-}
-
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
 // Gym needed an entry per day only because an entry could carry one specific. Now that it
 // can carry one per day, the four fold into Monday's row: it gains the other three days,
@@ -2578,7 +2507,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();mergeGym();seedProjects();seedPast();initNav();initPad();
+  load();seed();mergeGym();seedProjects();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
