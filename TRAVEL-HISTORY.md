@@ -1,29 +1,36 @@
-# Places already travelled — to be imported
+# Places already travelled
 
-Dictated 22 August 2026, edited 23 August. **Not yet in Alfred.** This is the raw list,
-kept here so it cannot be lost between sessions; it gets refined and imported once it is
-ready. 49 entries, 2016 → 2026.
+Dictated 22 August 2026, edited and imported 23 August. **Now in Alfred**, on
+Timeline → Past: 49 dictated entries became 54 rows, since a trip that covered two
+countries went in as one row each. This file stays as the record of what was dictated and
+of the choices made turning it into rows.
 
-## When importing
+## How the names were written
 
-- These belong on **Timeline → Past**, which lists them by the year they happened. Each
-  entry becomes one `travels` row with `done` set — the same rows Travels holds, filed on
-  the other side of the tick.
-- A month with no day is the open question: it can go in as the 1st of that month, or the
-  date fields can stay empty and the month ride in the section name.
-- Entries still naming two places — "turkey & greece (istanbul, muğla, mykonos)",
-  "washington, d.c. & new york", "croatia & france", "washington, d.c. & arlington",
-  "london & paris", "massachusetts & rhode island (newport)", "egypt (cairo & luxor)",
-  "morocco (errachidia & er-rissani)", "mougins & paris, france", "kocaeli, turkey
-  (başiskele & izmit)" — read as one trip with two stops, and a shared section name puts
-  them under one heading the way Oman and Saudi Arabia sit together. **Ask first:** two
-  pairs have already been split into separate entries on request, so others may want the
-  same treatment.
-- **Check before importing:** "kocaeli, turkey — june 2026" is in this list as taken, while
-  Planned holds "Kocaeli, Türkiye — Jun 1, 2027". Confirm whether those are two separate
-  trips or one entry that needs correcting.
+- **City, State** for the United States (Austin, Texas · Killington, Vermont), **City,
+  Country** elsewhere (Ibiza, Spain · Bali, Indonesia), and the country alone where no city
+  was given (Panama · Mexico · Croatia). Cities that need no qualifier stand alone: New
+  York, London, Paris, Washington, D.C.
+- **A nearby second stop is dropped**, as asked: "washington, d.c. & arlington" and
+  "washington, d.c. & bethesda" are both **Washington, D.C.**, and "manhattan, new york"
+  is **New York**.
+- **Two countries, two rows** — the call already made for orlando / new york and for
+  spain / france. So "turkey & greece" is *Istanbul & Muğla, Turkey* and *Mykonos, Greece*;
+  "croatia & france" is *Croatia* and *France*; "london & paris" is *London* and *Paris*;
+  "massachusetts & rhode island (newport)" is *Massachusetts* and *Newport, Rhode Island*.
+- **Two stops in one country stay one row**: *Cairo & Luxor, Egypt* · *Mougins & Paris,
+  France* · *Errachidia & Er-Rissani, Morocco* · *Lincoln & Concord, New Hampshire*.
+  "kocaeli, turkey (başiskele & izmit)" was simplified to **Kocaeli, Turkey**.
+- **Dates are months.** Every entry was dictated as a month, so each row carries the 1st of
+  that month and no end date, and Past prints it as "July 2023" rather than a weekday it
+  cannot know. Fill in both ends on a row and the full range shows instead.
 
-## The list
+## Still open
+
+- "kocaeli, turkey — june 2026" is now in Past, while Travels still holds "Kocaeli,
+  Türkiye — Jun 1, 2027". Two separate trips, or one of them wrong?
+
+## The list, as dictated
 
 Removed on request: texas & las vegas (Feb 2016), bahamas (May 2019), orlando (Nov 2019),
 new york (Jan 2020), bahamas (Jun 2023), dominican republic (Jan 2025), boston (Jun 2025).
