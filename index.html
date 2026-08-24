@@ -767,6 +767,15 @@ function syncWhenField(){
   show('start',v==='Specific period'); show('end',v==='Specific period');
   show('wk',v==='Week'); show('mon',v==='Week'||v==='Month');
 }
+function syncRecurFields(){
+  const ev=document.getElementById('f_every'), an=document.getElementById('f_anchor');
+  if(!ev||!an)return;
+  const monthly=!!MONTH_STEP[ev.value];
+  const show=(k,on)=>{const e=document.getElementById('fw_'+k);if(e)e.style.display=on?'':'none'};
+  if(!monthly)an.value=GAP_ANCHOR;                  // a weekly job has no day of the month
+  show('anchor',monthly);
+  show('dom',monthly&&an.value==='A day of the month');
+}
 function syncOrdField(){
   const wrap=document.getElementById('fw_ord'), sel=document.getElementById('f_ord');
   if(!wrap||!sel)return;
@@ -796,6 +805,11 @@ function openForm(sec,id,defs){
     const w=document.getElementById('f_when');
     if(w)['change','input'].forEach(ev=>w.addEventListener(ev,syncWhenField));
     syncWhenField();
+  }
+  if(sec==='recur'){                      // a day of the month only matters to a monthly job
+    ['f_every','f_anchor'].forEach(id=>{const e=document.getElementById(id);
+      if(e)['change','input'].forEach(ev=>e.addEventListener(ev,syncRecurFields))});
+    syncRecurFields();
   }
   if(sec==='todo'){                       // order options follow the date / section as you pick them
     ['f_due','f_grp','f_grp__new'].forEach(id=>{const e=document.getElementById(id);
@@ -1049,7 +1063,7 @@ function togg(sec,id){
   const m=MODS[sec],i=one(id);if(!i)return;
   if(sec==='todo'&&id.startsWith('todo:recur:')){          // finishing the mirrored copy advances the cycle
     const rid=id.slice(11), occ=i.d.due||today();
-    if(one(rid))put('recur',{last:occ>today()?occ:today()},rid);   // done early? credit the occurrence's own date
+    if(one(rid))put('recur',{last:today()},rid);          // the day it was ticked, wherever it was ticked
     kill(id);renderActive();return;
   }
   if(typeof m.onToggle==='function'){m.onToggle(i)}
@@ -1112,6 +1126,27 @@ const tripSort=(a,b,dir)=>{const miss=dir>0?'9999':'0000', key=i=>tripBlockWhen(
     ||(a.d.place||'').localeCompare(b.d.place||'')};
 const TRAVEL_FIELDS=[{k:'place',l:'Destination',t:'text',req:1},{k:'trip',l:'Section',t:'dyn'},
   {k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}];
+const MONTH_STEP={Monthly:1,Quarterly:3};
+const GAP_ANCHOR='A set gap after the last one';
+const ANCHOR_SEL=[GAP_ANCHOR,'First day of the month','Last day of the month','A day of the month'];
+const ord=n=>n+(n%100>=11&&n%100<=13?'th':{1:'st',2:'nd',3:'rd'}[n%10]||'th');
+const anchorShort=d=>d.anchor==='First day of the month'?'1st'
+  :d.anchor==='Last day of the month'?'last day'
+  :d.anchor==='A day of the month'?ord(Math.max(1,+d.dom||1)):'';
+// Only a monthly or quarterly job has a day of the month to be anchored to.
+const recurAnchored=r=>!!MONTH_STEP[r.d.every]&&!!anchorShort(r.d);
+// The day this job lands on in a given month. "Last day" is whatever that month actually
+// has — 31, 30, 29, 28 — which is the whole point: February cannot hold a 31st, and asking
+// for one is how the date used to slide into March.
+function anchorIn(d,y,m){
+  const eom=new Date(y,m+1,0).getDate();
+  const day=d.anchor==='First day of the month'?1
+    :d.anchor==='Last day of the month'?eom
+    :Math.min(Math.max(1,+d.dom||1),eom);
+  return y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
 const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
@@ -1448,23 +1483,27 @@ invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month �
   card:i=>{const v=+i.d.val||0,a=+i.d.added||0;
     return{t:money2(v),s:[fdate(i.d.date).replace(/^\w+, /,''),esc(i.d.acct||''),a?'+'+money2(a)+' in':''].filter(Boolean).join(' · ')}},
   empty:'Nothing logged yet — hit + and record this month\'s balance.'},
-recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place.',
+recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
           {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly'],def:'Weekly'},
+          {k:'anchor',l:'When to do it',t:'sel',opt:ANCHOR_SEL,def:GAP_ANCHOR},
+          {k:'dom',l:'Which day',t:'num',ph:'15'},
           {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'All',f:()=>1},{l:'Personal',f:i=>(i.d.who||'Personal')==='Personal'},{l:'Staff',f:i=>i.d.who==='Staff'}],
   group:i=>i.d.who||'Personal',
   groupOrder:(a,b)=>a.localeCompare(b),
   sort:(a,b)=>(a.d.paused?1:0)-(b.d.paused?1:0)||recurNext(a).localeCompare(recurNext(b)),
   toggle:{k:'last'},
-  onToggle:i=>{const occ=recurNext(i);
-    put('recur',{last:recurDue(i)?today():(occ>today()?occ:today())},i.id)},
+  // Ticking it off records the day you ticked it, always. What comes next is worked out
+  // from "When to do it", so finishing early or late no longer drags the schedule with it.
+  onToggle:i=>put('recur',{last:today()},i.id),
   stats:it=>{const due=it.filter(recurDue), paused=it.filter(i=>i.d.paused).length;
     return[{k:'Due now',v:due.length,u:due.length?due.slice(0,3).map(i=>i.d.name).join(', '):'all up to date',c:due.length?'var(--bad)':'var(--ok)'},
            {k:'Recurring jobs',v:it.length,u:paused?paused+' paused':'',c:'var(--purple)'}]},
   card:i=>{const due=recurDue(i),next=recurNext(i);
     const days=Math.round((new Date(next+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
-    return{t:esc(i.d.name),s:[esc(i.d.every||'Weekly'),i.d.paused?'paused':(i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done')].join(' · '),
+    return{t:esc(i.d.name),s:[esc(i.d.every||'Weekly'),esc(recurAnchored(i)?anchorShort(i.d):''),
+        i.d.paused?'paused':(i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done')].filter(Boolean).join(' · '),
       dim:!due,
       act:{txt:i.d.paused?'▶ Resume':'❚❚ Pause',fn:`recurPause('${i.id}')`,cls:i.d.paused?'ordBtn pausedBtn':'ordBtn'},
       pill:i.d.paused?{cls:'mut',txt:'paused'}:(due?{cls:'bad',txt:'due'}:{cls:'ok',txt:days===1?'in 1 day':'in '+days+' days'})}},
@@ -1472,16 +1511,36 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
 cfg:{title:'cfg'}
 };
 const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90};
-const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function recurNext(r){
+  if(recurAnchored(r)){
+    const step=MONTH_STEP[r.d.every];
+    const at=c=>anchorIn(r.d,c.getFullYear(),c.getMonth());
+    if(!r.d.last){                                  // never done: the next slot still to come
+      const n=new Date(); let c=new Date(n.getFullYear(),n.getMonth(),1);
+      if(at(c)<today())c=new Date(c.getFullYear(),c.getMonth()+step,1);
+      return at(c);
+    }
+    const l=new Date(r.d.last+'T12:00:00');if(isNaN(l))return today();
+    // Which round did that finish? The slot nearest the day it was actually done — a job
+    // done a few days early, or a few days late, still counts for the round it was meant
+    // for, and the next one lands on schedule either way.
+    let best=null,bd=Infinity;
+    for(let k=-1;k<=1;k++){
+      const c=new Date(l.getFullYear(),l.getMonth()+k,1);
+      const gap=Math.abs(new Date(at(c)+'T12:00:00')-l);
+      if(gap<bd){bd=gap;best=c}
+    }
+    return at(new Date(best.getFullYear(),best.getMonth()+step,1));
+  }
   if(!r.d.last)return today();
   const ev=r.d.every||'Weekly';
   if(ev==='Monthly'||ev==='Quarterly'){        // keep the same day-of-month instead of drifting
     const d=new Date(r.d.last+'T12:00:00');
     if(isNaN(d))return today();
-    d.setMonth(d.getMonth()+(ev==='Monthly'?1:3));
-    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const y=d.getFullYear(), m=d.getMonth()+(ev==='Monthly'?1:3);
+    const t=new Date(y,m,1), eom=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
+    // the 31st of a month that has 30 is the 30th, not the 1st of the month after
+    return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(Math.min(d.getDate(),eom)).padStart(2,'0');
   }
   return addDays(r.d.last,EVERY[ev]||7);
 }
