@@ -2472,18 +2472,27 @@ function seedProjects(){
 }
 
 /* ---------------- one-time: one want ---------------- */
-// AirPods Max 2 in blue, $550. The row may already have arrived without the price, since
-// that came a moment later — so this fills a blank one in as well as creating the row from
-// scratch. A price typed by hand is left alone. Delete this block once it has applied.
+// Prices for things already on the list, filled in only where the price is still blank so
+// anything typed by hand wins. The three perfumes are the 100ml bottle at each house's own
+// US price. Delete this block once it has applied.
+const WANT_PRICES=[
+  ['want:airpods-max-2',           550],   // AirPods Max 2, apple.com
+  ['want:auto:perf:inflorescence', 265],   // Byredo Inflorescence, 100ml
+  ['want:auto:perf:santal33',      340],   // Le Labo Santal 33, 100ml
+  ['want:auto:perf:lunamaris',     330],   // Diptyque Lunamaris, 100ml
+];
 function seedWant(){
-  const id='want:airpods-max-2', it=one(id);
-  if(!it){
-    put('wants',{name:'AirPods Max 2 — Blue',grp:'Tech',price:550,
-      link:'https://www.apple.com/airpods-max/',
-      notes:'Five colours: blue, purple, midnight, starlight, orange. Free engraving, and three months of Apple Music with them.'},id);
-    return;
-  }
-  if(!(+it.d.price))put('wants',{price:550},id);
+  const id='want:airpods-max-2';
+  if(!one(id))put('wants',{name:'AirPods Max 2 — Blue',grp:'Tech',price:550,
+    link:'https://www.apple.com/airpods-max/',
+    notes:'Five colours: blue, purple, midnight, starlight, orange. Free engraving, and three months of Apple Music with them.'},id);
+  WANT_PRICES.forEach(([wid,price])=>{
+    const it=one(wid);
+    if(it&&!(+it.d.price))put('wants',{price},wid);
+  });
+  // Lunamaris came in without a house; it is Diptyque, like the Tam Dao already on the shelf
+  const lm=one('perf:lunamaris');
+  if(lm&&!String(lm.d.house||'').trim())put('perfume',{house:'Diptyque'},'perf:lunamaris');
 }
 
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
