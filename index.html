@@ -2419,6 +2419,18 @@ function seedProjects(){
   });
 }
 
+/* ---------------- one-time: one want ---------------- */
+// AirPods Max 2 in blue. No price: the product page he sent does not show one and guessing
+// at it would put a made-up number into what he is planning to spend. Written only if the
+// id is missing, so it runs once. Delete this block once it has applied.
+function seedWant(){
+  if(S.items['want:airpods-max-2'])return;
+  put('wants',{name:'AirPods Max 2 — Blue',grp:'Tech',
+    link:'https://www.apple.com/airpods-max/',
+    notes:'Five colours: blue, purple, midnight, starlight, orange. Free engraving, and three months of Apple Music with them.'},
+    'want:airpods-max-2');
+}
+
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
 // Gym needed an entry per day only because an entry could carry one specific. Now that it
 // can carry one per day, the four fold into Monday's row: it gains the other three days,
@@ -2514,7 +2526,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();mergeGym();seedProjects();initNav();initPad();
+  load();seed();mergeGym();seedProjects();seedWant();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
