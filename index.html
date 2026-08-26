@@ -1153,6 +1153,22 @@ const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups
 const doneView=()=>(chipState.todo??0)===1;
 // The specific for one day of an activity, and every one it carries, for the list card.
 const actSplit=(i,dn)=>String((i.d.splitDaily?i.d['split_'+dn]:i.d.split)||'').trim();
+// Work is one task Monday to Friday, but Friday starts later. A day with no time of its own
+// falls back to the shared one, so switching this on costs the other days nothing.
+const actAt=(i,dn,k)=>String((i.d.timeDaily&&dn?(i.d[k+'_'+dn]||''):'')||i.d[k]||'').trim();
+const actStart=(i,dn)=>actAt(i,dn,'start');
+const actEnd=(i,dn)=>actAt(i,dn,'end');
+const actSpan=(i,dn)=>[fmtT(actStart(i,dn)),fmtT(actEnd(i,dn))].filter(Boolean).join('–');
+// For the list card: the days that share a time are named together, so Work reads
+// "Mon · Tue · Wed · Thu 7:30 AM–4:30 PM · Fri 9:00 AM–4:30 PM" rather than five lines.
+function actTimes(i){
+  const days=String(i.d.days||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!i.d.timeDaily||!days.length)return actSpan(i,'');
+  const g=[];
+  days.forEach(dn=>{const t=actSpan(i,dn), last=g[g.length-1];
+    if(last&&last.t===t)last.days.push(dn); else g.push({t,days:[dn]})});
+  return g.map(x=>x.days.join(' · ')+(x.t?' '+x.t:'')).join(' · ');
+}
 const actSplits=i=>i.d.splitDaily
   ? [...new Set((i.d.days||'').split(',').map(x=>x.trim()).filter(Boolean).map(dn=>actSplit(i,dn)).filter(Boolean))].join(' · ')
   : String(i.d.split||'').trim();
@@ -1429,19 +1445,33 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
       linked?`<span class="lnk">↳ from the investment log${l?' · '+fdate(l.d.date).replace(/^\w+, /,''):' · nothing logged yet'}</span>`:'',
       esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
-acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these.',
+acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these. One task can keep a different time on one day: turn on "Choose times daily" and tap that day\'s block.',
   sort:byStart,
-  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'splitDaily',l:'Choose specifics daily',t:'check'},{k:'split',l:d=>d&&d.splitDaily&&editCtx?.day?'Specifics — '+editCtx.day:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},{k:'start',l:'Starts',t:'time'},{k:'end',l:'Ends',t:'time'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'splitDaily',l:'Choose specifics daily',t:'check'},{k:'split',l:d=>d&&d.splitDaily&&editCtx?.day?'Specifics — '+editCtx.day:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},
+          {k:'timeDaily',l:'Choose times daily',t:'check'},
+          {k:'start',l:d=>d&&d.timeDaily&&editCtx?.day?'Starts — '+editCtx.day:'Starts',t:'time'},
+          {k:'end',l:d=>d&&d.timeDaily&&editCtx?.day?'Ends — '+editCtx.day:'Ends',t:'time'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
   // One activity can carry a different specific for each of its days: Gym is one section
   // Monday to Thursday, and each of those days has its own split. The form edits the day
   // whose block you tapped; opened from the list, with no day in hand, it edits the shared
   // value the untouched days fall back on.
-  formIn:(it,k,v)=>(k==='split'&&it?.d?.splitDaily&&editCtx?.day)?(it.d['split_'+editCtx.day]??''):v,
-  formOut:d=>{const day=editCtx?.day;
-    if(d.splitDaily&&day){d['split_'+day]=d.split;
-      d.split=(editCtx.id?one(editCtx.id)?.d?.split:'')||''}
+  formIn:(it,k,v)=>{
+    const day=editCtx?.day; if(!day||!it)return v;
+    if(k==='split'&&it.d.splitDaily)return it.d['split_'+day]??'';
+    // a day with no time of its own opens showing the shared one, so you edit what you see
+    if((k==='start'||k==='end')&&it.d.timeDaily)return actAt(it,day,k);
+    return v;
+  },
+  formOut:d=>{const day=editCtx?.day, prev=(editCtx?.id?one(editCtx.id)?.d:null)||{};
+    if(day){
+      if(d.splitDaily){d['split_'+day]=d.split; d.split=prev.split||''}
+      // The shared time is left exactly as it was: only the day you tapped gets its own,
+      // and every other day goes on falling back to what it always used.
+      if(d.timeDaily)['start','end'].forEach(k=>{d[k+'_'+day]=d[k]; d[k]=prev[k]||''});
+    }
     return d},
-  card:i=>({t:esc(i.d.name),s:[esc(actSplits(i)),(i.d.days||'').split(',').filter(Boolean).join(' · '),[fmtT(i.d.start),fmtT(i.d.end)].filter(Boolean).join('–'),esc(i.d.time||'')].filter(Boolean).join(' — '),
+  card:i=>({t:esc(i.d.name),s:[esc(actSplits(i)),i.d.timeDaily?'':(i.d.days||'').split(',').filter(Boolean).join(' · '),esc(actTimes(i)),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
 menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
   fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
@@ -1814,23 +1844,32 @@ function networthPage(){
   h+=genList('assets');
   return h;
 }
-function byStart(a,b){const t=x=>{const m=toMin(x.d.start);return m==null?99999:m};
+const DOW_TODAY=()=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+function byStart(a,b){const dn=DOW_TODAY(), t=x=>{const m=toMin(actStart(x,dn));return m==null?99999:m};
   return t(a)-t(b)||(a.d.name||'').localeCompare(b.d.name||'')}
 function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);return isNaN(p)?null:p*60+(q||0)}
 function schedulePage(){
   const acts=list('acts');
   const todayIdx=(new Date().getDay()+6)%7;
   const cols=['var(--green)','var(--blue)','var(--orange)','var(--purple)','var(--red)','var(--gold)','var(--acc)'];
-  const drawable=acts.filter(a=>toMin(a.d.start)!=null&&a.d.days);
+  // A day is the unit now, not an activity: the same task can run 7:30 on Monday and 9:00
+  // on Friday, so each day it falls on is worked out on its own.
   // An end at or before the start means it runs past midnight — sleep, mostly. It ends
   // when the chart does rather than collapsing to a single slot, which is what subtracting
   // a bigger number from a smaller one used to give it.
-  const span2=a=>{const st=toMin(a.d.start);let en=toMin(a.d.end);
-    if(en==null)en=st+60; if(en<=st)en=Infinity; return[st,en]};
+  const slots=[];
+  acts.forEach(a=>String(a.d.days||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(dn=>{
+    const di=DOW.indexOf(dn); if(di<0)return;
+    const st=toMin(actStart(a,dn)); if(st==null)return;
+    let en=toMin(actEnd(a,dn));
+    if(en==null)en=st+60; if(en<=st)en=Infinity;
+    slots.push({a,dn,di,st,en});
+  }));
+  const drawable=acts.filter(a=>slots.some(s=>s.a===a));
   // The window stretches to whatever is actually scheduled, so nothing lands outside the
   // chart and gets silently clamped onto its first or last row.
   let T0=6*60,T1=22*60;
-  drawable.forEach(a=>{const[st,en]=span2(a);
+  slots.forEach(({st,en})=>{
     if(st<T0)T0=Math.floor(st/60)*60;
     if(en!==Infinity&&en>T1)T1=Math.ceil(en/60)*60});
   // A fixed half-hour step made blocks share a slot when their times did not touch —
@@ -1839,7 +1878,7 @@ function schedulePage(){
   // block occupies its own minutes and nothing else's.
   const gcd=(x,y)=>y?gcd(y,x%y):x;
   let step=60, shortest=Infinity;
-  drawable.forEach(a=>{const[st,en]=span2(a), e=en===Infinity?T1:en;
+  slots.forEach(({st,en})=>{const e=en===Infinity?T1:en;
     step=gcd(step,Math.abs(st-T0)); step=gcd(step,Math.abs(e-st));
     if(e-st>0)shortest=Math.min(shortest,e-st)});
   const SLOT=[30,15,10,5].find(d=>step>0&&step%d===0)||5;
@@ -1850,21 +1889,18 @@ function schedulePage(){
   // Colour by name, not by row: the four Gym days are one thing on the planner, not four.
   // Assigned in the list's own order so a block keeps its colour whatever we draw first.
   drawable.forEach(a=>{const k=a.d.name||a.id;if(!colOf[k])colOf[k]=cols[ci++%cols.length]});
-  const mins=a=>{const[st,en]=span2(a);return (en===Infinity?T1:en)-st};
+  const mins=x=>(x.en===Infinity?T1:x.en)-x.st;
   // Longest first: lunch sitting inside work is then the one found overlapping, and being
   // later in the DOM it paints on top of the block it sits in rather than under it.
   const place=[];
-  [...drawable].sort((x,y)=>mins(y)-mins(x)).forEach(a=>{
-    const[st0,en0]=span2(a), en1=en0===Infinity?T1:en0;
-    const st=Math.max(T0,Math.min(T1,st0)), en=Math.max(st+1,Math.min(T1,en1));
-    (a.d.days||'').split(',').map(x=>x.trim()).forEach(dn=>{
-      const di=DOW.indexOf(dn);if(di<0)return;
-      // Floor the start and ceil the end. Rounding both put a 7:45 start on the 8:00 row,
-      // which is how the shower ended up sitting on top of dinner.
-      const r1=2+Math.floor((st-T0)/SLOT);
-      const span=Math.max(1,(2+Math.ceil((en-T0)/SLOT))-r1);
-      place.push({a,di,st,en,r1,span,color:colOf[a.d.name||a.id]});
-    });
+  [...slots].sort((x,y)=>mins(y)-mins(x)).forEach(sl=>{
+    const en1=sl.en===Infinity?T1:sl.en;
+    const st=Math.max(T0,Math.min(T1,sl.st)), en=Math.max(st+1,Math.min(T1,en1));
+    // Floor the start and ceil the end. Rounding both put a 7:45 start on the 8:00 row,
+    // which is how the shower ended up sitting on top of dinner.
+    const r1=2+Math.floor((st-T0)/SLOT);
+    const span=Math.max(1,(2+Math.ceil((en-T0)/SLOT))-r1);
+    place.push({a:sl.a,dn:sl.dn,di:sl.di,st,en,r1,span,color:colOf[sl.a.d.name||sl.a.id]});
   });
   // Every block takes the other shade from the one before it, straight down the day. Only
   // alternating across blocks that touch left neighbouring pairs matching whenever a gap
@@ -1891,9 +1927,9 @@ function schedulePage(){
     h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
     for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span ${60/SLOT}"></div>`;
   }
-  place.forEach(({a,di,r1,span,alt,color})=>{
-    const dn=DOW[di], sp=actSplit(a,dn);
-    h+=`<div class="ttBlock${alt?' alt':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}',{_day:'${dn}'})"><div class="n">${esc(a.d.name)}${sp?`<span class="sp">${esc(sp)}</span>`:''}</div><div class="t">${fmtT(a.d.start)}${a.d.end?'–'+fmtT(a.d.end):''}</div></div>`;
+  place.forEach(({a,dn,di,r1,span,alt,color})=>{
+    const sp=actSplit(a,dn), st=actStart(a,dn), en=actEnd(a,dn);
+    h+=`<div class="ttBlock${alt?' alt':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}',{_day:'${dn}'})"><div class="n">${esc(a.d.name)}${sp?`<span class="sp">${esc(sp)}</span>`:''}</div><div class="t">${fmtT(st)}${en?'–'+fmtT(en):''}</div></div>`;
   });
   h+=`</div></div>`;
   if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
@@ -2346,7 +2382,7 @@ function overviewPage(){
   else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
   h+=`</div>`;
   const acts=list('acts').filter(actToday).sort(byStart);
-  if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(i.d.start)||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
+  if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(actStart(i,DOW_TODAY()))||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
   if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
