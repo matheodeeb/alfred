@@ -96,6 +96,17 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `payroll` | Payroll | name, role, amt, payday, notes |
 | `bdays` | Birthdays | name, date, notes |
 | `brief` | Daily brief | date, title, body |
+| `briefs` | Journal | title, txt |
+| `income` | Finances → CFO | name, kind, amt, cyc, cur, acct, start, notes |
+| `debt` | Finances → CFO | name, kind, bal, apr, min, cur, day, notes |
+| `goal` | Finances → CFO | name, target, track, saved, by, pri, notes |
+| `spend` | Finances → CFO | month, year, cat, amt, cur, notes |
+| `prop` | Finances → CFO | name, status, addr, val, rent, tax, ins, hoa |
+
+Two sections are not their own rows. **Timeline → Past** (`travpast`) is a view over
+`travels` showing the ones with `done` set — a trip moves there by setting `done` on its
+`travels` row, not by writing a `travpast` row. And `cfg` holds the app's own settings
+(PIN hash, tab preferences); never write it as data entry.
 
 Conventions worth knowing: money fields are plain numbers, no symbols or commas. Dates are
 `YYYY-MM-DD`. An empty `date` on a spoil means *still on the list* — it gets a date when
