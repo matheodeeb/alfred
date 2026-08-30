@@ -46,6 +46,45 @@ allowed to exist.
 - Anything referenced from a `MODS` *field definition* is evaluated at load, so it
   must be declared above `MODS`. Helper *functions* are hoisted and can live below.
 
+## Net liquid vs net worth — the distinction the goal rests on
+
+He drew this himself and it governs the page. **Net worth** is everything.
+**Net liquid** is only what his own behaviour moves: banking, physical bills, the
+Haiti balances and the brokerage, less revolving debt. Watches and property are
+gifts and appreciation — real, but nothing his saving rate changes. Counting them
+in the goal would flatter the number and hide whether the plan is working.
+
+So `cfoNetLiquid()` is the goal basis and **excludes `assets` entirely**. Net worth
+is still shown, as context, one panel below.
+
+- A goal row can set `track: 'Net liquid — live'`, and its progress then reads from
+  `cfoNetLiquid()` instead of a typed `saved` figure. Anything summing goal progress
+  must honour that flag or it will report a stale number.
+- **The `assets` row whose `src` is `Investment log` is a mirror of the brokerage.**
+  Net liquid already carries the brokerage, so any net-worth sum must filter that row
+  out or it adds the brokerage twice. This bit once and is easy to reintroduce.
+
+## Property
+
+`prop` is a fifth register. A house reaches the cash-flow figures **only** when its
+status is `Renting` — `propLive()` gates every sum, so a `Pending transfer` sits on
+the page as context and contributes nothing to income, surplus or runway. That
+pause is deliberate and was asked for; don't "helpfully" start counting a house he
+does not yet hold.
+
+`propNet()` is gross rent minus tax, insurance, HOA, maintenance, management and
+vacancy, all normalised to a month. Gross rent is not income and the page should
+never imply it is — the realistic net on a Florida rental is a fraction of the
+headline, mostly to non-homestead property tax and insurance.
+
+## Windfalls
+
+Bonuses arrive as irregular gifts from family with no pattern, and he does not want
+one inferred. Log them with cadence `One-off`, which maps to 0 in `CFO_CYC` and so
+stays out of the monthly income figure — otherwise a single gift inflates the
+savings rate and corrupts the trend. Expect unexplained jumps in the cash rows;
+they are usually this.
+
 ## Reading his real data
 
 Run SQL directly against `public.items` in the Supabase project

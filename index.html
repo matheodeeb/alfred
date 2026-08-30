@@ -1385,18 +1385,20 @@ debt:{title:'Debts',color:'var(--red)',hint:'Enter the balance as a positive num
 goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when. A target date turns a wish into a monthly number.',
   fields:[{k:'name',l:'Goal',t:'text',req:1},
           {k:'target',l:'Target amount',t:'money',req:1},
-          {k:'saved',l:'Put aside so far',t:'money'},
+          {k:'track',l:'Progress from',t:'sel',opt:['Typed in below','Net liquid — live'],def:'Typed in below'},
+          {k:'saved',l:'Put aside so far',t:'money',hintTxt:'Ignored when progress reads from net liquid.'},
           {k:'by',l:'Target date',t:'date'},
           {k:'pri',l:'Priority',t:'sel',opt:['1 — first','2 — next','3 — later','Someday'],def:'2 — next'},
           {k:'notes',l:'Why it matters',t:'ta',full:1}],
   sort:(a,b)=>String(a.d.pri||'2').localeCompare(String(b.d.pri||'2'))||(a.d.by||'9999').localeCompare(b.d.by||'9999'),
-  stats:it=>{const t=it.reduce((s,i)=>s+(+i.d.target||0),0),sv=it.reduce((s,i)=>s+(+i.d.saved||0),0);
+  stats:it=>{const t=it.reduce((s,i)=>s+(+i.d.target||0),0),
+      sv=it.reduce((s,i)=>s+(i.d.track==='Net liquid — live'?cfoNetLiquid():(+i.d.saved||0)),0);
     return[{k:'Targeted',v:money2(t),c:'var(--gold)'},
            {k:'Put aside',v:money2(sv),u:t?(sv/t*100).toFixed(0)+'% of the way':'',c:'var(--green)'},
            {k:'Still to find',v:money2(Math.max(0,t-sv)),c:'var(--acc)'}]},
   card:i=>{const t=+i.d.target||0,sv=+i.d.saved||0,p=t?Math.min(100,sv/t*100):0;
     return{t:esc(i.d.name),
-      s:[money2(sv)+' of '+money2(t),i.d.by?'by '+fdate(i.d.by).replace(/^\w+, /,''):'no date set'].join(' · '),
+      s:[money2(sv)+' of '+money2(t),i.d.track==='Net liquid — live'?'tracking net liquid':'',i.d.by?'by '+fdate(i.d.by).replace(/^\w+, /,''):'no date set'].filter(Boolean).join(' · '),
       pill:{cls:p>=100?'ok':p>=50?'warn':'mut',txt:p.toFixed(0)+'%'}}},
   empty:'No goals yet. A wealth roadmap without a destination is just a budget — add what you are actually saving toward.'},
 spend:{title:'Spending',color:'var(--purple)',hint:'One row per category per month. Your cards tell you what you paid; this tells you what you bought — which is the only thing you can act on.',
@@ -1420,6 +1422,33 @@ spend:{title:'Spending',color:'var(--purple)',hint:'One row per category per mon
   card:i=>({t:esc(i.d.cat||'Other'),s:esc(i.d.notes||''),
     pill:{cls:'acc',txt:money2(cfoUsd(i.d.amt,i.d.cur))}}),
   empty:'Nothing logged. Statements tell you what you paid the card; only this tells you what you bought — and nothing can be cut on purpose until it is broken down here.'},
+prop:{title:'Property',color:'var(--blue)',hint:'Real estate you own or are due to receive. A property feeds the cash-flow numbers only once its status is Renting — anything still Pending sits here as context, and its rent stays out of every figure on the dashboard.',
+  fields:[{k:'name',l:'Property',t:'text',req:1},
+          {k:'status',l:'Status',t:'sel',opt:['Pending transfer','Renting','Lived in','Sold'],def:'Pending transfer'},
+          {k:'addr',l:'Address',t:'text',full:1},
+          {k:'val',l:'Market value',t:'money'},
+          {k:'rent',l:'Gross rent / month',t:'money'},
+          {k:'tax',l:'Property tax / year',t:'money'},
+          {k:'ins',l:'Insurance / year',t:'money'},
+          {k:'hoa',l:'HOA / month',t:'money'},
+          {k:'maint',l:'Maintenance / year',t:'money'},
+          {k:'mgmt',l:'Management % of rent',t:'num'},
+          {k:'vac',l:'Vacancy % allowance',t:'num'},
+          {k:'from',l:'Expected from',t:'date'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.status||'Pending transfer',
+  sort:(a,b)=>propNet(b.d)-propNet(a.d),
+  groupNote:g=>money2(g.reduce((s,i)=>s+propNet(i.d),0))+' /mo net',
+  stats:it=>{const live=it.filter(propLive);
+    return[{k:'Net rent / month',v:money2(live.reduce((s,i)=>s+propNet(i.d),0)),u:live.length?'counted in cash flow':'nothing renting yet',c:'var(--green)'},
+           {k:'Gross rent / month',v:money2(live.reduce((s,i)=>s+(+i.d.rent||0),0)),c:'var(--blue)'},
+           {k:'Carrying cost / month',v:money2(live.reduce((s,i)=>s+propCost(i.d),0)),c:'var(--orange)'},
+           {k:'Value held',v:money2(it.filter(i=>i.d.status!=='Sold').reduce((s,i)=>s+(+i.d.val||0),0)),u:'net worth only, not the goal',c:'var(--acc)'}]},
+  card:i=>{const live=propLive(i),n=propNet(i.d);
+    return{t:esc(i.d.name),
+      s:[esc(i.d.addr||''),(+i.d.rent||0)?money2(i.d.rent)+'/mo gross':'',(+i.d.val||0)?'worth '+money2(i.d.val):''].filter(Boolean).join(' · '),
+      pill:live?{cls:n>0?'ok':'warn',txt:money2(n)+'/mo net'}:{cls:'mut',txt:i.d.from?'from '+fdate(i.d.from).replace(/^\w+, /,''):'paused'}}},
+  empty:'No property recorded. Add one per house — a Pending transfer sits out of the numbers until you switch it to Renting.'},
 payroll:{title:'Payroll — house staff',color:'var(--green)',hint:'Tap the circle when someone is paid — it resets each month.',
   fields:[{k:'name',l:'Name',t:'text',req:1},{k:'role',l:'Role',t:'text'},{k:'amt',l:'Salary / month',t:'money'},{k:'payday',l:'Pay day (1–31)',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
   stats:it=>[{k:'Monthly payroll',v:money(it.reduce((s,i)=>s+(+i.d.amt||0),0)),c:'var(--green)'},{k:'Staff',v:it.length},
@@ -2013,6 +2042,21 @@ function cfoSpendMo(){const r=list('spend');if(!r.length)return 0;
   const mons=new Set(r.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
   return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons)}
 function cfoLiquid(){return finUsd('Banking','Haiti cash','Bills')}
+// Property. A house only reaches the cash-flow numbers once it is actually Renting;
+// a Pending transfer contributes nothing, which is why propLive gates every sum.
+// Costs are held per-month so gross rent and net rent are directly comparable.
+function propLive(i){return (i.d||i).status==='Renting'}
+function propCost(d){const r=+d.rent||0;
+  return (+d.tax||0)/12+(+d.ins||0)/12+(+d.hoa||0)+(+d.maint||0)/12+r*((+d.mgmt||0)/100)+r*((+d.vac||0)/100)}
+function propNet(d){return (+d.rent||0)-propCost(d)}
+function cfoPropMo(){return list('prop').filter(propLive).reduce((s,i)=>s+propNet(i.d),0)}
+// Net liquid — the goal basis. Cash he can move plus the brokerage, minus what he owes.
+// Deliberately excludes assets: watches and houses are net worth, but they are gifts and
+// appreciation rather than anything his saving changes, so tracking them in the goal
+// would flatter the number and hide whether the plan is working.
+function cfoInvestVal(){const r=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+  return r.length?(+r[r.length-1].d.val||0):0}
+function cfoNetLiquid(){return finUsd('Banking','Credit','Haiti cash','Haiti credit','Bills')+cfoInvestVal()}
 // Month-by-month simulation. The budget stays fixed at total-minimums + extra, so a
 // cleared debt's minimum rolls onto the next one — that roll-up IS the strategy.
 // Order is decided by the caller; this only runs the arithmetic.
@@ -2032,24 +2076,26 @@ function cfoPayoff(ordered,extra){
   return{months,interest,order,ok:true};
 }
 function cfoGoals(){const now=Date.now();
-  return list('goal').map(i=>{const t=+i.d.target||0,sv=+i.d.saved||0;
+  return list('goal').map(i=>{const t=+i.d.target||0,live=i.d.track==='Net liquid — live';
+    const sv=live?cfoNetLiquid():(+i.d.saved||0);
     let mons=null,need=null;
     if(i.d.by){const d=new Date(i.d.by+'T12:00:00');
       if(!isNaN(d)){mons=Math.max(0,Math.round((d-now)/2629800000));
         need=mons>0?Math.max(0,(t-sv)/mons):Math.max(0,t-sv)}}
-    return{id:i.id,name:i.d.name||'',by:i.d.by||'',pri:i.d.pri||'2',t,sv,
+    return{id:i.id,name:i.d.name||'',by:i.d.by||'',pri:i.d.pri||'2',t,sv,live,
       pct:t?Math.max(0,Math.min(100,sv/t*100)):0,mons,need}})}
 let CFOV='dash';
 let CFOEXTRA=+(localStorage.alfred_cfo_extra||0)||0;
 function cfoSetExtra(v){CFOEXTRA=Math.max(0,+v||0);localStorage.alfred_cfo_extra=CFOEXTRA;renderActive()}
-const CFO_VIEWS=[['dash','Dashboard'],['income','Income'],['debt','Debts'],['goal','Goals'],['spend','Spending']];
+const CFO_VIEWS=[['dash','Dashboard'],['income','Income'],['debt','Debts'],['prop','Property'],['goal','Goals'],['spend','Spending']];
 function cfoPage(){
   let h=`<div class="segbar" style="margin:12px 0 2px">`+CFO_VIEWS.map(([k,l])=>
     `<button class="${CFOV===k?'active':''}" onclick="CFOV='${k}';renderActive()">${l}</button>`).join('')+`</div>`;
   if(CFOV!=='dash')return h+genList(CFOV);
 
   const nInc=list('income').length;
-  const inc=cfoIncomeMo(),subs=cfoSubsMo(),pay=cfoPayrollMo(),ds=cfoDebts();
+  const rent=cfoPropMo();
+  const inc=cfoIncomeMo()+rent,subs=cfoSubsMo(),pay=cfoPayrollMo(),ds=cfoDebts();
   const dmin=ds.reduce((s,d)=>s+d.min,0),dtot=ds.reduce((s,d)=>s+d.bal,0);
   const dint=ds.reduce((s,d)=>s+d.bal*(d.apr/100/12),0);
   const wapr=dtot?ds.reduce((s,d)=>s+d.bal*d.apr,0)/dtot:0;
@@ -2058,7 +2104,7 @@ function cfoPage(){
   const liquid=cfoLiquid(),runway=burn>0?liquid/burn:null;
 
   h+=`<div class="grid stats">
-    <div class="stat" style="--accent:var(--green)"><div class="k">Income / month</div><div class="v">${money2(inc)}</div><div class="u">${nInc?nInc+' source'+(nInc>1?'s':''):'nothing recorded yet'}</div></div>
+    <div class="stat" style="--accent:var(--green)"><div class="k">Income / month</div><div class="v">${money2(inc)}</div><div class="u">${[nInc?nInc+' source'+(nInc>1?'s':''):'',rent?'incl. '+money2(rent)+' net rent':''].filter(Boolean).join(' · ')||'nothing recorded yet'}</div></div>
     <div class="stat" style="--accent:var(--orange)"><div class="k">Money out / month</div><div class="v">${money2(burn)}</div><div class="u">${[subs?'subs '+money2(subs):'',dmin?'debt min '+money2(dmin):'',pay?'payroll '+money2(pay):'',spend?'spending '+money2(spend):''].filter(Boolean).join(' · ')||'nothing committed yet'}</div></div>
     <div class="stat" style="--accent:${net>=0?'var(--blue)':'var(--red)'}"><div class="k">${net>=0?'Surplus':'Deficit'} / month</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">${nInc?'what is left to put to work':'not real until income is in'}</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Savings rate</div><div class="v">${rate==null?'—':rate.toFixed(0)+'%'}</div><div class="u">${rate==null?'needs income':'of every dollar in'}</div></div>
@@ -2115,18 +2161,37 @@ function cfoPage(){
     h+=gs.sort((a,b)=>String(a.pri).localeCompare(String(b.pri))||(a.by||'9999').localeCompare(b.by||'9999')).map(g=>`<div class="cfoGoal" onclick="openForm('goal','${g.id}')">
       <div class="cfoGoalTop"><span class="n">${esc(g.name)}</span><span class="v">${money2(g.sv)} of ${money2(g.t)}</span></div>
       <div class="cfoBar"><i style="width:${g.pct.toFixed(1)}%"></i></div>
-      <div class="cfoGoalSub">${g.pct.toFixed(0)}% there${g.by?' · by '+fdate(g.by).replace(/^\w+, /,''):' · no date set'}${g.need!=null?' · '+money2(g.need)+'/mo needed':''}${g.mons!=null?' · '+g.mons+' month'+(g.mons===1?'':'s')+' left':''}</div></div>`).join('');
+      <div class="cfoGoalSub">${g.pct.toFixed(0)}% there${g.live?' · live from net liquid':''}${g.by?' · by '+fdate(g.by).replace(/^\w+, /,''):' · no date set'}${g.need!=null?' · '+money2(g.need)+'/mo needed':''}${g.mons!=null?' · '+g.mons+' month'+(g.mons===1?'':'s')+' left':''}</div></div>`).join('');
   }
   h+=`</div>`;
 
   const nwCash=finUsd('Banking','Credit','Haiti cash','Haiti credit');
-  const atot=list('assets').reduce((s,i)=>s+assetVal(i),0);
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Where you stand</h2>
-    <div class="hint">Read straight from Cash, Assets and the Investment log — same basis as the Net worth page. Tap a row to go and change it.</div>
-    <div class="finRow" onclick="go('fincash')"><span class="n">Net cash</span><span class="v ${signCls(nwCash)}">${money2(nwCash)}</span></div>
-    <div class="finRow" onclick="go('networth')"><span class="n">Assets</span><span class="v">${money2(atot)}</span></div>
+  // Assets that mirror the investment log are excluded: net liquid already carries the
+  // brokerage, and counting the mirror too would add it to net worth twice.
+  const atot=list('assets').filter(i=>i.d.src!=='Investment log').reduce((s,i)=>s+assetVal(i),0);
+  const pend=list('prop').filter(i=>!propLive(i)&&i.d.status!=='Sold');
+  const pval=list('prop').filter(i=>i.d.status!=='Sold').reduce((s,i)=>s+(+i.d.val||0),0);
+  const nl=cfoNetLiquid(),brk=cfoInvestVal(),bills=finUsd('Bills');
+
+  if(pend.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Not counted yet</h2>
+    <div class="hint">Property you do not have the keys to. None of this touches the income, surplus or runway figures above — it starts counting the day you switch it to <b>Renting</b>.</div>`+
+    pend.map(i=>`<div class="finRow" onclick="openForm('prop','${i.id}')"><span class="n">${esc(i.d.name)}<span class="sub"> · ${esc(i.d.status||'Pending transfer')}${i.d.from?' · expected '+fdate(i.d.from).replace(/^\w+, /,''):''}</span></span><span class="v2" style="margin-left:auto">${(+i.d.rent||0)?money2(i.d.rent)+'/mo gross':'no rent set'}</span><span class="v">${(+i.d.val||0)?money2(i.d.val):'—'}</span></div>`).join('')+
+    `<div class="hint" style="margin-top:12px">Gross rent is not income. Tax, insurance, HOA, maintenance, management and vacancy come out of it first — fill those in on the property and the net figure is what will actually reach you.</div></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Net liquid</h2>
+    <div class="hint">What you can actually move, and the only thing the goal tracks: cash, the BUH balances, physical bills and the brokerage, less what you owe. Watches and property are yours but they are gifts and appreciation — counting them would flatter the number and hide whether the saving is working.</div>
+    <div class="finRow" onclick="go('fincash')"><span class="n">Net cash<span class="sub"> · after cards</span></span><span class="v ${signCls(nwCash)}">${money2(nwCash)}</span></div>
+    <div class="finRow" onclick="go('fincash')"><span class="n">Physical bills</span><span class="v">${money2(bills)}</span></div>
+    <div class="finRow" onclick="go('invest')"><span class="n">Brokerage</span><span class="v">${money2(brk)}</span></div>
+    <div class="finTot"><span class="n">Net liquid</span><span class="v ${signCls(nl)}">${money2(nl)}</span></div></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Net worth</h2>
+    <div class="hint">The whole picture, tracked but not targeted.</div>
+    <div class="finRow"><span class="n">Net liquid</span><span class="v ${signCls(nl)}">${money2(nl)}</span></div>
+    <div class="finRow" onclick="go('networth')"><span class="n">Assets<span class="sub"> · watches and the like</span></span><span class="v">${money2(atot)}</span></div>
+    ${pval?`<div class="finRow" onclick="CFOV='prop';renderActive()"><span class="n">Property</span><span class="v">${money2(pval)}</span></div>`:''}
     <div class="finRow" onclick="go('finsub')"><span class="n">Subscriptions</span><span class="v">${money2(subs)} <span style="font-size:11px;color:var(--faint)">/mo</span></span></div>
-    <div class="finTot"><span class="n">Net worth</span><span class="v ${signCls(nwCash+atot)}">${money2(nwCash+atot)}</span></div></div>`;
+    <div class="finTot"><span class="n">Net worth</span><span class="v ${signCls(nl+atot+pval)}">${money2(nl+atot+pval)}</span></div></div>`;
   return h;
 }
 const DOW_TODAY=()=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
@@ -2817,6 +2882,36 @@ function seedWant(){
   if(lm&&!String(lm.d.house||'').trim())put('perfume',{house:'Diptyque'},'perf:lunamaris');
 }
 
+/* ---------------- one-time: the western loop ---------------- */
+// Thirteen places pinned in his road-trip folder, and the route map he sent puts them on one
+// loop rather than three trips: up the California coast, over to Seattle, east into Montana,
+// down through Yellowstone and the Tetons, and back across Utah and Arizona to southern
+// California. Undated, so they sit under To be planned as one section. The stop number is in
+// the notes rather than the name, since the page lists a section alphabetically and a name is
+// a place, not a position. Delete this block once it has applied.
+const LOOP_SEED=[
+  ['big-sur','Big Sur, California','Stop 1 · the start. Highway 1 between Carmel and San Simeon; watch for landslide closures.'],
+  ['mt-shasta','Mt Shasta, California','Stop 2 · northern California on I-5, the turn inland off the coast.'],
+  ['crater-lake','Crater Lake, Oregon','Stop 3 · Rim Drive is under snow most of the year and usually fully open July to October.'],
+  ['multnomah','Multnomah Falls, Oregon','Stop 4 · Columbia River Gorge, half an hour east of Portland.'],
+  ['seattle','Seattle, Washington','Stop 5 · the Space Needle. Turning point: the road goes east from here.'],
+  ['missoula','Missoula, Montana','Stop 6 · the night between Washington and Yellowstone.'],
+  ['west-yellowstone','West Yellowstone, Montana','Stop 7 · the gateway town at the park\u2019s west entrance.'],
+  ['yellowstone','Yellowstone National Park, Wyoming','Stop 8 · Grand Prismatic and the geyser basins.'],
+  ['grand-teton','Grand Teton National Park, Wyoming','Stop 9 · an hour south of Yellowstone; the two are done together.'],
+  ['monument-valley','Monument Valley, Arizona','Stop 10 · Navajo Nation land, straddling the Arizona\u2013Utah line.'],
+  ['lake-powell','Lake Powell, Page, Arizona','Stop 11 · Page is the base for both this and Horseshoe Bend.'],
+  ['horseshoe-bend','Horseshoe Bend, Page, Arizona','Stop 12 · ten minutes from Lake Powell; Antelope Canyon is here too.'],
+  ['zion','Zion National Park, Utah','Stop 13 · the last park before dropping to southern California and the finish.'],
+];
+function seedLoop(){
+  LOOP_SEED.forEach(([key,place,notes])=>{
+    const id='travel:loop:'+key;
+    if(S.items[id])return;
+    put('travels',{place,trip:'West USA loop',notes},id);
+  });
+}
+
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
 // Gym needed an entry per day only because an entry could carry one specific. Now that it
 // can carry one per day, the four fold into Monday's row: it gains the other three days,
@@ -2912,7 +3007,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();mergeGym();seedProjects();seedWant();initNav();initPad();
+  load();seed();mergeGym();seedProjects();seedWant();seedLoop();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
