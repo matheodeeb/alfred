@@ -2882,6 +2882,36 @@ function seedWant(){
   if(lm&&!String(lm.d.house||'').trim())put('perfume',{house:'Diptyque'},'perf:lunamaris');
 }
 
+/* ---------------- one-time: the western loop ---------------- */
+// Thirteen places pinned in his road-trip folder, and the route map he sent puts them on one
+// loop rather than three trips: up the California coast, over to Seattle, east into Montana,
+// down through Yellowstone and the Tetons, and back across Utah and Arizona to southern
+// California. Undated, so they sit under To be planned as one section. The stop number is in
+// the notes rather than the name, since the page lists a section alphabetically and a name is
+// a place, not a position. Delete this block once it has applied.
+const LOOP_SEED=[
+  ['big-sur','Big Sur, California','Stop 1 · the start. Highway 1 between Carmel and San Simeon; watch for landslide closures.'],
+  ['mt-shasta','Mt Shasta, California','Stop 2 · northern California on I-5, the turn inland off the coast.'],
+  ['crater-lake','Crater Lake, Oregon','Stop 3 · Rim Drive is under snow most of the year and usually fully open July to October.'],
+  ['multnomah','Multnomah Falls, Oregon','Stop 4 · Columbia River Gorge, half an hour east of Portland.'],
+  ['seattle','Seattle, Washington','Stop 5 · the Space Needle. Turning point: the road goes east from here.'],
+  ['missoula','Missoula, Montana','Stop 6 · the night between Washington and Yellowstone.'],
+  ['west-yellowstone','West Yellowstone, Montana','Stop 7 · the gateway town at the park\u2019s west entrance.'],
+  ['yellowstone','Yellowstone National Park, Wyoming','Stop 8 · Grand Prismatic and the geyser basins.'],
+  ['grand-teton','Grand Teton National Park, Wyoming','Stop 9 · an hour south of Yellowstone; the two are done together.'],
+  ['monument-valley','Monument Valley, Arizona','Stop 10 · Navajo Nation land, straddling the Arizona\u2013Utah line.'],
+  ['lake-powell','Lake Powell, Page, Arizona','Stop 11 · Page is the base for both this and Horseshoe Bend.'],
+  ['horseshoe-bend','Horseshoe Bend, Page, Arizona','Stop 12 · ten minutes from Lake Powell; Antelope Canyon is here too.'],
+  ['zion','Zion National Park, Utah','Stop 13 · the last park before dropping to southern California and the finish.'],
+];
+function seedLoop(){
+  LOOP_SEED.forEach(([key,place,notes])=>{
+    const id='travel:loop:'+key;
+    if(S.items[id])return;
+    put('travels',{place,trip:'West USA loop',notes},id);
+  });
+}
+
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
 // Gym needed an entry per day only because an entry could carry one specific. Now that it
 // can carry one per day, the four fold into Monday's row: it gains the other three days,
@@ -2977,7 +3007,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();mergeGym();seedProjects();seedWant();initNav();initPad();
+  load();seed();mergeGym();seedProjects();seedWant();seedLoop();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
