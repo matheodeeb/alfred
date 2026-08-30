@@ -2882,34 +2882,37 @@ function seedWant(){
   if(lm&&!String(lm.d.house||'').trim())put('perfume',{house:'Diptyque'},'perf:lunamaris');
 }
 
-/* ---------------- one-time: the western loop ---------------- */
-// Thirteen places pinned in his road-trip folder, and the route map he sent puts them on one
-// loop rather than three trips: up the California coast, over to Seattle, east into Montana,
-// down through Yellowstone and the Tetons, and back across Utah and Arizona to southern
-// California. Undated, so they sit under To be planned as one section. The stop number is in
-// the notes rather than the name, since the page lists a section alphabetically and a name is
-// a place, not a position. Delete this block once it has applied.
-const LOOP_SEED=[
-  ['big-sur','Big Sur, California','Stop 1 · the start. Highway 1 between Carmel and San Simeon; watch for landslide closures.'],
-  ['mt-shasta','Mt Shasta, California','Stop 2 · northern California on I-5, the turn inland off the coast.'],
-  ['crater-lake','Crater Lake, Oregon','Stop 3 · Rim Drive is under snow most of the year and usually fully open July to October.'],
-  ['multnomah','Multnomah Falls, Oregon','Stop 4 · Columbia River Gorge, half an hour east of Portland.'],
-  ['seattle','Seattle, Washington','Stop 5 · the Space Needle. Turning point: the road goes east from here.'],
-  ['missoula','Missoula, Montana','Stop 6 · the night between Washington and Yellowstone.'],
-  ['west-yellowstone','West Yellowstone, Montana','Stop 7 · the gateway town at the park\u2019s west entrance.'],
-  ['yellowstone','Yellowstone National Park, Wyoming','Stop 8 · Grand Prismatic and the geyser basins.'],
-  ['grand-teton','Grand Teton National Park, Wyoming','Stop 9 · an hour south of Yellowstone; the two are done together.'],
-  ['monument-valley','Monument Valley, Arizona','Stop 10 · Navajo Nation land, straddling the Arizona\u2013Utah line.'],
-  ['lake-powell','Lake Powell, Page, Arizona','Stop 11 · Page is the base for both this and Horseshoe Bend.'],
-  ['horseshoe-bend','Horseshoe Bend, Page, Arizona','Stop 12 · ten minutes from Lake Powell; Antelope Canyon is here too.'],
-  ['zion','Zion National Park, Utah','Stop 13 · the last park before dropping to southern California and the finish.'],
-];
+/* ---------------- one-time: the western loop, as one trip ---------------- */
+// Thirteen places pinned in his road-trip folder; the route map he sent puts them on one
+// loop. They went in first as thirteen rows under a section, which he has since asked to be
+// one row instead — the trip is the thing, and the stops are its description. So this both
+// retires the thirteen and writes the one. The old rows are killed rather than dropped, so
+// the removal reaches the devices that already have them. Undated: it sits under To be
+// planned until a leg gets a date. Delete this block once it has applied.
+const LOOP_KEYS=['big-sur','mt-shasta','crater-lake','multnomah','seattle','missoula',
+  'west-yellowstone','yellowstone','grand-teton','monument-valley','lake-powell',
+  'horseshoe-bend','zion'];
+const WEST_NOTES=`Thirteen stops, one loop, roughly 3,500 miles \u2014 up the California coast, east from Seattle into Montana, down through Yellowstone and the Tetons, then back across Utah and Arizona to southern California.
+
+1. Big Sur, California \u2014 the start. Highway 1, Carmel to San Simeon.
+2. Mt Shasta, California \u2014 the turn inland onto I-5.
+3. Crater Lake, Oregon \u2014 Rim Drive is usually only open July to October.
+4. Multnomah Falls, Oregon \u2014 Columbia River Gorge, east of Portland.
+5. Seattle, Washington \u2014 the Space Needle. The road turns east here.
+6. Missoula, Montana.
+7. West Yellowstone, Montana \u2014 the park's west gate.
+8. Yellowstone National Park, Wyoming \u2014 Grand Prismatic.
+9. Grand Teton National Park, Wyoming \u2014 an hour south of Yellowstone.
+10. Monument Valley, Arizona \u2014 Navajo Nation land, on the Utah line.
+11. Lake Powell, Page, Arizona.
+12. Horseshoe Bend, Page, Arizona \u2014 Antelope Canyon is here too.
+13. Zion National Park, Utah \u2014 the last park before the drop to southern California.
+
+Best window is July to September. Early September threads open roads against heat and crowds.`;
 function seedLoop(){
-  LOOP_SEED.forEach(([key,place,notes])=>{
-    const id='travel:loop:'+key;
-    if(S.items[id])return;
-    put('travels',{place,trip:'West USA loop',notes},id);
-  });
+  LOOP_KEYS.forEach(k=>{if(S.items['travel:loop:'+k])kill('travel:loop:'+k)});
+  const id='travel:west-america';
+  if(!S.items[id])put('travels',{place:'West America',notes:WEST_NOTES},id);
 }
 
 /* ---------------- one-time: fold the four Gym rows into one ---------------- */
