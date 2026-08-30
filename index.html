@@ -1152,7 +1152,7 @@ const tripSort=(a,b,dir)=>{const miss=dir>0?'9999':'0000', key=i=>tripBlockWhen(
     ||(a.d.place||'').localeCompare(b.d.place||'')};
 const TRAVEL_FIELDS=[{k:'place',l:'Destination',t:'text',req:1},{k:'trip',l:'Section',t:'dyn'},
   {k:'start',l:'From',t:'date'},{k:'end',l:'To',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}];
-const MONTH_STEP={Monthly:1,Quarterly:3};
+const MONTH_STEP={Monthly:1,Quarterly:3,'Twice a year':6,Yearly:12};
 const GAP_ANCHOR='A set gap after the last one';
 const ANCHOR_SEL=[GAP_ANCHOR,'First day of the month','Last day of the month','A day of the month'];
 const ord=n=>n+(n%100>=11&&n%100<=13?'th':{1:'st',2:'nd',3:'rd'}[n%10]||'th');
@@ -1699,7 +1699,7 @@ invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month �
   empty:'Nothing logged yet — hit + and record this month\'s balance.'},
 recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
-          {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly'],def:'Weekly'},
+          {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly','Twice a year','Yearly'],def:'Weekly'},
           {k:'anchor',l:'When to do it',t:'sel',opt:ANCHOR_SEL,def:GAP_ANCHOR},
           {k:'dom',l:'Which day',t:'num',ph:'15'},
           {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -1724,7 +1724,7 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
   empty:'Nothing recurring yet — hit + to add one.'},
 cfg:{title:'cfg'}
 };
-const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90};
+const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90,'Twice a year':182,Yearly:365};
 function recurNext(r){
   if(recurAnchored(r)){
     const step=MONTH_STEP[r.d.every];
