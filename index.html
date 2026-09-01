@@ -136,6 +136,8 @@
   .shead .gsub{font-family:"IBM Plex Mono";font-size:10px;color:var(--muted);font-weight:400;margin-left:auto}
   .dbody.hide{display:none}
   .shead.sboxh{border-left:3px solid var(--line2);padding-left:9px}
+  .shead.late,.shead.late .gchev,.shead.late .gsub{color:var(--bad)}
+  .shead.late{border-bottom-color:rgba(184,84,63,.45)}   /* the rule tints, the words carry it */
   .sbox{border-left:3px solid var(--line2);padding-left:9px;margin-bottom:12px}
   .lnk{color:var(--muted);font-style:italic}
   .sshead{font-family:"IBM Plex Mono";font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:13px 2px 3px}
@@ -943,7 +945,8 @@ function genList(sec){
           const col=!!(m.subCollapse&&kv), dk=sec+'|'+g+'|'+kv;
           const dshut=col&&!(DAYSET.has(dk)?DAYSET.get(dk):(defDays?defDays.has(kv):false));
           const snote=kv&&m.subNote?m.subNote(sg[k],kv):'';
-          if(kv)html+=`<div class="shead${col?' clk':''}${m.subBox?' sboxh':''}${dshut?' shut':''}"${col?` data-k="${esc(dk)}" onclick="toggleDay(this)"`:''}>${col?'<span class="gchev">▾</span>':''}${esc(kv)}${snote?`<span class="gsub">${snote}</span>`:''}${col&&!snote?`<span class="gsub">${sg[k].length}</span>`:''}</div>`;
+          const scls=kv&&m.subCls?m.subCls(sg[k],kv):'';
+          if(kv)html+=`<div class="shead${col?' clk':''}${m.subBox?' sboxh':''}${dshut?' shut':''}${scls?' '+scls:''}"${col?` data-k="${esc(dk)}" onclick="toggleDay(this)"`:''}>${col?'<span class="gchev">▾</span>':''}${esc(kv)}${snote?`<span class="gsub">${snote}</span>`:''}${col&&!snote?`<span class="gsub">${sg[k].length}</span>`:''}</div>`;
           // A named block gets a body of its own, so it is visible where it ends and the
           // rows that belong to nothing in particular start again.
           if(kv)html+=`<div class="sbody${col?' dbody':''}${m.subBox?' sbox':''}${dshut?' hide':''}">`;
@@ -1298,6 +1301,9 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. T
     const first=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i)||'9999-99-99';return d<m?d:m},'9999-99-99');
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
   subgroup:i=>{const w=todoWhen(i);return w?dlabel(w,doneView()):''},
+  // A day that has gone past says so in its heading; it should look it too. Every task in
+  // the block shares the date, so the first one answers for all of them.
+  subCls:its=>{const w=todoWhen(its[0]);return !doneView()&&w&&w<today()?'late':''},
   // Every day folds, and one starts open: today, or failing that the first day on the page,
   // so there is always something to read without hunting for the day you are in.
   subCollapse:1,
