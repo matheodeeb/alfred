@@ -1334,7 +1334,9 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. T
     ? (todoWhen(b)||'').localeCompare(todoWhen(a)||'')||((+a.d.ord||9999)-(+b.d.ord||9999))
     : (a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
   ranked:0,
-  card:i=>({t:esc(i.d.task),s:esc(i.d.notes||''),dim:!!i.d.done,
+  // The notes are the drawer's whole content, so the card does not print them too — a long
+  // brief would bury the day. Tap the task to read it.
+  card:i=>({t:esc(i.d.task),dim:!!i.d.done,
     pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
 fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
   fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
