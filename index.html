@@ -138,6 +138,8 @@
   .shead.sboxh{border-left:3px solid var(--line2);padding-left:9px}
   .shead.late,.shead.late .gchev,.shead.late .gsub{color:var(--bad)}
   .shead.late{border-bottom-color:rgba(184,84,63,.45)}   /* the rule tints, the words carry it */
+  .shead.now,.shead.now .gchev,.shead.now .gsub{color:var(--blue)}
+  .shead.now{border-bottom-color:rgba(74,125,155,.45)}
   .sbox{border-left:3px solid var(--line2);padding-left:9px;margin-bottom:12px}
   .lnk{color:var(--muted);font-style:italic}
   .sshead{font-family:"IBM Plex Mono";font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:13px 2px 3px}
@@ -660,7 +662,7 @@ function fieldHtml(f,v,sec,ctx){
     return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
   }
   if(f.t==='gord'){
-    const n=Math.max(1,allTodoGrps(ctx?.due||'').length), cur=+v||0;
+    const n=Math.max(1,dayTodoGrps(ctx?.due||'',(ctx?.grp||'').trim(),editCtx?.id).length), cur=+v||0;
     return`<select ${base}>`+Array.from({length:n},(_,i)=>`<option value="${i+1}" ${cur===i+1?'selected':''}>${i+1}</option>`).join('')+`</select>`;
   }
   if(f.t==='dyn'){
@@ -754,13 +756,28 @@ function allTodoGrps(date){
   list('todo').forEach(i=>{const g=(i.d.grp||'').trim();if(g)s.add(g)});
   return [...s];
 }
+// The sections that actually appear on one day, in the order they render there. Those are
+// the only positions a section can take that day — a section the list used once in March is
+// not something to count past in September.
+function dayTodoGrps(date,extra,exclId){
+  const s=new Set();
+  list('todo').forEach(i=>{if(i.id!==exclId&&(i.d.due||'')===date){
+    const g=(i.d.grp||'').trim();if(g)s.add(g)}});
+  if(extra)s.add(extra);
+  return [...s].sort((a,b)=>grpRankFor(date,a)-grpRankFor(date,b)||a.localeCompare(b));
+}
 function setGrpRank(date,g,want){
-  // Seed from every section in play that day, in the order it currently renders — ranked
-  // ones first, then the rest alphabetically. Storing only the ranked ones would make a
-  // position meaningless: "third" has to be third of something.
+  // The stored order still carries every section the list knows, so a rank set on a day
+  // survives days that section is absent from. Seeded in the order it currently renders —
+  // ranked ones first, then the rest alphabetically.
   const all=allTodoGrps(date).filter(x=>x!==g)
     .sort((x,y)=>grpRankFor(date,x)-grpRankFor(date,y)||x.localeCompare(y));
-  const pos=Math.max(0,Math.min(all.length,want-1));
+  // But the position you picked was counted among that day's sections, so slot N means
+  // "ahead of whatever is Nth there". The sections the day does not use keep their places.
+  const day=dayTodoGrps(date,'',null).filter(x=>x!==g);
+  const before=day[Math.max(0,want-1)], after=day[day.length-1];
+  const at=before?all.indexOf(before):(after?all.indexOf(after)+1:all.length);
+  const pos=at<0?all.length:at;
   put('cfg',{[date]:[...all.slice(0,pos),g,...all.slice(pos)].join(',')},'cfg:todogrp');
 }
 function todoSibs(d,exclId){
@@ -783,8 +800,9 @@ function syncGordField(){
   const due=document.getElementById('f_due')?.value||'';
   if(!grp||!due){wrap.style.display='none';return}    // an order belongs to a section on a day
   wrap.style.display='';
-  const known=allTodoGrps(due), total=Math.max(1,known.includes(grp)?known.length:known.length+1);
-  const rank=grpRankFor(due,grp), cur=rank<9999?rank+1:total;
+  // Count off the sections on that day and nothing else — four sections, four options.
+  const day=dayTodoGrps(due,grp,editCtx?.id), total=Math.max(1,day.length);
+  const cur=day.indexOf(grp)+1||total;
   sel.innerHTML=Array.from({length:total},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
   sel.value=String(Math.min(cur,total));
 }
@@ -1301,9 +1319,10 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. T
     const first=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i)||'9999-99-99';return d<m?d:m},'9999-99-99');
     return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
   subgroup:i=>{const w=todoWhen(i);return w?dlabel(w,doneView()):''},
-  // A day that has gone past says so in its heading; it should look it too. Every task in
-  // the block shares the date, so the first one answers for all of them.
-  subCls:its=>{const w=todoWhen(its[0]);return !doneView()&&w&&w<today()?'late':''},
+  // A day that has gone past says so in its heading; it should look it too, and today
+  // reads in blue. Every task in the block shares the date, so the first answers for all.
+  subCls:its=>{const w=todoWhen(its[0]);if(doneView()||!w)return'';
+    return w<today()?'late':w===today()?'now':''},
   // Every day folds, and one starts open: today, or failing that the first day on the page,
   // so there is always something to read without hunting for the day you are in.
   subCollapse:1,
