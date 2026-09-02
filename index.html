@@ -2870,107 +2870,6 @@ function renderActive(){
 const SEED=[]; // personal starter data lives in the private cloud, not in this public file
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
-/* ---------------- one-time: the four projects ---------------- */
-// A project exists only through its tasks — the name lives on each row and the heading is
-// built from them — so a project with nothing under it cannot appear. The gym's three are
-// the ones actually asked for; the other three carry one placeholder each, marked as such
-// in its notes, so the project shows up and has something to rename. No dates: a made-up
-// window would read as a plan. Created only when the id is missing, so it runs once.
-const PROJ_SEED=[
-  ['proj:gym:terrace','Home gym on Tariq roof','Cover terrace',''],
-  ['proj:gym:choose', 'Home gym on Tariq roof','Choose equipment',''],
-  ['proj:gym:order',  'Home gym on Tariq roof','Order equipment',''],
-  ['proj:closet:1','Walk-in closet','Measure the space and draw the layout','Placeholder — replace with the real first step.'],
-  ['proj:car:1',   'Car arrival',   'Confirm the shipping date','Placeholder — replace with the real first step.'],
-  ['proj:bonsai:1','Bonsai tree',   'Choose the species and where it will live','Placeholder — replace with the real first step.'],
-];
-function seedProjects(){
-  PROJ_SEED.forEach(([id,project,name,notes])=>{
-    if(S.items[id])return;
-    put('projects',Object.assign({project,name,status:'Idea'},notes?{notes}:{}),id);
-  });
-}
-
-/* ---------------- one-time: one want ---------------- */
-// Prices for things already on the list, filled in only where the price is still blank so
-// anything typed by hand wins. The three perfumes are the 100ml bottle at each house's own
-// US price. Delete this block once it has applied.
-const WANT_PRICES=[
-  ['want:airpods-max-2',           550],   // AirPods Max 2, apple.com
-  ['want:auto:perf:inflorescence', 265],   // Byredo Inflorescence, 100ml
-  ['want:auto:perf:santal33',      340],   // Le Labo Santal 33, 100ml
-  ['want:auto:perf:lunamaris',     330],   // Diptyque Lunamaris, 100ml
-];
-function seedWant(){
-  const id='want:airpods-max-2';
-  if(!one(id))put('wants',{name:'AirPods Max 2 — Blue',grp:'Tech',price:550,
-    link:'https://www.apple.com/airpods-max/',
-    notes:'Five colours: blue, purple, midnight, starlight, orange. Free engraving, and three months of Apple Music with them.'},id);
-  WANT_PRICES.forEach(([wid,price])=>{
-    const it=one(wid);
-    if(it&&!(+it.d.price))put('wants',{price},wid);
-  });
-  // Lunamaris came in without a house; it is Diptyque, like the Tam Dao already on the shelf
-  const lm=one('perf:lunamaris');
-  if(lm&&!String(lm.d.house||'').trim())put('perfume',{house:'Diptyque'},'perf:lunamaris');
-}
-
-/* ---------------- one-time: the western loop, as one trip ---------------- */
-// Thirteen places pinned in his road-trip folder; the route map he sent puts them on one
-// loop. They went in first as thirteen rows under a section, which he has since asked to be
-// one row instead — the trip is the thing, and the stops are its description. So this both
-// retires the thirteen and writes the one. The old rows are killed rather than dropped, so
-// the removal reaches the devices that already have them. Undated: it sits under To be
-// planned until a leg gets a date. Delete this block once it has applied.
-const LOOP_KEYS=['big-sur','mt-shasta','crater-lake','multnomah','seattle','missoula',
-  'west-yellowstone','yellowstone','grand-teton','monument-valley','lake-powell',
-  'horseshoe-bend','zion'];
-const WEST_NOTES=`Thirteen stops, one loop, roughly 3,500 miles \u2014 up the California coast, east from Seattle into Montana, down through Yellowstone and the Tetons, then back across Utah and Arizona to southern California.
-
-1. Big Sur, California \u2014 the start. Highway 1, Carmel to San Simeon.
-2. Mt Shasta, California \u2014 the turn inland onto I-5.
-3. Crater Lake, Oregon \u2014 Rim Drive is usually only open July to October.
-4. Multnomah Falls, Oregon \u2014 Columbia River Gorge, east of Portland.
-5. Seattle, Washington \u2014 the Space Needle. The road turns east here.
-6. Missoula, Montana.
-7. West Yellowstone, Montana \u2014 the park's west gate.
-8. Yellowstone National Park, Wyoming \u2014 Grand Prismatic.
-9. Grand Teton National Park, Wyoming \u2014 an hour south of Yellowstone.
-10. Monument Valley, Arizona \u2014 Navajo Nation land, on the Utah line.
-11. Lake Powell, Page, Arizona.
-12. Horseshoe Bend, Page, Arizona \u2014 Antelope Canyon is here too.
-13. Zion National Park, Utah \u2014 the last park before the drop to southern California.
-
-Best window is July to September. Early September threads open roads against heat and crowds.`;
-function seedLoop(){
-  LOOP_KEYS.forEach(k=>{if(S.items['travel:loop:'+k])kill('travel:loop:'+k)});
-  const id='travel:west-america';
-  if(!S.items[id])put('travels',{place:'West America',notes:WEST_NOTES},id);
-}
-
-/* ---------------- one-time: fold the four Gym rows into one ---------------- */
-// Gym needed an entry per day only because an entry could carry one specific. Now that it
-// can carry one per day, the four fold into Monday's row: it gains the other three days,
-// each day's specific, and their exercise notes kept under the day they belong to — a plain
-// merge would have dropped three of the four. The rest are retired.
-// Runs on the device holding the cloud key and syncs out from there. Guarded: it wants all
-// four present and untouched, so a second run does nothing and a merge already done by hand
-// is left alone. Delete this block once it has applied.
-const GYM_ROWS=[['act:gym:mon','Mon'],['act:gym:tue','Tue'],['act:gym:wed','Wed'],['act:gym:thu','Thu']];
-function mergeGym(){
-  const rows=GYM_ROWS.map(([id,dn])=>[one(id),dn]);
-  if(rows.some(([it])=>!it))return;              // one is already gone — do not guess at it
-  const base=rows[0][0];
-  if(base.d.splitDaily)return;                   // already folded
-  const d={days:GYM_ROWS.map(([,dn])=>dn).join(','),splitDaily:1};
-  rows.forEach(([it,dn])=>{d['split_'+dn]=String(it.d.split||'').trim()});
-  const notes=rows.map(([it,dn])=>{const n=String(it.d.notes||'').trim();return n?dn+' — '+n:''})
-    .filter(Boolean).join('\n');
-  if(notes)d.notes=notes;                        // start and end are left exactly as they are
-  put('acts',d,base.id);
-  rows.slice(1).forEach(([it])=>kill(it.id));
-}
-
 /* ---------------- settings ---------------- */
 $('#gearBtn').onclick=()=>{
   $('#setSync').textContent=cfg?'configured':'not set up';
@@ -3043,7 +2942,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();mergeGym();seedProjects();seedWant();seedLoop();initNav();initPad();
+  load();seed();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
