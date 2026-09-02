@@ -1527,6 +1527,29 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection
     return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'empty'}:(m>0&&c<=m)?{cls:'warn',txt:'buy'}:null}},
   empty:'Nothing here yet — hit + to add a bottle.'},
+jerseys:{title:'Jerseys',color:'var(--purple)',hint:'The shirt collection, filed by club. A work in progress — the examples at the bottom show the shape a row takes; delete them as the real ones go in.',
+  fields:[{k:'club',l:'Club or country',t:'dyn',opt:['Argentina','Barcelona','Brazil','France','Haiti','Manchester United','Paris Saint-Germain','Real Madrid']},
+          {k:'season',l:'Season',t:'text',ph:'2002/03'},
+          {k:'kind',l:'Kit',t:'dyn',opt:['Home','Away','Third','Goalkeeper','Special edition','Training']},
+          {k:'player',l:'Player and number',t:'text',ph:'Zidane 5'},
+          {k:'size',l:'Size',t:'sel',opt:['','XS','S','M','L','XL','XXL']},
+          {k:'signed',l:'Signed',t:'check'},
+          {k:'cond',l:'Condition',t:'sel',opt:['','New with tags','Excellent','Good','Worn']},
+          {k:'where',l:'Where it came from',t:'text',ph:'club shop, a gift, eBay…'},
+          {k:'price',l:'What it cost',t:'money'},
+          {k:'notes',l:'Notes',t:'ta',full:1,ph:'the match, the story, anything worth keeping…'}],
+  chips:[{l:'All',f:()=>1},{l:'Signed',f:i=>!!i.d.signed}],
+  stats:it=>[{k:'Shirts',v:it.length,u:new Set(it.map(i=>String(i.d.club||'').trim()).filter(Boolean)).size+' clubs',c:'var(--purple)'},
+             {k:'Signed',v:it.filter(i=>i.d.signed).length,c:'var(--gold)'}],
+  // A collection is browsed by club, and within one, newest shirt first.
+  group:i=>String(i.d.club||'').trim()||'Unfiled',
+  groupOrder:(a,b)=>(a===EG_CLUB?1:0)-(b===EG_CLUB?1:0)||(a==='Unfiled'?1:0)-(b==='Unfiled'?1:0)||a.localeCompare(b),
+  sort:(a,b)=>(b.d.season||'').localeCompare(a.d.season||'')||(a.d.kind||'').localeCompare(b.d.kind||''),
+  // The club is already the heading, so the card leads with what tells two of them apart.
+  card:i=>({t:esc([i.d.season,i.d.kind].filter(Boolean).join(' · ')||i.d.club||'Shirt'),
+    s:[esc(i.d.player||''),esc(i.d.size||''),esc(i.d.cond||'')].filter(Boolean).join(' · '),
+    pill:i.d.signed?{cls:'acc',txt:'signed'}:null}),
+  empty:'Nothing here yet — hit + to add a shirt.'},
 supp:{title:'Supplements',freeze:1,color:'var(--blue)',hint:'Vitamins and supplements on hand. Use − / + as bottles run out; anything at or below its reorder level also lands on Orders → Necessities.',
   fields:[{k:'name',l:'Supplement',t:'text',req:1},
           {k:'brand',l:'Brand',t:'dyn',opt:['BioOptimizers','Futurebiotics','GNC','Hims','Natgrown','Nature Made','ZAZZEE']},
@@ -2789,7 +2812,7 @@ const NAV=[
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
-  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume']]},
+  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest'],['CFO','cfo']]},
@@ -2872,6 +2895,28 @@ function renderActive(){
 const SEED=[]; // personal starter data lives in the private cloud, not in this public file
 function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec,d,up:1,dirty:1}}});save()}
 
+/* ---------------- one-time: three example jerseys ---------------- */
+// The page is going in ahead of the collection itself, so it opens with three rows showing
+// what a shirt looks like filled in rather than an empty page. They sit under one heading
+// that says what they are, and groupOrder keeps it at the bottom, under the real clubs.
+// Guarded on S.items, which keeps a deleted row as a tombstone — so one you delete stays
+// deleted rather than coming back on the next load. Delete this block once the real
+// collection is in.
+const EG_SEED=[
+  ['jersey:eg:1',{season:'2002/03',kind:'Home',player:'Zidane 5',size:'M',cond:'Excellent',
+    where:'Bernabéu club shop',price:120,
+    notes:'An example, not a real shirt. It shows the fields worth filling in: the season and the kit make the card, the player and size sit under it, and anything else about it goes here.'}],
+  ['jersey:eg:2',{season:'2018/19',kind:'Away',player:'Mbappé 7',size:'L',cond:'New with tags',signed:1,
+    where:'A gift',
+    notes:'An example. Ticking Signed puts the badge on the card, and the Signed filter at the top of the page shows only those.'}],
+  ['jersey:eg:3',{kind:'Third',size:'M',cond:'Good',
+    notes:'An example with most of it left blank — a shirt still files itself fine when you only know some of it, and you can fill the rest in later.'}],
+];
+const EG_CLUB='Examples — delete these';
+function seedJerseys(){
+  EG_SEED.forEach(([id,d])=>{if(!S.items[id])put('jerseys',Object.assign({club:EG_CLUB},d),id)});
+}
+
 /* ---------------- settings ---------------- */
 $('#gearBtn').onclick=()=>{
   $('#setSync').textContent=cfg?'configured':'not set up';
@@ -2944,7 +2989,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();initNav();initPad();
+  load();seed();seedJerseys();initNav();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
   if(!$('#pg-'+activePage))activePage='overview';
