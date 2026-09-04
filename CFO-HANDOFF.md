@@ -200,6 +200,37 @@ The CFO dashboard code came across unchanged, so all of this still applies.
   must be declared above `MODS`. Helper *functions* hoist and can live below.
   This has caused three temporal-dead-zone outages; the test catches it every time.
 
+### Transactions
+
+`tx` is the per-purchase ledger and the reason the app exists. Everything else says
+what a card was **paid**; only this says what was **bought**, which is the only thing
+that can be cut.
+
+- **Grouped by statement cycle, not calendar month.** `txStmtDay()` reads the card's
+  `stmtDay` off its Cash row, so the rows under a heading are exactly the purchases
+  that produced that bill. A transaction on the statement day belongs to that cycle;
+  the day after rolls to the next. An account with no statement day falls back to the
+  calendar month.
+- `TXKEY` maps group label → sort key. `group()` fills it as labels are built and
+  `groupOrder()` reads it back, because **groupOrder receives label strings, not rows.**
+- **`cfoTxMo()` excludes the `Subscriptions` category on purpose.** Subscriptions are
+  already counted from the subscriptions page and *also* land on the card as
+  transactions. Counting both bills him twice for Netflix. Don't "fix" this.
+- The dashboard prefers `cfoTxMo()` over the hand-typed `spend` register whenever any
+  transactions exist.
+- The importer reads Citi, Amex and Wells Fargo exports without being told which is
+  which: a date is whichever cell parses as one, the amount is the last cell that
+  parses as a number, the description is the longest cell that is neither. Wells Fargo
+  signs purchases negative — hence the flip checkbox. Nothing is written until previewed.
+
+### The CFO app holds finance only
+
+It was forked from the monitor and carried the whole thing — jerseys, perfume,
+recipes, travels, shows, bathroom stock. None of it was reachable and all of it sat
+inside the app holding the most sensitive data. 24 sections and 6 uncalled page
+functions are gone; the file went 3,141 → 2,690 lines before the transactions work.
+**Do not port a non-financial section back in.**
+
 ### Net liquid vs net worth
 
 He drew this himself. **Net worth** is everything. **Net liquid** is only what his

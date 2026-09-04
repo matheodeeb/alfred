@@ -1319,6 +1319,10 @@ function anchorIn(d,y,m){
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const CARD_SRC=['Citibank CC','Amex CC','Wells Fargo CC'];
+// Evaluated at load because MODS field definitions are, so these must stay above MODS.
+const TX_ACCTS=['Citibank CC','Amex CC','Wells Fargo CC','Citi Bank','Wells Fargo','PayPal','BUH USD','BUH HTG','Cash'];
+const TX_CATS=['Groceries','Restaurants','Transport','Fuel','Shopping','Clothing','Tech','Subscriptions',
+  'Travel','Health','Gifts','Family support','Business','Home','Fees & interest','Cash withdrawal','Other'];
 // Which column on the Statements page a card's payments are entered under. Guessed from the
 // account name so nothing has to be linked up by hand, and overridable when the guess fails.
 const guessSrc=name=>{const n=String(name||'').toLowerCase().replace(/[^a-z]/g,'');
@@ -1428,52 +1432,6 @@ function whenLabel(d){
 }
 const projStart=i=>whenStart(i.d);
 const MODS={
-briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
-  fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
-  formOut:d=>{if(!editCtx?.id)d.date=today();return d},
-  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up),
-  card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
-  empty:'No entries yet. Tap + to write today\'s.'},
-todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. Tap a day to open it; today is open already.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority that day',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Task order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
-  toggle:'done',stamp:'doneAt',
-  group:i=>{const w=todoWhen(i);if(w){const d=new Date(w+'T12:00:00');
-      if(!isNaN(d))return d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}
-    return 'General';},
-  subsub:i=>(i.d.grp||'').trim()||'General',
-  // every task in one of these blocks shares a day, so either side gives the date
-  subsubOrder:(a,b,ss)=>{const date=todoWhen(ss[a][0])||todoWhen(ss[b][0])||'';
-    return grpRankFor(date,a)-grpRankFor(date,b)||a.localeCompare(b)},
-  // the priority belongs to the section on that day, not to this task, so it goes to the cfg row
-  formOut:d=>{const g=(d.grp||'').trim(),want=+d.gord||0;delete d.gord;
-    if(g&&want>0&&d.due)setGrpRank(d.due,g,want);return d},
-  groupOrder:(a,b,gs)=>{const rank=g=>g==='General'?1:0;
-    if(doneView()){                                  // newest month first
-      const last=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i);return d>m?d:m},'');
-      return rank(a)-rank(b)||last(b).localeCompare(last(a))||b.localeCompare(a)}
-    const first=g=>gs[g].reduce((m,i)=>{const d=todoWhen(i)||'9999-99-99';return d<m?d:m},'9999-99-99');
-    return rank(a)-rank(b)||first(a).localeCompare(first(b))||a.localeCompare(b)},
-  subgroup:i=>{const w=todoWhen(i);return w?dlabel(w,doneView()):''},
-  // A day that has gone past says so in its heading; it should look it too, and today
-  // reads in blue. Every task in the block shares the date, so the first answers for all.
-  subCls:its=>{const w=todoWhen(its[0]);if(doneView()||!w)return'';
-    return w<today()?'late':w===today()?'now':''},
-  // Every day folds, and one starts open: today, or failing that the first day on the page,
-  // so there is always something to read without hunting for the day you are in.
-  subCollapse:1,
-  subOpen:its=>{const t=today(),lab=i=>MODS.todo.subgroup(i);
-    const cur=its.find(i=>todoWhen(i)===t&&lab(i));
-    const open=cur?lab(cur):(its.map(lab).find(Boolean)||'');
-    return new Set(open?[open]:[])},
-  sort:(a,b)=>doneView()
-    ? (todoWhen(b)||'').localeCompare(todoWhen(a)||'')||((+a.d.ord||9999)-(+b.d.ord||9999))
-    : (a.d.done?1:0)-(b.d.done?1:0)||(a.d.due||'9999').localeCompare(b.d.due||'9999')||((+a.d.ord||9999)-(+b.d.ord||9999)),
-  ranked:0,
-  // The notes are the drawer's whole content, so the card does not print them too — a long
-  // brief would bury the day. Tap the task to read it.
-  card:i=>({t:esc(i.d.task),dim:!!i.d.done,
-    pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
 fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
   fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
           {k:'stmtDay',l:'Statement day of the month',t:'num',ph:'24'},
@@ -1567,6 +1525,33 @@ goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when
       s:[money2(sv)+' of '+money2(t),i.d.track==='Net liquid — live'?'tracking net liquid':'',i.d.by?'by '+fdate(i.d.by).replace(/^\w+, /,''):'no date set'].filter(Boolean).join(' · '),
       pill:{cls:p>=100?'ok':p>=50?'warn':'mut',txt:p.toFixed(0)+'%'}}},
   empty:'No goals yet. A wealth roadmap without a destination is just a budget — add what you are actually saving toward.'},
+tx:{title:'Transactions',color:'var(--purple)',hint:'Every purchase, one row each. This is the ledger the rest of the app reasons from — the Statements page tells you what you paid a card, only this tells you what you bought.',
+  fields:[{k:'date',l:'Date',t:'date',req:1},
+          {k:'desc',l:'Merchant / description',t:'text',req:1},
+          {k:'amt',l:'Amount',t:'money',req:1,ph:'positive = spent, negative = refund'},
+          {k:'card',l:'Card / account',t:'dyn',opt:TX_ACCTS,req:1},
+          {k:'cat',l:'Category',t:'dyn',opt:TX_CATS},
+          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  only:i=>!TXCARD||i.d.card===TXCARD,
+  group:i=>txCycleLabel(i.d),
+  groupOrder:(a,b)=>txCycleKey(b)-txCycleKey(a),
+  groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
+  stats:it=>{const spent=it.filter(i=>cfoUsd(i.d.amt,i.d.cur)>0).reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const back=it.filter(i=>cfoUsd(i.d.amt,i.d.cur)<0).reduce((s,i)=>s-cfoUsd(i.d.amt,i.d.cur),0);
+    const byC={};it.forEach(i=>{const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
+    const top=Object.entries(byC).sort((a,b)=>b[1]-a[1])[0];
+    const un=it.filter(i=>!i.d.cat).length;
+    return[{k:'Spent',v:money2(spent),u:it.length+' transaction'+(it.length===1?'':'s'),c:'var(--purple)'},
+           {k:'Refunded',v:money2(back),c:'var(--green)'},
+           {k:'Biggest category',v:top?esc(top[0]):'\u2014',u:top?money2(top[1]):'',c:'var(--orange)'},
+           {k:'Uncategorised',v:un,u:un?'they land in Other until you set them':'all filed',c:un?'var(--gold)':'var(--muted)'}]},
+  card:i=>{const v=cfoUsd(i.d.amt,i.d.cur);
+    return{t:esc(i.d.desc||'Transaction'),
+      s:[i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',esc(i.d.card||''),esc(i.d.cat||'uncategorised')].filter(Boolean).join(' \u00b7 '),
+      pill:{cls:v<0?'ok':'mut',txt:(v<0?'+'+money2(-v):money2(v))}}},
+  empty:'No transactions yet. Import a statement with the button above, or add one with +. Until something is here the spending breakdown has nothing to read.'},
 spend:{title:'Spending',color:'var(--purple)',hint:'One row per category per month. Your cards tell you what you paid; this tells you what you bought — which is the only thing you can act on.',
   fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},
           {k:'year',l:'Year',t:'num',def:()=>new Date().getFullYear()},
@@ -1625,190 +1610,6 @@ payroll:{title:'Payroll — house staff',color:'var(--green)',hint:'Tap the circ
   card:i=>{const p=paidThis(i);return{t:esc(i.d.name),s:[esc(i.d.role||''),(i.d.amt!==''&&i.d.amt!=null)?money(i.d.amt)+'/mo':'',i.d.payday?'pays day '+i.d.payday:''].filter(Boolean).join(' · '),
     pill:p?{cls:'ok',txt:'paid'}:{cls:'warn',txt:'due'},dim:false}},
   empty:'Add your house staff with + — salary, role, pay day.'},
-bdays:{title:'Birthdays',color:'var(--purple)',hint:'Never miss one.',
-  fields:[{k:'name',l:'Person',t:'text',req:1},{k:'date',l:'Birthday',t:'date'},{k:'notes',l:'Gift ideas / notes',t:'ta',full:1}],
-  sort:(a,b)=>nextBday(a.d.date)-nextBday(b.d.date),
-  card:i=>{const dd=daysToBday(i.d.date);return{t:esc(i.d.name),s:i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',
-    pill:dd==null?null:dd===0?{cls:'acc',txt:'today!'}:dd<=14?{cls:'warn',txt:'in '+dd+'d'}:{cls:'mut',txt:'in '+dd+'d'}}}},
-stock:{title:'Bathroom',freeze:1,color:'var(--orange)',hint:'Counts of what you keep in the bathroom. Hit the reorder level and it lands on Orders → Necessities by itself; the par level sets how many to buy.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Count',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'place',l:'Where',t:'text',ph:'cabinet, shower, drawer…'}],
-  chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
-  sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0;
-    return{t:esc(i.d.name),s:[esc(i.d.place||''),par?'par '+par:''].filter(Boolean).join(' · '),step:'count',
-      pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'low'}:{cls:'ok',txt:'ok'}}}},
-kitchen:{title:'Living room',freeze:1,color:'var(--green)',hint:'What\'s in the living room and what needs buying. Use − / + as you use things up; anything at or below its reorder level lands on Orders → Necessities by itself; the par level sets how many to buy.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'count',l:'Have',t:'num'},{k:'min',l:'Buy when at / below',t:'num'},{k:'par',l:'Par — how many you want after restocking',t:'num'},{k:'unit',l:'Unit',t:'text',ph:'bottles, lbs, packs…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'brand, size, where you get it…'}],
-  chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
-  stats:it=>{const buy=it.filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-    return[{k:'To buy',v:buy.length,u:buy.length?buy.slice(0,3).map(i=>i.d.name).join(', ')+(buy.length>3?'…':''):'all stocked',c:buy.length?'var(--bad)':'var(--ok)'},
-           {k:'Items tracked',v:it.length,c:'var(--green)'}]},
-  sort:(a,b)=>((+a.d.count||0)<=(+a.d.min||0)?0:1)-((+b.d.count||0)<=(+b.d.min||0)?0:1)||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>{const c=+i.d.count||0,m=+i.d.min||0,par=+i.d.par||0;
-    return{t:esc(i.d.name),s:[esc(i.d.unit||''),par?'par '+par:'',esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
-      pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
-  empty:'Nothing tracked yet — hit + to add what you keep in the living room.'},
-perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection. Use − / + when one runs out or a new one arrives; anything at or below its reorder level also lands on Orders → Wants.',
-  fields:[{k:'name',l:'Fragrance',t:'text',req:1},{k:'house',l:'House',t:'dyn',opt:['Dior','Yves Saint Laurent','Tom Ford','Davidoff','Houbigant','Maison Francis Kurkdjian','Diptyque','Prada','Atelier Rebul','Penhaligon’s']},
-          {k:'count',l:'Bottles',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'dresser, travel bag…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'notes, season, occasion…'}],
-  chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
-  stats:it=>[{k:'Bottles',v:it.reduce((s,i)=>s+(+i.d.count||0),0),c:'var(--gold)'},
-             {k:'Fragrances',v:it.length,u:new Set(it.map(i=>i.d.house).filter(Boolean)).size+' houses',c:'var(--acc)'}],
-  sort:(a,b)=>(a.d.house||'zzz').localeCompare(b.d.house||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>{const c=+i.d.count||0,m=+i.d.min||0;
-    // Stock lists the whole collection now, so a bottle you've run out of has to
-    // read as empty at a glance — same as the Bathroom and the Living room. Unlike them
-    // there's no 'ok' pill: this is a collection you browse, and a green badge on
-    // every bottle is noise. Nothing comes back for the × N duplicate count.
-    return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
-      pill:c===0?{cls:'bad',txt:'empty'}:(m>0&&c<=m)?{cls:'warn',txt:'buy'}:null}},
-  empty:'Nothing here yet — hit + to add a bottle.'},
-jerseys:{title:'Jerseys',color:'var(--purple)',hint:'The shirt collection, filed by club and newest season first. A work in progress — hit + to add the rest.',
-  fields:[{k:'club',l:'Club or country',t:'dyn',opt:['Argentina','Barcelona','Brazil','France','Haiti','Manchester United','Paris Saint-Germain','Real Madrid','Spain']},
-          {k:'season',l:'Season',t:'text',ph:'2002/03'},
-          {k:'kind',l:'Kit',t:'dyn',opt:['Home','Away','Third','Goalkeeper','Special edition','Training']},
-          {k:'player',l:'Player and number',t:'text',ph:'Zidane 5'},
-          {k:'size',l:'Size',t:'sel',opt:['','XS','S','M','L','XL','XXL']},
-          {k:'want',l:'Want it — not owned yet',t:'check'},
-          {k:'cond',l:'Condition',t:'sel',opt:['','New with tags','Excellent','Good','Worn']},
-          {k:'where',l:'Where it came from',t:'text',ph:'club shop, a gift, eBay…'},
-          {k:'price',l:'What it cost',t:'money'},
-          {k:'notes',l:'Notes',t:'ta',full:1,ph:'the match, the story, anything worth keeping…'}],
-  // One page, two halves: what he owns, and what he is still after. A wanted shirt files
-  // by club exactly like an owned one, so it is already in place the day it arrives —
-  // untick Want and it crosses over.
-  chips:[{l:'Collection',f:i=>!i.d.want},{l:'Wants',f:i=>!!i.d.want}],
-  stats:it=>{const have=it.filter(i=>!i.d.want), want=it.filter(i=>i.d.want);
-    return[{k:'Shirts',v:have.length,u:new Set(have.map(i=>String(i.d.club||'').trim()).filter(Boolean)).size+' clubs',c:'var(--purple)'},
-           {k:'Wanted',v:want.length,u:want.reduce((s,i)=>s+(+i.d.price||0),0)?money(want.reduce((s,i)=>s+(+i.d.price||0),0)):'',c:'var(--gold)'}]},
-  // A collection is browsed by club, and within one, newest shirt first.
-  group:i=>String(i.d.club||'').trim()||'Unfiled',
-  groupOrder:(a,b)=>(a==='Unfiled'?1:0)-(b==='Unfiled'?1:0)||a.localeCompare(b),
-  sort:(a,b)=>(b.d.season||'').localeCompare(a.d.season||'')||(a.d.kind||'').localeCompare(b.d.kind||''),
-  // The club is already the heading, so the card leads with what tells two of them apart.
-  card:i=>({t:esc([i.d.season,i.d.kind].filter(Boolean).join(' · ')||i.d.club||'Shirt'),
-    s:[esc(i.d.player||''),esc(i.d.size||''),esc(i.d.want?'':i.d.cond||''),
-       i.d.want&&i.d.price?money(i.d.price):''].filter(Boolean).join(' · '),
-    pill:i.d.want?{cls:'acc',txt:'want'}:null}),
-  empty:'Nothing here yet — hit + to add a shirt.'},
-supp:{title:'Supplements',freeze:1,color:'var(--blue)',hint:'Vitamins and supplements on hand. Use − / + as bottles run out; anything at or below its reorder level also lands on Orders → Necessities.',
-  fields:[{k:'name',l:'Supplement',t:'text',req:1},
-          {k:'brand',l:'Brand',t:'dyn',opt:['BioOptimizers','Futurebiotics','GNC','Hims','Natgrown','Nature Made','ZAZZEE']},
-          {k:'kind',l:'Type',t:'dyn',opt:['Adaptogenic herb','B vitamin','Beet root extract','Herbal root extract','Maca root','Magnesium','Omega-3 fish oil','Prescription','Vitamin B12','Vitamin D3']},
-          {k:'count',l:'Bottles',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'cabinet, travel bag…'},
-          {k:'notes',l:'Notes',t:'ta',full:1,ph:'what it is for, dose…'}],
-  chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
-  stats:it=>[{k:'Bottles',v:it.reduce((s,i)=>s+(+i.d.count||0),0),c:'var(--blue)'},
-             {k:'Supplements',v:it.length,u:new Set(it.map(i=>i.d.brand).filter(Boolean)).size+' brands',c:'var(--acc)'}],
-  sort:(a,b)=>(a.d.brand||'zzz').localeCompare(b.d.brand||'zzz')||(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.brand||''),esc(i.d.kind||'')].filter(Boolean).join(' · '),step:'count'}),
-  empty:'Nothing here yet — hit + to add a supplement.'},
-needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house actually needs, grouped by the stock page it came from. Anything low in the Bathroom, the Living room or Supplements appears here on its own, and drops off once restocked.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'src',l:'Section',t:'dyn',opt:NEED_SRC},{k:'qty',l:'Quantity',t:'num'},{k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  chips:[{l:'Open',f:i=>!i.d.done},{l:'Ordered',f:i=>i.d.done},{l:'All',f:()=>1}],
-  toggle:'done',
-  group:i=>String(i.d.src||'').trim()||'Added by hand',
-  groupOrder:(a,b)=>{const r=g=>{const x=NEED_SRC.indexOf(g);return x<0?9:x};
-    return r(a)-r(b)||a.localeCompare(b)},
-  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
-    pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received. Perfume you\'ve run out of shows up here on its own.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
-          {k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>String(i.d.grp||'').trim()||'Other',
-  groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
-  groupNote:arr=>money(arr.reduce((t,i)=>t+(+i.d.price||0),0)),
-  stats:it=>{const sum=a=>a.reduce((t,i)=>t+(+i.d.price||0),0);
-    const open=it.filter(wOpen), paid=it.filter(i=>!wOpen(i)), noPrice=open.filter(i=>!(+i.d.price)).length;
-    return[{k:'To spend',v:money(sum(open)),u:open.length+' item'+(open.length===1?'':'s')+(noPrice?' · '+noPrice+' without a price':''),c:'var(--gold)'},
-           {k:'Spent',v:money(sum(paid)),u:paid.length+' item'+(paid.length===1?'':'s'),c:'var(--ok)'}]},
-  chips:[{l:'Open',f:wOpen},{l:'Ordered',f:i=>i.d.done&&!i.d.got},{l:'Received',f:i=>!!i.d.got}],
-  onToggle:i=>{const d=i.d;
-    if(wOpen(i))put('wants',{done:1,doneAt:today()},i.id);            // open  → ordered
-    else if(!d.got)put('wants',{got:1,gotAt:today()},i.id);           // ordered → received
-    else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
-  toggle:'done',
-  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
-    pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
-  fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
-food:{title:'Food recipes',color:'var(--orange)',hint:'Dishes the cook can make — point to these from the menu.',
-  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Snacks','Shakes','Drinks','Other']},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'steps',l:'How to make it',t:'ta',full:1}],
-  group:i=>i.d.cat||'Other',
-  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
-tlspoils:{title:'Timeline — spoils',color:'var(--acc)',hint:'The treats — dated once you get them, undated while they\'re still on the list.',
-  fields:[{k:'date',l:'Date',t:'date'},{k:'name',l:'What',t:'text',req:1},{k:'cost',l:'Cost',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
-  card:i=>({t:esc(i.d.name),s:[fdate(i.d.date),i.d.cost?money(i.d.cost):''].filter(Boolean).join(' · ')})},
-travels:{title:'Timeline — travels',color:'var(--blue)',hint:'What\'s coming up first sits on top; unplanned ideas live below. Give two places the same section and they sit together as one trip. Tick a place off once you have been and it moves to Past.',
-  fields:TRAVEL_FIELDS,
-  // The tick sits on the place, not the section: you come back from one leg of a journey
-  // before the others, and a place is the thing you have actually been to.
-  toggle:'done',stamp:'doneAt',
-  only:i=>!i.d.done,                                      // once ticked it belongs to Past
-  group:i=>tripBlockWhen(i)?'Planned':'To be planned',    // any date on any leg counts as planned
-  groupOrder:(a,b)=>(a==='Planned'?0:1)-(b==='Planned'?0:1),
-  subgroup:i=>tripName(i)||'\0'+i.id,                     // named trips head their own block…
-  subBox:1,                                               // …drawn as a block, so it reads as one journey
-  // A trip with a dozen stops otherwise pushes everything under it off the page, so a
-  // section starts folded: the heading already says how many places and when it begins.
-  subCollapse:1,
-  subNote:its=>tripNote(its),
-  // Blocks fall in date order, and an undated block after them: a named trip ahead of the
-  // loose ideas, since the ideas are the part with nothing decided about them yet.
-  sort:(a,b)=>tripSort(a,b,1),
-  card:i=>({t:esc(i.d.place),s:tripDates(i.d),
-    pill:tripWhen(i.d)>today()?{cls:'acc',txt:'upcoming'}:null})},
-// The same rows, the other half of them: everywhere he has actually been, filed by the year
-// he went. Ticking a place on Travels lands it here; clearing the tick sends it back.
-travpast:{title:'Timeline — past',color:'var(--gold)',data:'travels',only:i=>!!i.d.done,
-  hint:'Everywhere you have been, by year. Tick a place off on Travels and it arrives here; untick it and it goes back.',
-  fields:TRAVEL_FIELDS,
-  toggle:'done',stamp:'doneAt',
-  formOut:d=>{d.done=1;return d},                         // anything written on this page is somewhere you have been
-  group:i=>{const w=tripWhen(i.d);return /^\d{4}/.test(w)?w.slice(0,4):'No date'},
-  groupOrder:(a,b)=>(a==='No date'?1:0)-(b==='No date'?1:0)||b.localeCompare(a),
-  subgroup:i=>tripName(i)||'\0'+i.id,
-  subBox:1,
-  subCollapse:1,
-  subNote:its=>tripNote(its,1),                           // a month, not a weekday, once it has happened
-  // The most recent trip is the one you look for, so the years and the trips inside them
-  // both run backwards — but a single journey keeps the order you actually travelled it.
-  sort:(a,b)=>tripSort(a,b,-1),
-  card:i=>({t:esc(i.d.place),s:tripDates(i.d,1),pill:{cls:'mut',txt:'travelled'}}),
-  empty:'Nothing here yet — tick a place off on Travels and it lands here.'},
-shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.genre||'Other',
-  groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
-  chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
-  ranked:1, sort:upNextSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
-    pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
-movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.genre||'Other',
-  groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
-  chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
-  ranked:1, sort:upNextSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
-    pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
-books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
-  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
-  group:i=>i.d.cat||'Other',
-  chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
-  ranked:1, sort:priSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
-    pill:i.d.status==='Reading'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
-courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master.',
-  fields:[{k:'name',l:'Course / topic',t:'text',req:1},{k:'topic',l:'Group',t:'dyn',opt:['Courses','Languages','Security','Diplomacy','Management','Haiti']},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.topic||'Other',
-  chips:[{l:'All',f:()=>1},{l:'In progress',f:i=>i.d.status==='In progress'},{l:'Done',f:i=>i.d.status==='Done'}],
-  card:i=>({t:esc(i.d.name),s:esc(i.d.src||''),dim:i.d.status==='Done',
-    pill:i.d.status==='In progress'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value. Net worth counts what it\'s worth now.',
   fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Watch','Property','Vehicle','Investment','Other']},
           {k:'src',l:'Value from',t:'sel',opt:['Manual','Investment log'],def:'Manual'},
@@ -1823,64 +1624,6 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
       linked?`<span class="lnk">↳ from the investment log${l?' · '+fdate(l.d.date).replace(/^\w+, /,''):' · nothing logged yet'}</span>`:'',
       esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
-acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these. One task can keep a different time on one day: turn on "Choose times daily" and tap that day\'s block.',
-  sort:byStart,
-  fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'splitDaily',l:'Choose specifics daily',t:'check'},{k:'split',l:d=>d&&d.splitDaily&&editCtx?.day?'Specifics — '+editCtx.day:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},
-          {k:'timeDaily',l:'Choose times daily',t:'check'},
-          {k:'start',l:d=>d&&d.timeDaily&&editCtx?.day?'Starts — '+editCtx.day:'Starts',t:'time'},
-          {k:'end',l:d=>d&&d.timeDaily&&editCtx?.day?'Ends — '+editCtx.day:'Ends',t:'time'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  // One activity can carry a different specific for each of its days: Gym is one section
-  // Monday to Thursday, and each of those days has its own split. The form edits the day
-  // whose block you tapped; opened from the list, with no day in hand, it edits the shared
-  // value the untouched days fall back on.
-  formIn:(it,k,v)=>{
-    const day=editCtx?.day; if(!day||!it)return v;
-    if(k==='split'&&it.d.splitDaily)return it.d['split_'+day]??'';
-    // a day with no time of its own opens showing the shared one, so you edit what you see
-    if((k==='start'||k==='end')&&it.d.timeDaily)return actAt(it,day,k);
-    return v;
-  },
-  formOut:d=>{const day=editCtx?.day, prev=(editCtx?.id?one(editCtx.id)?.d:null)||{};
-    if(day){
-      if(d.splitDaily){d['split_'+day]=d.split; d.split=prev.split||''}
-      // The shared time is left exactly as it was: only the day you tapped gets its own,
-      // and every other day goes on falling back to what it always used.
-      if(d.timeDaily)['start','end'].forEach(k=>{d[k+'_'+day]=d[k]; d[k]=prev[k]||''});
-    }
-    return d},
-  card:i=>({t:esc(i.d.name),s:[esc(actSplits(i)),i.d.timeDaily?'':(i.d.days||'').split(',').filter(Boolean).join(' · '),esc(actTimes(i)),esc(i.d.time||'')].filter(Boolean).join(' — '),
-    pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
-menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
-  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
-  group:i=>i.d.cat||'Other',
-  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,110))}),
-  empty:'Nothing on the menu yet — hit + to add what the cooks can make.'},
-brief:{title:'Daily brief',color:'var(--gold)',
-  fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
-  card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
-projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its tasks. Each one can carry a window of dates rather than a single day.',
-  fields:[{k:'project',l:'Project',t:'dyn',req:1,opt:['Walk-in closet','Car arrival','Bonsai tree','Home gym on Tariq roof']},{k:'name',l:'Item / task',t:'text',req:1},
-          {k:'when',l:'Expect it',t:'sel',opt:WHEN_SEL,def:'Specific period'},
-          {k:'wk',l:'Which week',t:'sel',opt:WK_SEL},{k:'mon',l:'Month',t:'sel',opt:MON_SEL},
-          {k:'start',l:'From',t:'date'},{k:'end',l:'By',t:'date'},
-          {k:'status',l:'Status',t:'sel',opt:ST_SEL},{k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.project||'Other',
-  collapse:1, toggle:'done', stamp:'doneAt',
-  // Projects run in the order they start, and so do the tasks inside them — the page is
-  // meant to be read as what happens next. Anything undated waits at the end.
-  groupOrder:(a,b,gs)=>{const first=g=>gs[g].reduce((m,i)=>{const d=projStart(i);return d&&d<m?d:m},'9999-99-99');
-    return first(a).localeCompare(first(b))||a.localeCompare(b)},
-  groupNote:its=>{const done=its.filter(i=>i.d.done).length;
-    const dated=its.filter(i=>projStart(i)).sort((a,b)=>projStart(a).localeCompare(projStart(b)));
-    const first=dated[0]?whenLabel(dated[0].d):'';
-    return esc(done+'/'+its.length+(first?' · from '+first:''))},
-  sort:(a,b)=>(a.d.done?1:0)-(b.d.done?1:0)
-    ||(projStart(a)||'9999').localeCompare(projStart(b)||'9999')
-    ||ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
-  card:i=>({t:esc(i.d.name),s:[esc(whenLabel(i.d)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
-    pill:i.d.done?{cls:'mut',txt:'done'}:{cls:i.d.status==='In progress'?'ok':'acc',txt:esc(i.d.status||'')}})},
 invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month — the balance, and anything you put in. The chart above draws itself from these.',
   fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
           {k:'acct',l:'Account',t:'dyn',opt:['Citi','Other'],def:'Citi'},
@@ -1891,32 +1634,6 @@ invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month �
   card:i=>{const v=+i.d.val||0,a=+i.d.added||0;
     return{t:money2(v),s:[fdate(i.d.date).replace(/^\w+, /,''),esc(i.d.acct||''),a?'+'+money2(a)+' in':''].filter(Boolean).join(' · ')}},
   empty:'Nothing logged yet — hit + and record this month\'s balance.'},
-recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose.',
-  fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
-          {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly','Biyearly','Yearly'],def:'Weekly'},
-          {k:'anchor',l:'When to do it',t:'sel',opt:ANCHOR_SEL,def:GAP_ANCHOR},
-          {k:'dom',l:'Which day',t:'num',ph:'15'},
-          {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
-  formIn:(it,k,v)=>k==='every'?everyOf(it.d):v,   // an old "Twice a year" opens as Biyearly
-  chips:[{l:'All',f:()=>1},{l:'Personal',f:i=>(i.d.who||'Personal')==='Personal'},{l:'Staff',f:i=>i.d.who==='Staff'}],
-  group:i=>i.d.who||'Personal',
-  groupOrder:(a,b)=>a.localeCompare(b),
-  sort:(a,b)=>(a.d.paused?1:0)-(b.d.paused?1:0)||recurNext(a).localeCompare(recurNext(b)),
-  toggle:{k:'last'},
-  // Ticking it off records the day you ticked it, always. What comes next is worked out
-  // from "When to do it", so finishing early or late no longer drags the schedule with it.
-  onToggle:i=>put('recur',{last:today()},i.id),
-  stats:it=>{const due=it.filter(recurDue), paused=it.filter(i=>i.d.paused).length;
-    return[{k:'Due now',v:due.length,u:due.length?due.slice(0,3).map(i=>i.d.name).join(', '):'all up to date',c:due.length?'var(--bad)':'var(--ok)'},
-           {k:'Recurring jobs',v:it.length,u:paused?paused+' paused':'',c:'var(--purple)'}]},
-  card:i=>{const due=recurDue(i),next=recurNext(i);
-    const days=Math.round((new Date(next+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
-    return{t:esc(i.d.name),s:[esc(everyOf(i.d)),esc(recurAnchored(i)?anchorShort(i.d):''),
-        i.d.paused?'paused':(i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done')].filter(Boolean).join(' · '),
-      dim:!due,
-      act:{txt:i.d.paused?'▶ Resume':'❚❚ Pause',fn:`recurPause('${i.id}')`,cls:i.d.paused?'ordBtn pausedBtn':'ordBtn'},
-      pill:i.d.paused?{cls:'mut',txt:'paused'}:(due?{cls:'bad',txt:'due'}:{cls:'ok',txt:days===1?'in 1 day':'in '+days+' days'})}},
-  empty:'Nothing recurring yet — hit + to add one.'},
 cfg:{title:'cfg'}
 };
 const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90,Biyearly:182,Yearly:365};
@@ -1952,19 +1669,6 @@ function recurNext(r){
     return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(Math.min(d.getDate(),eom)).padStart(2,'0');
   }
   return addDays(r.d.last,EVERY[ev]||7);
-}
-function recurDue(r){return !r.d.paused&&recurNext(r)<=today()}
-function recurPause(id){const r=one(id);if(!r)return;put('recur',{paused:r.d.paused?'':1},id);renderActive()}
-// due recurring jobs are mirrored into the To-do list; ticking them there completes the cycle
-function syncRecurTodos(){
-  list('recur').forEach(r=>{
-    const tid='todo:recur:'+r.id, cur=one(tid);
-    if(r.d.paused){if(cur)kill(tid);return}          // paused jobs stay off the list entirely
-    const due=recurNext(r);                          // always the NEXT one, and only that one
-    const task=r.d.name, notes=`${everyOf(r.d)} · ${r.d.who||'Personal'}`;
-    if(!cur||cur.d.task!==task||cur.d.due!==due||cur.d.notes!==notes)
-      put('todo',{task,grp:'Recurring',due,done:'',notes},tid);
-  });
 }
 function paidThis(i){const lp=i.d.lastPaid||'';return lp.slice(0,7)===today().slice(0,7)}
 function nextBday(s){const d=daysToBday(s);return d==null?9999:d}
@@ -2237,6 +1941,151 @@ function cfoSubsMo(){return list('finsub').reduce((s,i)=>s+(+i.d.cost||0)*(i.d.c
 function cfoPayrollMo(){return list('payroll').reduce((s,i)=>s+(+i.d.amt||0),0)}
 function cfoDebts(){return list('debt').map(i=>({id:i.id,name:i.d.name||'Debt',
   bal:cfoUsd(i.d.bal,i.d.cur),apr:+i.d.apr||0,min:cfoUsd(i.d.min,i.d.cur),day:+i.d.day||0})).filter(d=>d.bal>0)}
+/* ---------------- transactions ----------------
+   The per-purchase ledger. Everything else in the finance pages says what a card was
+   PAID; only this says what was BOUGHT, which is the only thing that can be cut.
+   Grouped by statement cycle rather than calendar month, because a cycle is the set of
+   purchases that produced one bill — so the total under a heading is the bill. */
+const TXKEY={};                 // label -> sort key, filled by txCycleLabel as groups are built
+let TXCARD='';                  // '' = every card
+let TXIMP=0;                    // import panel open
+// A card's statement day comes off its Cash row, so the cycle follows the card's real
+// billing rule rather than the calendar. An account without one falls back to the month.
+function txStmtDay(card){
+  const n=String(card||'').toLowerCase().replace(/[^a-z]/g,'');
+  if(!n)return 0;
+  const row=list('fincash').find(i=>{
+    if(i.d.grp!=='Credit'&&i.d.grp!=='Haiti credit')return false;
+    const k=String(i.d.name||'').toLowerCase().replace(/[^a-z]/g,'');
+    return k&&(n.includes(k)||k.includes(n))});
+  return row?stmtDayOf(row.d):0;
+}
+function txCycleEnd(d){
+  const m=String(d.date||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m)return null;
+  const y=+m[1],mo=+m[2]-1,day=+m[3],sd=txStmtDay(d.card);
+  if(!sd)return{y,mo,day:0,cal:1};
+  if(day<=sd)return{y,mo,day:sd};
+  return mo===11?{y:y+1,mo:0,day:sd}:{y,mo:mo+1,day:sd};
+}
+function txCycleLabel(d){
+  const c=txCycleEnd(d); if(!c)return 'Undated';
+  if(c.cal){const l=MONTHS[c.mo]+' '+c.y;TXKEY[l]=c.y*10000+c.mo*100;return l}
+  const end=onDay(c.y,c.mo,c.day), st=new Date(end); st.setMonth(st.getMonth()-1); st.setDate(st.getDate()+1);
+  const f=x=>x.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const l=`Statement ${f(end)} \u00b7 ${f(st)}\u2013${f(end)}`;
+  TXKEY[l]=c.y*10000+c.mo*100+c.day; return l;
+}
+function txCycleKey(label){return TXKEY[label]||0}
+function txCards(){return[...new Set(list('tx').map(i=>i.d.card).filter(Boolean))].sort()}
+function txSetCard(c){TXCARD=c;renderActive()}
+function txShown(){return list('tx').filter(i=>!TXCARD||i.d.card===TXCARD)}
+// Average monthly spend from real transactions, over the months actually covered.
+// Subscriptions are counted from the subscriptions page, and they also land on the card
+// as transactions. Counting both bills him twice for Netflix, so that one category is
+// left out here and the subscriptions figure stays the single source for it.
+function cfoTxMo(){
+  const r=list('tx').filter(i=>i.d.date&&i.d.cat!=='Subscriptions');if(!r.length)return 0;
+  const mons=new Set(list('tx').filter(i=>i.d.date).map(i=>String(i.d.date).slice(0,7))).size;
+  return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons);
+}
+/* --- statement import ------------------------------------------------------
+   Card exports disagree on almost everything, so nothing is assumed: a date is
+   whichever cell parses as one, the amount is the last cell that parses as a number,
+   and the description is the longest cell that is neither. Everything is previewed
+   before a single row is written. */
+function txSplitCSV(line){
+  const out=[];let cur='',q=false;
+  for(let i=0;i<line.length;i++){const c=line[i];
+    if(q){if(c==='"'){if(line[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true; else if(c===','){out.push(cur);cur=''} else cur+=c}
+  out.push(cur);return out.map(x=>x.trim());
+}
+function txParseDate(v){
+  const s=String(v||'').trim();let m;
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))return `${m[3]}-${String(+m[1]).padStart(2,'0')}-${String(+m[2]).padStart(2,'0')}`;
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/))return `20${m[3]}-${String(+m[1]).padStart(2,'0')}-${String(+m[2]).padStart(2,'0')}`;
+  return '';
+}
+function txParseAmt(v){
+  const s=String(v||'').replace(/[$\s,]/g,'').replace(/^\((.*)\)$/,'-$1');
+  if(!s||!/^-?\d*\.?\d+$/.test(s))return null;
+  const n=parseFloat(s);return isNaN(n)?null:n;
+}
+function txParse(text){
+  const rows=[];
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    if(!line.trim())return;
+    const c=txSplitCSV(line);if(c.length<2)return;
+    let date='',amt=null,di=-1,ai=-1;
+    c.forEach((v,i)=>{const d=txParseDate(v);if(d&&!date){date=d;di=i}});
+    if(!date)return;                                   // header rows and junk drop out here
+    c.forEach((v,i)=>{if(i===di)return;const n=txParseAmt(v);if(n!==null&&n!==0){amt=n;ai=i}});
+    if(amt===null)return;
+    let desc='';c.forEach((v,i)=>{if(i!==di&&i!==ai&&v.length>desc.length&&!txParseDate(v)&&txParseAmt(v)===null)desc=v});
+    rows.push({date,desc:desc||'Transaction',amt});
+  });
+  return rows;
+}
+function txDoImport(){
+  const ta=document.getElementById('txPaste'),card=document.getElementById('txCard');
+  if(!ta||!card)return;
+  const flip=document.getElementById('txFlip')?.checked;
+  const rows=txParse(ta.value);
+  if(!rows.length){alert('Nothing recognisable. Each line needs a date and an amount.');return}
+  if(!card.value){alert('Pick which card these belong to.');return}
+  if(!confirm(`Import ${rows.length} transaction${rows.length===1?'':'s'} onto ${card.value}?`))return;
+  rows.forEach((r,n)=>put('tx',{date:r.date,desc:r.desc,amt:flip?-r.amt:r.amt,
+    card:card.value,cat:'',cur:'USD',notes:''},'tx:'+Date.now().toString(36)+':'+n));
+  ta.value='';TXIMP=0;renderActive();
+}
+function txPreview(){
+  const ta=document.getElementById('txPaste'),out=document.getElementById('txPrev');
+  if(!ta||!out)return;
+  const rows=txParse(ta.value),flip=document.getElementById('txFlip')?.checked;
+  if(!rows.length){out.innerHTML='<div class="empty">Nothing recognised yet. Paste rows that each carry a date and an amount.</div>';return}
+  const tot=rows.reduce((s,r)=>s+(flip?-r.amt:r.amt),0);
+  out.innerHTML=`<div class="hint">${rows.length} row${rows.length===1?'':'s'} recognised \u00b7 total ${money2(tot)}${tot<0?' \u2014 these read as credits, tick the box below to flip them':''}</div>`+
+    rows.slice(0,6).map(r=>`<div class="finRow"><span class="n">${esc(r.desc)}<span class="sub"> \u00b7 ${esc(r.date)}</span></span><span class="v">${money2(flip?-r.amt:r.amt)}</span></div>`).join('')+
+    (rows.length>6?`<div class="hint" style="margin-top:8px">\u2026and ${rows.length-6} more</div>`:'');
+}
+function txPage(){
+  const all=list('tx'),cards=txCards(),shown=txShown();
+  let h=`<div class="segbar" style="margin:12px 0 2px">`+
+    [['','All cards'],...cards.map(c=>[c,c])].map(([k,l])=>
+      `<button class="${TXCARD===k?'active':''}" onclick="txSetCard('${esc(k).replace(/'/g,"\\'")}')">${esc(l)}</button>`).join('')+`</div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Import a statement</h2>`;
+  if(!TXIMP)h+=`<div class="hint">Download the CSV from Citi, Amex or Wells Fargo and paste it here \u2014 it reads all three without being told which is which. Nothing is written until you have seen the preview.</div>
+    <button class="btn sm" onclick="TXIMP=1;renderActive()">Paste a statement</button></div>`;
+  else{
+    h+=`<div class="hint">Paste the rows. A line needs a date and an amount; headers and totals are ignored.</div>
+      <textarea id="txPaste" class="cfoIn" style="width:100%;min-height:110px;font-family:'IBM Plex Mono';font-size:12px" oninput="txPreview()" placeholder="08/24/2026,AMAZON MKTPL,-42.19"></textarea>
+      <div style="margin:10px 0"><select id="txCard" class="cfoIn"><option value="">Which card?</option>${
+        TX_ACCTS.map(c=>`<option${c===TXCARD?' selected':''}>${esc(c)}</option>`).join('')}</select></div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:10px">
+        <input type="checkbox" id="txFlip" onchange="txPreview()"> Flip the signs (use if purchases came in negative)</label>
+      <div id="txPrev"></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm" onclick="txDoImport()">Import</button>
+      <button class="btn sm ghost" onclick="TXIMP=0;renderActive()">Cancel</button></div></div>`;
+  }
+
+  if(all.length){
+    const spent=shown.filter(i=>cfoUsd(i.d.amt,i.d.cur)>0).reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const byC={};shown.forEach(i=>{const v=cfoUsd(i.d.amt,i.d.cur);if(v<=0)return;
+      const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+v});
+    const cats=Object.entries(byC).sort((a,b)=>b[1]-a[1]);
+    if(cats.length){
+      h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Where it went</h2>
+        <div class="hint">${TXCARD?esc(TXCARD):'Every card'} \u00b7 ${shown.length} transaction${shown.length===1?'':'s'} \u00b7 ${money2(spent)} spent. This is the list to cut from.</div>`;
+      h+=cats.map(([c,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(c)}</span><span class="v">${money2(v)}</span></div>
+        <div class="cfoBar"><i style="width:${(v/spent*100).toFixed(1)}%"></i></div>
+        <div class="cfoGoalSub">${(v/spent*100).toFixed(0)}% of what you spent</div></div>`).join('');
+      h+=`</div>`;
+    }
+  }
+  return h+genList('tx');
+}
 function cfoSpendMo(){const r=list('spend');if(!r.length)return 0;
   const mons=new Set(r.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
   return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons)}
@@ -2298,13 +2147,15 @@ function cfoPage(){
   const dmin=ds.reduce((s,d)=>s+d.min,0),dtot=ds.reduce((s,d)=>s+d.bal,0);
   const dint=ds.reduce((s,d)=>s+d.bal*(d.apr/100/12),0);
   const wapr=dtot?ds.reduce((s,d)=>s+d.bal*d.apr,0)/dtot:0;
-  const spend=cfoSpendMo(),burn=subs+pay+dmin+spend,net=inc-burn;
+  // Real transactions beat the hand-typed category register whenever there are any.
+  const nTx=list('tx').length;
+  const spend=nTx?cfoTxMo():cfoSpendMo(),burn=subs+pay+dmin+spend,net=inc-burn;
   const rate=inc>0?net/inc*100:null;
   const liquid=cfoLiquid(),runway=burn>0?liquid/burn:null;
 
   h+=`<div class="grid stats">
     <div class="stat" style="--accent:var(--green)"><div class="k">Income / month</div><div class="v">${money2(inc)}</div><div class="u">${[nInc?nInc+' source'+(nInc>1?'s':''):'',rent?'incl. '+money2(rent)+' net rent':''].filter(Boolean).join(' · ')||'nothing recorded yet'}</div></div>
-    <div class="stat" style="--accent:var(--orange)"><div class="k">Money out / month</div><div class="v">${money2(burn)}</div><div class="u">${[subs?'subs '+money2(subs):'',dmin?'debt min '+money2(dmin):'',pay?'payroll '+money2(pay):'',spend?'spending '+money2(spend):''].filter(Boolean).join(' · ')||'nothing committed yet'}</div></div>
+    <div class="stat" style="--accent:var(--orange)"><div class="k">Money out / month</div><div class="v">${money2(burn)}</div><div class="u">${[subs?'subs '+money2(subs):'',dmin?'debt min '+money2(dmin):'',pay?'payroll '+money2(pay):'',spend?'spending '+money2(spend)+(nTx?' from '+nTx+' transactions':''):''].filter(Boolean).join(' · ')||'nothing committed yet'}</div></div>
     <div class="stat" style="--accent:${net>=0?'var(--blue)':'var(--red)'}"><div class="k">${net>=0?'Surplus':'Deficit'} / month</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">${nInc?'what is left to put to work':'not real until income is in'}</div></div>
     <div class="stat" style="--accent:var(--acc)"><div class="k">Savings rate</div><div class="v">${rate==null?'—':rate.toFixed(0)+'%'}</div><div class="u">${rate==null?'needs income':'of every dollar in'}</div></div>
   </div>`;
@@ -2313,10 +2164,14 @@ function cfoPage(){
   if(!nInc)gaps.push(['income','Income','unlocks surplus, savings rate and every roadmap number']);
   if(!list('debt').length)gaps.push(['debt','Debts','unlocks avalanche vs snowball and your true interest cost']);
   if(!list('goal').length)gaps.push(['goal','Goals','unlocks "am I on track" and what to set aside each month']);
-  if(!list('spend').length)gaps.push(['spend','Spending','turns card payments into categories you can actually cut']);
+  if(!list('spend').length&&!list('tx').length)gaps.push(['spend','Spending','turns card payments into categories you can actually cut']);
   if(gaps.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Fill these in</h2>
     <div class="hint">Everything on this page is computed live from your own rows — nothing here is an estimate. These registers are still empty; each one you fill lights up more of the dashboard.</div>`+
     gaps.map(([k,l,why])=>`<div class="cfoGap"><span class="n">${l}</span><span class="why">${why}</span><button class="btn sm" style="margin-left:auto" onclick="CFOV='${k}';renderActive()">Open</button></div>`).join('')+`</div>`;
+
+  if(!list('tx').length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>No transactions yet</h2>
+    <div class="hint">Every figure above is built from balances and monthly totals — what a card was <b>paid</b>. None of it can tell you what you <b>bought</b>, which is the only thing you can decide to stop doing. Import a statement and the spending line here starts reading from real purchases.</div>
+    <button class="btn sm" onclick="go('tx')">Open Transactions</button></div>`;
 
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Liquidity</h2>
     <div class="hint">Cash you could reach this week — checking, the BUH balances and physical bills. Runway is how long that lasts at your current burn, ignoring anything new coming in.</div>
@@ -2397,95 +2252,6 @@ const DOW_TODAY=()=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDa
 function byStart(a,b){const dn=DOW_TODAY(), t=x=>{const m=toMin(actStart(x,dn));return m==null?99999:m};
   return t(a)-t(b)||(a.d.name||'').localeCompare(b.d.name||'')}
 function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);return isNaN(p)?null:p*60+(q||0)}
-function schedulePage(){
-  const acts=list('acts');
-  const todayIdx=(new Date().getDay()+6)%7;
-  const cols=['var(--green)','var(--blue)','var(--orange)','var(--purple)','var(--red)','var(--gold)','var(--acc)'];
-  // A day is the unit now, not an activity: the same task can run 7:30 on Monday and 9:00
-  // on Friday, so each day it falls on is worked out on its own.
-  // An end at or before the start means it runs past midnight — sleep, mostly. It ends
-  // when the chart does rather than collapsing to a single slot, which is what subtracting
-  // a bigger number from a smaller one used to give it.
-  const slots=[];
-  acts.forEach(a=>String(a.d.days||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(dn=>{
-    const di=DOW.indexOf(dn); if(di<0)return;
-    const st=toMin(actStart(a,dn)); if(st==null)return;
-    let en=toMin(actEnd(a,dn));
-    if(en==null)en=st+60; if(en<=st)en=Infinity;
-    slots.push({a,dn,di,st,en});
-  }));
-  const drawable=acts.filter(a=>slots.some(s=>s.a===a));
-  // The window stretches to whatever is actually scheduled, so nothing lands outside the
-  // chart and gets silently clamped onto its first or last row.
-  let T0=6*60,T1=22*60;
-  slots.forEach(({st,en})=>{
-    if(st<T0)T0=Math.floor(st/60)*60;
-    if(en!==Infinity&&en>T1)T1=Math.ceil(en/60)*60});
-  // A fixed half-hour step made blocks share a slot when their times did not touch —
-  // 5:00-5:15 and 5:15-5:45 both landed on the 5:00 row and were drawn on top of each
-  // other. Step by whatever divides every edge and every length actually scheduled, so a
-  // block occupies its own minutes and nothing else's.
-  const gcd=(x,y)=>y?gcd(y,x%y):x;
-  let step=60, shortest=Infinity;
-  slots.forEach(({st,en})=>{const e=en===Infinity?T1:en;
-    step=gcd(step,Math.abs(st-T0)); step=gcd(step,Math.abs(e-st));
-    if(e-st>0)shortest=Math.min(shortest,e-st)});
-  const SLOT=[30,15,10,5].find(d=>step>0&&step%d===0)||5;
-  if(!isFinite(shortest))shortest=SLOT;
-  const rows=(T1-T0)/SLOT;
-
-  let ci=0;const colOf={};
-  // Colour by name, not by row: the four Gym days are one thing on the planner, not four.
-  // Assigned in the list's own order so a block keeps its colour whatever we draw first.
-  drawable.forEach(a=>{const k=a.d.name||a.id;if(!colOf[k])colOf[k]=cols[ci++%cols.length]});
-  const mins=x=>(x.en===Infinity?T1:x.en)-x.st;
-  // Longest first: lunch sitting inside work is then the one found overlapping, and being
-  // later in the DOM it paints on top of the block it sits in rather than under it.
-  const place=[];
-  [...slots].sort((x,y)=>mins(y)-mins(x)).forEach(sl=>{
-    const en1=sl.en===Infinity?T1:sl.en;
-    const st=Math.max(T0,Math.min(T1,sl.st)), en=Math.max(st+1,Math.min(T1,en1));
-    // Floor the start and ceil the end. Rounding both put a 7:45 start on the 8:00 row,
-    // which is how the shower ended up sitting on top of dinner.
-    const r1=2+Math.floor((st-T0)/SLOT);
-    const span=Math.max(1,(2+Math.ceil((en-T0)/SLOT))-r1);
-    place.push({a:sl.a,dn:sl.dn,di:sl.di,st,en,r1,span,color:colOf[sl.a.d.name||sl.a.id]});
-  });
-  // Every block takes the other shade from the one before it, straight down the day. Only
-  // alternating across blocks that touch left neighbouring pairs matching whenever a gap
-  // sat between them — the eye reads two same-shaded blocks as one thing whether or not
-  // their edges meet, so the gap is not the thing that matters.
-  const byDay={};
-  place.forEach(x=>{(byDay[x.di]=byDay[x.di]||[]).push(x)});
-  Object.values(byDay).forEach(day=>{
-    let alt=false;
-    day.slice().sort((u,v)=>u.st-v.st||v.en-u.en).forEach(x=>{x.alt=alt;alt=!alt});
-  });
-  const placed=place.length;
-  // Every row the same height, so an hour on the page is an hour of the day wherever it
-  // falls. A block needs 30px to print its title and its time — 12.6 for the title, 11.2
-  // for the time, 6 of padding — so the scale is set by the shortest block on the chart
-  // and everything longer is drawn in proportion to it.
-  const ROW=Math.max(12,Math.ceil(30*SLOT/shortest));
-
-  let h=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Week planner</h2>
-  <div class="hint">Drawn from your activities below — tap a block to edit it.</div>
-  <div class="ttWrap"><div class="tt" style="grid-template-rows:24px repeat(${rows},${ROW}px)">`;
-  h+=`<span></span>`+DOW.map((d,i)=>`<div class="ttHead ${i===todayIdx?'today':''}" style="grid-column:${i+2};grid-row:1">${d}</div>`).join('');
-  for(let mn=T0;mn<T1;mn+=60){const r=2+(mn-T0)/SLOT;
-    h+=`<div class="ttTime" style="grid-row:${r}">${fmtT(String(Math.floor(mn/60)).padStart(2,'0')+':00')}</div>`;
-    for(let c=2;c<=8;c++)h+=`<div class="ttCell" style="grid-column:${c};grid-row:${r} / span ${60/SLOT}"></div>`;
-  }
-  place.forEach(({a,dn,di,r1,span,alt,color})=>{
-    const sp=actSplit(a,dn), st=actStart(a,dn), en=actEnd(a,dn);
-    h+=`<div class="ttBlock${alt?' alt':''}" style="grid-column:${di+2};grid-row:${r1} / span ${span};--bc:${color}" onclick="openForm('acts','${a.id}',{_day:'${dn}'})"><div class="n">${esc(a.d.name)}${sp?`<span class="sp">${esc(sp)}</span>`:''}</div><div class="t">${fmtT(st)}${en?'–'+fmtT(en):''}</div></div>`;
-  });
-  h+=`</div></div>`;
-  if(!placed)h+=`<div class="empty">Give your activities days and a start time and they appear here.</div>`;
-  h+=`</div>`;
-  h+=genList('acts');
-  return h;
-}
 const fdate2=x=>{if(!x)return'';const d=new Date(x+'T12:00:00');return isNaN(d)?esc(String(x)):d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
 function mdBlocks(md){
   const out=[];const lines=String(md||'').split(/\r?\n/);
@@ -2915,51 +2681,20 @@ function briefPage(){
   if(briefSel!=='archive'){const t=briefPick(briefDay(today()));if(t)return briefArticle(t)}
   return briefArchive();
 }
-function overviewPage(){
-  const t=today();
-  const dateline=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
-  const briefs=list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
-  const b=briefs[0];
-  h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
-  if(b)h+=`<div class="hint">${fdate(b.d.date)}${briefTxt(b,'title')?' — '+esc(briefTxt(b,'title')):''}</div><div class="ovBody">${esc(mdStrip(briefTxt(b,'body'),400))}</div><div class="ovMore">Read the full brief →</div>`;
-  else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
-  h+=`</div>`;
-  const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
-  h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
-  if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
-  else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
-  h+=`</div>`;
-  const acts=list('acts').filter(actToday).sort(byStart);
-  if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(actStart(i,DOW_TODAY()))||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
-  const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
-  const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
-  const pd=list('payroll').filter(i=>!paidThis(i));
-  if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
-  const tr=list('travels').filter(i=>!i.d.done&&tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
-  if(tr)h+=`<div class="panel ovCard" onclick="go('travels')"><h2><span class="sw" style="background:var(--blue)"></span>Next trip</h2><div class="ovRow"><span class="d">${fdate(tripWhen(tr.d))}</span><span>${esc(tr.d.place)}</span></div></div>`;
-  const bd=list('bdays').map(i=>({i,dd:daysToBday(i.d.date)})).filter(x=>x.dd!=null&&x.dd<=14).sort((a,b)=>a.dd-b.dd);
-  if(bd.length)h+=`<div class="panel ovCard" onclick="go('bdays')"><h2><span class="sw" style="background:var(--purple)"></span>Birthdays coming up</h2>${bd.map(x=>`<div class="ovRow"><span class="d">${x.dd===0?'today!':'in '+x.dd+'d'}</span><span>${esc(x.i.d.name)}</span></div>`).join('')}</div>`;
-  return h;
-}
 
 /* ---------------- nav / pages ---------------- */
 const NAV=[
   {t:'CFO',p:'cfo'},
-  {t:'Cash',p:'fincash'},
-  {t:'Statements',p:'finstmt'},
-  {t:'Transfers',p:'fintx'},
-  {t:'Subscriptions',p:'finsub'},
-  {t:'Investments',p:'invest'},
-  {t:'Payroll',p:'payroll'},
+  {t:'Transactions',p:'tx'},
+  {t:'Accounts',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
+  {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
 ];
 const SPECIAL={
   fincash:{render:fincashPage,fab:'fincash'},
   invest:{render:investPage,bind:bindInvest,fab:'invest'},
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
+  tx:{render:txPage,fab:'tx'},
   cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV}};
 let activePage=localStorage.cfo_page||'cfo';
 function initNav(){
@@ -3028,13 +2763,6 @@ function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec
 // shirt goes in their place. Written only when the id is missing, and the id survives a
 // delete as a tombstone, so this neither duplicates nor resurrects. Delete this block
 // once it has applied.
-function seedJerseys(){
-  ['jersey:eg:1','jersey:eg:2','jersey:eg:3'].forEach(id=>{if(S.items[id])kill(id)});
-  const id='jersey:spain-2026-away-yamal';
-  if(!S.items[id])put('jerseys',{club:'Spain',season:'2026',kind:'Away',player:'Lamine Yamal 19',
-    size:'L',where:'adidas',price:180,
-    notes:'Spain 26 away, the authentic cut rather than the replica. Bought from adidas at $180; sold out there since.'},id);
-}
 
 /* ---------------- settings ---------------- */
 $('#gearBtn').onclick=()=>{
