@@ -222,6 +222,7 @@
   .finRow:last-child{border-bottom:0}
   .finRow .n{font-size:13.5px}
   .finRow .sub{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint)}
+  .finRow .sub.late{color:var(--bad);font-weight:500}   /* a due date that has gone past */
   .finRow .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:13.5px}
   .finRow .v2{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted)}
   .finTot{display:flex;gap:10px;padding:10px 2px 2px;border-top:2px solid var(--line2);margin-top:2px;font-weight:600}
@@ -1237,8 +1238,13 @@ function cardCycle(i){
 }
 const cycDate=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
 function cycTxt(i){
-  const c=cardCycle(i);if(!c)return'';
-  return [c.st?'stmt '+cycDate(c.st):'',c.du?'due '+cycDate(c.du):''].filter(Boolean).join(' · ');
+  const c=cardCycle(i);if(!c)return null;
+  // The cycle only moves on when the payment is entered, so a due date now behind us means
+  // it went unpaid. The row says so, in the red an overdue day gets on the To-do list.
+  const t0=new Date();t0.setHours(0,0,0,0);
+  const late=!!c.du&&c.du<t0;
+  return{t:[c.st?'stmt '+cycDate(c.st):'',c.du?'due '+cycDate(c.du):'',late?'overdue':'']
+    .filter(Boolean).join(' · '),late};
 }
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
 const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
@@ -1875,7 +1881,7 @@ function fincashPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
   const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const row=i=>{const cyc=cycTxt(i);
-    return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cyc?`<span class="sub"> · ${esc(cyc)}</span>`:''}</span><span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span></div>`};
+    return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cyc?`<span class="sub${cyc.late?' late':''}"> · ${esc(cyc.t)}</span>`:''}</span><span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span></div>`};
   const hrow=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usd(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}">${money2(usd(i))}</span>`}</div>`;
   let h=finSeg();
   if(finView==='American'){
