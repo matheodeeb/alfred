@@ -59,8 +59,8 @@ not wired *to* it. The two will drift, and that is accepted.
 
 **Not done yet:**
 
-- The `cfo_items` table does not exist. Until he runs the SQL, the app cannot
-  sync and shows "local only".
+- ~~The `cfo_items` table does not exist.~~ **Created**, with an RLS policy matching
+  the one on `public.items` (same shared secret), plus an index on `up` for sync.
 - No data has been imported. The app is empty.
 - No recovery codes. **A forgotten passphrase currently means permanent loss** —
   he has been told to set only a throwaway passphrase until this is built.
@@ -230,6 +230,40 @@ recipes, travels, shows, bathroom stock. None of it was reachable and all of it 
 inside the app holding the most sensitive data. 24 sections and 6 uncalled page
 functions are gone; the file went 3,141 → 2,690 lines before the transactions work.
 **Do not port a non-financial section back in.**
+
+### Importing from the monitor, and why it runs in the browser
+
+`monScan()` / `monImport()` on the CFO dashboard lift the financial rows out of
+`public.items`. **This must never be done as SQL on the server.** `decRow()` returns
+any row without a `c` field unchanged, so a server-side copy lands in `cfo_items` as
+readable JSON and sits there in plaintext until each row is next edited — the exact
+thing this app exists to prevent. Only the browser holds the data key, so writing
+through `put()` is what makes the rows arrive encrypted. Verified end to end: what
+reaches the server is `{v,iv,c}` and nothing else.
+
+Ids are preserved, existing rows are never overwritten, tombstones are skipped, and
+re-running is a no-op.
+
+### Plaid
+
+The `plaid` edge function is deployed and ACTIVE. It is **stateless and blind**: it
+never stores an access token and never touches the database. The browser keeps the
+token encrypted in an ordinary row, unwraps it, and passes it in for one call.
+
+Actions: `link_token`, `exchange` (returns the access token to the *browser*, which
+encrypts it), `sync` (incremental via cursor; the cursor also lives in the encrypted
+row).
+
+Auth: the Supabase anon key is public and proves nothing, so the real gate is an
+`x-alfred-key` header compared against the `ALFRED_KEY` env var in constant time.
+
+Required env vars on the function — set in the Supabase dashboard, never in this repo:
+`PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, `ALFRED_KEY`.
+
+**Sandbox keys cannot reach real banks.** Plaid's sandbox only connects to its own
+fake institutions with `user_good` / `pass_good`. Citi, Amex and Wells Fargo need
+production access (or the free trial's production connections). Do not spend time
+debugging why a real bank will not appear on sandbox credentials.
 
 ### Net liquid vs net worth
 
