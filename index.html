@@ -1218,8 +1218,18 @@ function cardCycle(i){
   const src=i.d.card||guessSrc(i.d.name);
   const settled=m=>{const mn=MONTHS[((m%12)+12)%12];
     return !!src&&list('finstmt').some(x=>x.d.src===src&&x.d.month===mn&&String(x.d.amt??'').trim()!=='')};
-  const now=new Date(); let y=now.getFullYear(), m=now.getMonth();
-  for(let k=0;k<24&&settled(m);k++){m++;if(m>11){m-=12;y++}}
+  const now=new Date(); const y=now.getFullYear();
+  // Where the card stands follows the Statements page, not the calendar. A month's row there
+  // is that month's statement, so the cycle showing is the one after the last month actually
+  // paid: leave August unpaid and August keeps showing through September, which is the point
+  // — the card is still on that cycle until the payment is entered.
+  // The rows carry a month but no year, so the search stays inside this one.
+  let last=-1;
+  for(let k=0;k<=now.getMonth();k++)if(settled(k))last=k;
+  // A card with nothing on the Statements page has no history to read, so it falls back to
+  // the calendar month rather than guessing at eight unpaid statements.
+  let m=last<0?now.getMonth():Math.min(last+1,11);
+  while(m<11&&settled(m))m++;                  // paid ahead? keep moving forward
   const st=sd?onDay(y,m,sd):null;
   const dm=(dd&&sd&&dd<sd)?m+1:m;
   const du=dd?onDay(y+(dm>11?1:0),dm%12,dd):null;
