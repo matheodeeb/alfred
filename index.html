@@ -643,11 +643,29 @@ addEventListener('keydown',e=>{
   if(/^[0-9]$/.test(e.key)){e.preventDefault();pinDigit(e.key);return}
   if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();pinDigit('⌫')}
 });
+/* ---------------- idle lock ----------------
+   Ten minutes of no interaction, not ten minutes of the tab being in the background.
+   The old rule locked on time spent hidden, which got it wrong in both directions:
+   switching apps for six minutes threw you out although you had just been working,
+   while a tab left open and untouched all afternoon never locked at all.
+   Time hidden still counts as idle time -- it just is not the whole measure. */
+const IDLE_MS=10*60*1000;
+let lastAct=+localStorage.alfred_lastAct||Date.now();
+function touchAct(){lastAct=Date.now();try{localStorage.alfred_lastAct=lastAct}catch(e){}}
+['pointerdown','keydown','wheel','touchstart'].forEach(ev=>
+  addEventListener(ev,touchAct,{passive:true,capture:true}));
+function idleFor(){return Date.now()-lastAct}
+function idleLock(){
+  if(!pinHash())return;                         // no PIN set, nothing to ask for
+  if($('#lock').classList.contains('show'))return;
+  if(idleFor()<IDLE_MS)return;
+  showLock('enter');
+}
+setInterval(idleLock,20000);
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden')hiddenAt=Date.now();
-  else{syncSoon();
-    if(pinHash()&&hiddenAt&&Date.now()-hiddenAt>5*60*1000)showLock('enter');
-    else localStorage.alfred_unlocked=Date.now();}
+  else{syncSoon();idleLock();
+    if(!$('#lock').classList.contains('show'))localStorage.alfred_unlocked=Date.now();}
 });
 
 /* ---------------- field/form engine ---------------- */
