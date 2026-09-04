@@ -1941,6 +1941,61 @@ function cfoSubsMo(){return list('finsub').reduce((s,i)=>s+(+i.d.cost||0)*(i.d.c
 function cfoPayrollMo(){return list('payroll').reduce((s,i)=>s+(+i.d.amt||0),0)}
 function cfoDebts(){return list('debt').map(i=>({id:i.id,name:i.d.name||'Debt',
   bal:cfoUsd(i.d.bal,i.d.cur),apr:+i.d.apr||0,min:cfoUsd(i.d.min,i.d.cur),day:+i.d.day||0})).filter(d=>d.bal>0)}
+/* ---------------- import from the monitor ----------------
+   A one-time lift of the financial rows out of the monitor's `items` table.
+   It deliberately runs HERE rather than as SQL on the server: only this browser holds
+   the data key, so writing through put() is what makes the rows arrive encrypted. A
+   server-side copy would land them in plaintext and quietly defeat the whole app.
+   Ids are preserved, and a row that already exists here is never overwritten, so
+   running it twice is safe and anything already edited in this app wins. */
+const MON_SECS=['fincash','finstmt','fintx','finsub','invest','income','assets'];
+const MON_LABEL={fincash:'Cash accounts',finstmt:'Statements',fintx:'Transfers',
+  finsub:'Subscriptions',invest:'Investment log',income:'Income',assets:'Assets'};
+let MONROWS=null,MONBUSY=0;
+async function monScan(){
+  if(MONBUSY)return;
+  if(!cfg){alert('Set up the cloud connection first — the gear, top right.');return}
+  MONBUSY=1;renderActive();
+  try{
+    const rows=await sb('items?select=id,sec,data,del&sec=in.('+MON_SECS.join(',')+')&limit=2000');
+    MONROWS=(rows||[]).filter(r=>!r.del);
+  }catch(e){MONROWS=null;alert('Could not read the monitor: '+e.message)}
+  MONBUSY=0;renderActive();
+}
+async function monImport(){
+  if(!MONROWS||MONBUSY)return;
+  if(!DEK){alert('Unlock the vault first — rows have to be encrypted on the way out.');return}
+  const fresh=MONROWS.filter(r=>!S.items[r.id]);
+  if(!fresh.length){alert('Nothing new to bring over.');return}
+  if(!confirm('Bring '+fresh.length+' row'+(fresh.length===1?'':'s')+' over from the monitor?\n\nThey are written through this browser, so they arrive encrypted. Anything already here is left alone.'))return;
+  MONBUSY=1;renderActive();
+  fresh.forEach(r=>put(r.sec,r.data||{},r.id));
+  MONBUSY=0;MONROWS=null;renderActive();
+}
+function monHeld(){return MON_SECS.reduce((n,k)=>n+list(k).length,0)}
+function monPanel(){
+  let h='<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Import from the monitor</h2>';
+  if(MONBUSY)return h+'<div class="hint">Working…</div></div>';
+  const held=monHeld();
+  if(!MONROWS){
+    return h+'<div class="hint">Brings the financial rows across from the monitor — cash accounts, statements, transfers, subscriptions, the investment log, income and assets. They are read here in the browser and written back <b>encrypted</b>; a copy done on the server would land in plaintext and defeat the point of this app.'+
+      (held?' You already hold '+held+' row'+(held===1?'':'s')+', and those are never overwritten.':'')+
+      '</div><button class="btn sm" onclick="monScan()">Check what is there</button></div>';
+  }
+  const fresh=MONROWS.filter(r=>!S.items[r.id]),byS={};
+  fresh.forEach(r=>byS[r.sec]=(byS[r.sec]||0)+1);
+  if(!fresh.length){
+    return h+'<div class="hint">Nothing new — every financial row from the monitor is already here.</div>'+
+      '<button class="btn sm ghost" onclick="MONROWS=null;renderActive()">Close</button></div>';
+  }
+  h+='<div class="hint">'+fresh.length+' row'+(fresh.length===1?'':'s')+' to bring over'+
+    (MONROWS.length>fresh.length?', '+(MONROWS.length-fresh.length)+' already here and left alone':'')+'.</div>';
+  h+=MON_SECS.filter(k=>byS[k]).map(k=>'<div class="finRow"><span class="n">'+MON_LABEL[k]+'</span><span class="v">'+byS[k]+'</span></div>').join('');
+  h+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm" onclick="monImport()">Bring them over</button>'+
+    '<button class="btn sm ghost" onclick="MONROWS=null;renderActive()">Cancel</button></div></div>';
+  return h;
+}
+
 /* ---------------- transactions ----------------
    The per-purchase ledger. Everything else in the finance pages says what a card was
    PAID; only this says what was BOUGHT, which is the only thing that can be cut.
@@ -2169,6 +2224,7 @@ function cfoPage(){
     <div class="hint">Everything on this page is computed live from your own rows — nothing here is an estimate. These registers are still empty; each one you fill lights up more of the dashboard.</div>`+
     gaps.map(([k,l,why])=>`<div class="cfoGap"><span class="n">${l}</span><span class="why">${why}</span><button class="btn sm" style="margin-left:auto" onclick="CFOV='${k}';renderActive()">Open</button></div>`).join('')+`</div>`;
 
+  if(!monHeld()||MONROWS||MONBUSY)h+=monPanel();
   if(!list('tx').length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>No transactions yet</h2>
     <div class="hint">Every figure above is built from balances and monthly totals — what a card was <b>paid</b>. None of it can tell you what you <b>bought</b>, which is the only thing you can decide to stop doing. Import a statement and the spending line here starts reading from real purchases.</div>
     <button class="btn sm" onclick="go('tx')">Open Transactions</button></div>`;
