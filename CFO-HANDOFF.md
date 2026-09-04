@@ -163,9 +163,13 @@ random ids first. Easy to miss; it is step 5 for that reason.
    into the chat. He has not chosen yet.
 2. **Where the recovery codes will physically live.** Phase 1 does not start
    until there is somewhere that is not a device.
-3. **Payroll.** The dashboard's burn reads `list('payroll')`, which lives under
-   Staff in the monitor and is not in the CFO app — so "money out" reads low.
-   Add a Payroll page here, or drop payroll from the calculation? Asked, unanswered.
+3. ~~**Payroll.**~~ **Answered.** Kept, and now reachable — `payroll` was in
+   `MODS` but missing from `NAV`, so the page could not be opened and the
+   overview's `go('payroll')` card led nowhere. It is in `NAV` now.
+   He does not pay any staff today; he wants the section in place for when he
+   does. So the burn keeps reading `list('payroll')` and it contributes **$0**
+   until he adds someone — the "money out" breakdown already hides a zero line,
+   so nothing shows until it is real. Do not "fix" the burn by deleting this.
 4. **How much history on the first Plaid pull** — up to 24 months.
 5. **Whether the Haiti accounts are in scope.** Plaid is US/Canada; BUH stays
    hand-entered regardless, which shapes how a transactions page handles two
