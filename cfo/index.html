@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.plaid.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.plaid.com; connect-src 'self' https://*.supabase.co https://cdn.plaid.com; frame-src https://cdn.plaid.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
+<script>
+/* Clickjacking. CSP frame-ancestors is ignored when delivered by <meta> and GitHub
+   Pages cannot send the header, so this is the fallback: if we are not the top window,
+   leave the frame rather than render the app inside someone else's page. */
+if(top!==self){try{top.location=self.location}catch(e){document.documentElement.innerHTML=''}}
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Alfred CFO</title>
 <meta name="theme-color" content="#080a10">
@@ -2052,7 +2058,11 @@ function txCycleLabel(d){
 }
 function txCycleKey(label){return TXKEY[label]||0}
 function txCards(){return[...new Set(list('tx').map(i=>i.d.card).filter(Boolean))].sort()}
+// Selected by index, never by interpolating the name into an onclick attribute:
+// esc() escapes for HTML, but the parser decodes the entity before the JS is parsed, so an
+// apostrophe in a freely-typed card name would break out of the call.
 function txSetCard(c){TXCARD=c;renderActive()}
+function txSetCardIdx(n){const cs=txCards();TXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
 function txShown(){return list('tx').filter(i=>!TXCARD||i.d.card===TXCARD)}
 // Average monthly spend from real transactions, over the months actually covered.
 // Subscriptions are counted from the subscriptions page, and they also land on the card
@@ -2127,8 +2137,8 @@ function txPreview(){
 function txPage(){
   const all=list('tx'),cards=txCards(),shown=txShown();
   let h=`<div class="segbar" style="margin:12px 0 2px">`+
-    [['','All cards'],...cards.map(c=>[c,c])].map(([k,l])=>
-      `<button class="${TXCARD===k?'active':''}" onclick="txSetCard('${esc(k).replace(/'/g,"\\'")}')">${esc(l)}</button>`).join('')+`</div>`;
+    [['','All cards'],...cards.map(c=>[c,c])].map(([k,l],i)=>
+      `<button class="${TXCARD===k?'active':''}" onclick="txSetCardIdx(${i-1})">${esc(l)}</button>`).join('')+`</div>`;
 
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Import a statement</h2>`;
   if(!TXIMP)h+=`<div class="hint">Download the CSV from Citi, Amex or Wells Fargo and paste it here \u2014 it reads all three without being told which is which. Nothing is written until you have seen the preview.</div>
