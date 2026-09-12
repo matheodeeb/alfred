@@ -3011,16 +3011,19 @@ function seed(){SEED.forEach(([id,sec,d])=>{if(!S.items[id]){S.items[id]={id,sec
 // once it has applied.
 
 /* ---------------- settings ---------------- */
+// Written defensively on purpose: this handler reaching for one absent element is what
+// kept the settings panel shut in this app since it was forked from the monitor.
+const setTxt=(id,v)=>{const e=$('#'+id);if(e)e.textContent=v};
+const setVal=(id,v)=>{const e=$('#'+id);if(e)e.value=v};
 $('#gearBtn').onclick=()=>{
-  $('#setSync').textContent=cfg?'configured':'not set up';
-  $('#setLast').textContent=S.lastSyncAt?new Date(S.lastSyncAt).toLocaleString():'never';
-  $('#setPend').textContent=Object.values(S.items).filter(i=>i.dirty).length;
-  $('#setCount').textContent=Object.values(S.items).filter(i=>!i.del).length;
+  setTxt('setSync',cfg?'configured':'not set up');
+  setTxt('setLast',S.lastSyncAt?new Date(S.lastSyncAt).toLocaleString():'never');
+  setTxt('setPend',Object.values(S.items).filter(i=>i.dirty).length);
+  setTxt('setCount',Object.values(S.items).filter(i=>!i.del).length);
   const kb=((localStorage.cfo_state||'').length+(localStorage.cfo_bulk||'').length)/1024;
-  $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
-  $('#setErr').textContent=storeErr||syncErr||'none';
-  $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
-  $('#linkBtn').disabled=!cfg;$('#linkBtn').textContent='Copy setup link';
+  setTxt('setStore',kb.toFixed(0)+' KB'+(storeErr?' · FULL':''));
+  setTxt('setErr',storeErr||syncErr||'none');
+  setVal('cfgUrl',cfg?.url||'');setVal('cfgKey',cfg?.key||'');setVal('cfgSec',cfg?.secret||'');
   const ae=$('#setAcct');if(ae)ae.textContent=authed()?(AUTH.email||'signed in'):'not signed in';
   ov('setOv',1);
 };
@@ -3030,7 +3033,8 @@ $('#setOv').addEventListener('click',e=>{
   if(e.target.id==='setOv'&&setDown==='setOv')ov('setOv',0);
   setDown=null;});
 $('#cfgSave').onclick=()=>{
-  const url=$('#cfgUrl').value.trim(),key=$('#cfgKey').value.trim(),secret=$('#cfgSec').value.trim();
+  const gv=id=>($('#'+id)?.value||'').trim();
+  const url=gv('cfgUrl'),key=gv('cfgKey'),secret=gv('cfgSec');
   const joining=!cfg;                       // local-only until now: this device is joining the account
   cfg={url:url||CFG_URL,key:key||CFG_KEY,secret};
   localStorage.cfo_cfg=JSON.stringify(cfg);
@@ -3056,13 +3060,6 @@ if($('#codesBtn'))$('#codesBtn').onclick=async()=>{
     ov('setOv',0);
     showCodes(codes,()=>{renderActive();sync()});
   }finally{btn.disabled=false;btn.textContent=was}
-};
-if($('#linkBtn'))$('#linkBtn').onclick=async()=>{
-  if(!cfg)return;
-  const link=location.origin+location.pathname+'#cfg='+encodeURIComponent(btoa(JSON.stringify(cfg)));
-  try{await navigator.clipboard.writeText(link);$('#linkBtn').textContent='Copied ✓';
-    setTimeout(()=>{$('#linkBtn').textContent='Copy setup link'},1600)}
-  catch(e){prompt('Open this on the other device:',link)}
 };
 $('#pinChange').onclick=()=>{ov('setOv',0);showLock('set')};
 $('#expBtn').onclick=()=>{
