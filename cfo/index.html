@@ -41,8 +41,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .stat{border-radius:4px}
   .rowBox{border-radius:5px}
   .btn{border-radius:4px}
-  #lock,#vaultOv,#authOv{backdrop-filter:blur(6px)}
+  #lock,#vaultOv,#authOv,#pwOv{backdrop-filter:blur(6px)}
   /* the vault gate */
+  #pwOv{position:fixed;inset:0;z-index:95;background:rgba(6,8,13,.98);display:none;align-items:center;justify-content:center;padding:24px}
+  #pwOv.show{display:flex}
   #authOv{position:fixed;inset:0;z-index:90;background:rgba(6,8,13,.97);display:none;align-items:center;justify-content:center;padding:24px}
   #authOv.show{display:flex}
   #vaultOv{position:fixed;inset:0;z-index:80;background:rgba(6,8,13,.94);
@@ -423,6 +425,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 </head>
 <body>
 
+<div id="pwOv"><div class="vaultBox">
+  <div class="vaultLock">Reset</div>
+  <h2>Choose a new password</h2>
+  <p>This link came from your email and works once. Save the new password in your password manager before you continue.</p>
+  <input id="pwNew" type="password" autocomplete="new-password" placeholder="new password">
+  <input id="pwNew2" type="password" autocomplete="new-password" placeholder="repeat it">
+  <button id="pwGo">Set password</button>
+  <div class="vaultMsg" id="pwMsg"></div>
+</div></div>
 <div id="authOv"><div class="vaultBox">
   <div class="vaultLock">Sign in</div>
   <h2 id="authTitle">Alfred CFO</h2>
@@ -3009,6 +3020,38 @@ function showVault(mode){
 }
 function msg(t,bad){const e=$('#vaultMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
 function amsg(t,bad){const e=$('#authMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
+/* Password recovery. Supabase mails a link back to the Site URL carrying a one-time token
+   in the fragment; without a page that reads it, a forgotten password means the dashboard
+   or nothing. The token never leaves the fragment, which browsers do not send to servers. */
+function recoveryToken(){
+  const h=new URLSearchParams((location.hash||'').replace(/^#/,''));
+  if(h.get('type')!=='recovery')return null;
+  return h.get('access_token')||null;
+}
+function clearHash(){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}}
+function pmsg(t,bad){const e=$('#pwMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
+function showReset(tok){
+  $('#pwOv').classList.add('show');
+  setTimeout(()=>$('#pwNew').focus(),50);
+  $('#pwGo').onclick=async()=>{
+    const a=$('#pwNew').value,b=$('#pwNew2').value;
+    if(a.length<10){pmsg('at least 10 characters',1);return}
+    if(a!==b){pmsg('those do not match',1);return}
+    $('#pwGo').disabled=true;pmsg('saving…');
+    try{
+      const r=await fetch(cfg.url.replace(/\/$/,'')+'/auth/v1/user',{method:'PUT',
+        headers:{apikey:cfg.key,Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+        body:JSON.stringify({password:a})});
+      const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch(e){}
+      if(!r.ok)throw new Error(j.error_description||j.msg||j.error||('could not set it ('+r.status+')'));
+      $('#pwNew').value='';$('#pwNew2').value='';
+      clearHash();$('#pwOv').classList.remove('show');
+      showAuth('Password changed — sign in with it now.');
+    }catch(e){pmsg(e.message||'could not set it',1)}
+    finally{$('#pwGo').disabled=false}
+  };
+  ['#pwNew','#pwNew2'].forEach(k=>$(k).onkeydown=e=>{if(e.key==='Enter')$('#pwGo').click()});
+}
 function showAuth(note){
   $('#authOv').classList.add('show');
   amsg(note||'',!!note);
@@ -3041,6 +3084,8 @@ async function afterAuth(){
   renderActive();
   (async()=>{
     if(!cfg){$('#gearBtn').click();return}      // nowhere to sign in to yet
+    const rt=recoveryToken();                   // arrived from a reset email
+    if(rt){authClear();showReset(rt);return}
     if(!authed()){showAuth();return}            // the account gate comes first
     await afterAuth();
   })();
