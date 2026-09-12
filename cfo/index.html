@@ -41,11 +41,14 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .stat{border-radius:4px}
   .rowBox{border-radius:5px}
   .btn{border-radius:4px}
-  #lock,#vaultOv{backdrop-filter:blur(6px)}
+  #lock,#vaultOv,#authOv{backdrop-filter:blur(6px)}
   /* the vault gate */
+  #authOv{position:fixed;inset:0;z-index:90;background:rgba(6,8,13,.97);display:none;align-items:center;justify-content:center;padding:24px}
+  #authOv.show{display:flex}
   #vaultOv{position:fixed;inset:0;z-index:80;background:rgba(6,8,13,.94);
     display:none;align-items:center;justify-content:center;padding:24px}
   #vaultOv.show{display:flex}
+  .vaultBox input+input{margin-top:9px}
   .vaultBox{width:100%;max-width:360px;text-align:center}
   .vaultBox h2{font-family:"Sora",system-ui,sans-serif;font-size:19px;font-weight:600;
     letter-spacing:-.01em;margin-bottom:8px;color:var(--txt)}
@@ -420,6 +423,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 </head>
 <body>
 
+<div id="authOv"><div class="vaultBox">
+  <div class="vaultLock">Sign in</div>
+  <h2 id="authTitle">Alfred CFO</h2>
+  <p id="authHint">Your account, not a shared key. Signing out of one device leaves the others alone.</p>
+  <input id="authEmail" type="email" autocomplete="username" placeholder="email" inputmode="email">
+  <input id="authPass" type="password" autocomplete="current-password" placeholder="password">
+  <button id="authGo">Sign in</button>
+  <div class="vaultMsg" id="authMsg"></div>
+</div></div>
 <div id="vaultOv"><div class="vaultBox">
   <div class="vaultLock">Encrypted</div>
   <h2 id="vaultTitle">Unlock the vault</h2>
@@ -637,6 +649,50 @@ async function pullVault(){
   return null;
 }
 
+/* ---------------- account ----------------
+   A real session instead of one shared string. The difference that matters: this can be
+   revoked for a single device from the Supabase dashboard, it expires on its own, and the
+   row policy checks who you are rather than what you know. The old x-alfred-key is still
+   sent alongside, because the monitor's own table still checks it -- that table has not
+   been moved over yet, and the import needs to read it. */
+let AUTH=null; try{AUTH=JSON.parse(localStorage.cfo_auth||'null')}catch(e){}
+function authed(){return !!(AUTH&&AUTH.refresh_token)}
+function authSave(j){
+  AUTH={access_token:j.access_token,refresh_token:j.refresh_token,
+    exp:Date.now()+((+j.expires_in||3600)*1000),email:j.user?.email||AUTH?.email||''};
+  try{localStorage.cfo_auth=JSON.stringify(AUTH)}catch(e){}
+}
+function authClear(){AUTH=null;try{delete localStorage.cfo_auth}catch(e){}}
+async function authPost(path,body,tok){
+  const r=await fetch(cfg.url.replace(/\/$/,'')+'/auth/v1/'+path,{method:'POST',
+    headers:Object.assign({apikey:cfg.key,'Content-Type':'application/json'},
+      tok?{Authorization:'Bearer '+tok}:{}),
+    body:JSON.stringify(body||{})});
+  const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch(e){}
+  if(!r.ok)throw new Error(j.error_description||j.msg||j.error||('sign-in failed ('+r.status+')'));
+  return j;
+}
+async function authSignIn(email,pass){authSave(await authPost('token?grant_type=password',{email,password:pass}));return true}
+// Refreshed a minute early, so a long sync never dies halfway on an expiring token.
+let authRefreshing=null;
+async function authToken(){
+  if(!authed())return '';
+  if(AUTH.access_token&&Date.now()<AUTH.exp-60000)return AUTH.access_token;
+  if(!authRefreshing)authRefreshing=(async()=>{
+    try{authSave(await authPost('token?grant_type=refresh_token',{refresh_token:AUTH.refresh_token}))}
+    catch(e){authClear();showAuth('Your session expired — sign in again.')}
+    finally{authRefreshing=null}
+  })();
+  await authRefreshing;
+  return AUTH?.access_token||'';
+}
+async function authSignOut(){
+  const t=AUTH?.access_token;
+  authClear();vaultLock();
+  try{if(t)await authPost('logout',{},t)}catch(e){}   // best effort; the local copy is already gone
+  location.reload();
+}
+
 /* ---------------- sync ---------------- */
 let cfg=null; try{cfg=JSON.parse(localStorage.cfo_cfg||'null')}catch(e){}
 const SB_TIMEOUT=20000;                        // a hung request must never park sync() forever
@@ -645,7 +701,7 @@ async function sb(path,opt={}){
   let r;
   try{
     r=await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/'+path,{...opt,signal:ac.signal,
-      headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'Content-Type':'application/json'},cfg.secret?{'x-alfred-key':cfg.secret}:{},opt.headers||{})});
+      headers:Object.assign({apikey:cfg.key,Authorization:'Bearer '+((await authToken())||cfg.key),'Content-Type':'application/json'},cfg.secret?{'x-alfred-key':cfg.secret}:{},opt.headers||{})});
   }catch(e){                                   // fetch only rejects when the request never got an answer
     const err=new Error(ac.signal.aborted?'cloud timed out':'cloud unreachable');err.net=1;throw err;
   }finally{clearTimeout(tm)}
@@ -2861,6 +2917,7 @@ $('#gearBtn').onclick=()=>{
   $('#setErr').textContent=storeErr||syncErr||'none';
   $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
   $('#linkBtn').disabled=!cfg;$('#linkBtn').textContent='Copy setup link';
+  const ae=$('#setAcct');if(ae)ae.textContent=authed()?(AUTH.email||'signed in'):'not signed in';
   ov('setOv',1);
 };
 let setDown=null;
@@ -2938,15 +2995,41 @@ function showVault(mode){
   $('#vaultPass').onkeydown=e=>{if(e.key==='Enter')$('#vaultGo').click()};
 }
 function msg(t,bad){const e=$('#vaultMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
+function amsg(t,bad){const e=$('#authMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
+function showAuth(note){
+  $('#authOv').classList.add('show');
+  amsg(note||'',!!note);
+  if(AUTH?.email)$('#authEmail').value=AUTH.email;
+  setTimeout(()=>$(AUTH?.email?'#authPass':'#authEmail').focus(),50);
+  $('#authGo').onclick=async()=>{
+    const email=$('#authEmail').value.trim(),pass=$('#authPass').value;
+    if(!email||!pass){amsg('email and password',1);return}
+    $('#authGo').disabled=true;amsg('signing in…');
+    try{
+      await authSignIn(email,pass);
+      $('#authPass').value='';$('#authOv').classList.remove('show');amsg('');
+      await afterAuth();
+    }catch(e){amsg(e.message||'sign-in failed',1);$('#authPass').select()}
+    finally{$('#authGo').disabled=false}
+  };
+  ['#authEmail','#authPass'].forEach(k=>$(k).onkeydown=e=>{if(e.key==='Enter')$('#authGo').click()});
+}
+// Signed in; now the vault. Two separate things on purpose: the account decides whether the
+// server will hand over the rows, the passphrase decides whether they can be read.
+async function afterAuth(){
+  if(await vaultResume()){sync();return}
+  if(!vaultBlob())await pullVault();
+  showVault(vaultBlob()?'enter':'set');
+}
 (function(){
   load();initNav();
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='cfo';
   if(!$('#pg-'+activePage))activePage='cfo';
   renderActive();
   (async()=>{
-    if(await vaultResume()){sync();return}      // same tab as a moment ago
-    if(!vaultBlob())await pullVault();          // a second device joins the vault that exists
-    showVault(vaultBlob()?'enter':'set');
+    if(!cfg){$('#gearBtn').click();return}      // nowhere to sign in to yet
+    if(!authed()){showAuth();return}            // the account gate comes first
+    await afterAuth();
   })();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
