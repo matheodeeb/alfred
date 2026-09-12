@@ -41,8 +41,18 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .stat{border-radius:4px}
   .rowBox{border-radius:5px}
   .btn{border-radius:4px}
-  #lock,#vaultOv,#authOv,#pwOv{backdrop-filter:blur(6px)}
+  #lock,#vaultOv,#authOv,#pwOv,#codesOv{backdrop-filter:blur(6px)}
   /* the vault gate */
+  #codesOv{position:fixed;inset:0;z-index:96;background:rgba(6,8,13,.98);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+  #codesOv.show{display:flex}
+  #codesList{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:4px 0 16px}
+  @media(max-width:430px){#codesList{grid-template-columns:1fr}}
+  .codeCell{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.04em;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:9px 8px;color:var(--txt)}
+  .codesAck{display:flex;gap:9px;align-items:flex-start;text-align:left;font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:4px}
+  .codesAck input{width:auto;margin:2px 0 0}
+  .codesRow{display:flex;gap:8px;margin-bottom:14px}
+  .codesRow button{margin-top:0}
+  @media print{body>*:not(#codesOv){display:none!important}#codesOv{position:static;background:#fff;color:#000}.codeCell{color:#000;border-color:#999}.codesAck,#codesGo,.vaultLock{display:none!important}}
   #pwOv{position:fixed;inset:0;z-index:95;background:rgba(6,8,13,.98);display:none;align-items:center;justify-content:center;padding:24px}
   #pwOv.show{display:flex}
   #authOv{position:fixed;inset:0;z-index:90;background:rgba(6,8,13,.97);display:none;align-items:center;justify-content:center;padding:24px}
@@ -425,6 +435,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 </head>
 <body>
 
+<div id="codesOv"><div class="vaultBox" style="max-width:440px">
+  <div class="vaultLock">Write these down</div>
+  <h2>Recovery codes</h2>
+  <p id="codesHint">Any one of these opens your vault if you forget the passphrase. They are shown <b>once</b> — after this only their encrypted form is kept, and nobody can recover them for you. Put them on paper, somewhere that is not a device.</p>
+  <div id="codesList"></div>
+  <label class="codesAck"><input type="checkbox" id="codesOk"> I have written them down somewhere physical</label>
+  <button id="codesGo" disabled>Continue</button>
+  <div class="vaultMsg" id="codesMsg"></div>
+</div></div>
 <div id="pwOv"><div class="vaultBox">
   <div class="vaultLock">Reset</div>
   <h2>Choose a new password</h2>
@@ -507,6 +526,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   <div class="foot" style="margin-top:14px;flex-wrap:wrap">
     <button class="btn sm" id="cfgSave">Save sync config</button>
     
+    <button class="btn sm" id="codesBtn">Recovery codes</button>
     <button class="btn sm" id="pinChange">Change PIN</button>
     <button class="btn sm" id="expBtn">Export backup</button>
     <button class="btn sm" id="impBtn">Import</button>
@@ -622,6 +642,66 @@ async function vaultOpen(pass){
       await passKey(pass,unb64(v.salt)),unb64(v.wrapped));
     await useKey(raw);return true;
   }catch(e){return false}                      // wrong passphrase: GCM refuses, it does not guess
+}
+/* Recovery codes. The same data key, wrapped a second time under each code, so any one of
+   them opens the vault without the passphrase. Nothing is weakened by having them: a code
+   carries ~100 bits of entropy, far beyond anything guessable, and what is stored is
+   ciphertext either way.
+   The index travels in the clear at the front of the code so only ONE key derivation is
+   needed to try it. Without that, unlocking would mean grinding 600k rounds per code
+   until one fit -- slow, at the exact moment someone is panicking. */
+const CODE_ABC='ABCDEFGHJKMNPQRSTVWXYZ0123456789';   // no I, L, O or U: nothing to misread
+const CODE_LEN=20, CODE_N=8;
+function codeMake(){
+  const b=crypto.getRandomValues(new Uint8Array(CODE_LEN));
+  return [...b].map(x=>CODE_ABC[x%32]).join('');
+}
+function codeFormat(i,secret){
+  return 'AL'+(i+1)+'-'+secret.replace(/(.{5})(?=.)/g,'$1-');
+}
+function codeParse(v){
+  const t=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const m=/^AL([1-9])([A-Z0-9]{20})$/.exec(t);
+  return m?{idx:+m[1]-1,secret:m[2]}:null;
+}
+async function codeKey(secret,salt){
+  const base=await crypto.subtle.importKey('raw',te.encode('alfred-recovery:'+secret),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:KDF_ITER,hash:'SHA-256'},
+    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+// Needs the key in hand, so this only runs while the vault is open.
+async function vaultMakeCodes(raw){
+  const plain=[],recov=[];
+  for(let i=0;i<CODE_N;i++){
+    const secret=codeMake();
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv},await codeKey(secret,salt),raw);
+    recov.push({salt:b64(salt),iv:b64(iv),wrapped:b64(wrapped)});
+    plain.push(codeFormat(i,secret));
+  }
+  const v=Object.assign({},vaultBlob()||{},{recov});
+  localStorage.cfo_vault=JSON.stringify(v);
+  put('cfg',v,VAULT_ID);
+  return plain;                                 // shown once, then only their ciphertext remains
+}
+function vaultHasCodes(){const v=vaultBlob();return !!(v&&Array.isArray(v.recov)&&v.recov.length)}
+async function vaultOpenCode(entered){
+  const c=codeParse(entered); if(!c)return false;
+  const v=vaultBlob(); const e=v&&v.recov&&v.recov[c.idx]; if(!e)return false;
+  try{
+    const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(e.iv)},
+      await codeKey(c.secret,unb64(e.salt)),unb64(e.wrapped));
+    await useKey(raw);return true;
+  }catch(err){return false}
+}
+// The raw key, so codes can be minted right after the passphrase is set or changed.
+async function vaultRawKey(pass){
+  const v=vaultBlob(); if(!v)return null;
+  try{
+    return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},
+      await passKey(pass,unb64(v.salt)),unb64(v.wrapped)));
+  }catch(e){return null}
 }
 async function vaultResume(){
   let r=null;try{r=sessionStorage.cfo_dek}catch(e){}
@@ -2961,6 +3041,22 @@ $('#cfgSave').onclick=()=>{
 // A PIN chosen while the device was local-only is newer than the real one, so last-edit-wins would
 // push it to every other device. Forget it locally instead and let the first pull hand down the real one.
 function dropLocalPin(){delete S.items['cfg:pin']}
+if($('#codesBtn'))$('#codesBtn').onclick=async()=>{
+  if(!vaultBlob()){alert('Set a passphrase first.');return}
+  const pass=prompt(vaultHasCodes()
+    ? 'New codes will replace the ones you have — the old ones stop working.\n\nEnter your passphrase to continue:'
+    : 'Enter your passphrase to issue recovery codes:');
+  if(pass===null)return;
+  const btn=$('#codesBtn'),was=btn.textContent;
+  btn.disabled=true;btn.textContent='working…';
+  try{
+    const raw=await vaultRawKey(pass);
+    if(!raw){alert('That passphrase does not open this vault.');return}
+    const codes=await vaultMakeCodes(raw);
+    ov('setOv',0);
+    showCodes(codes,()=>{renderActive();sync()});
+  }finally{btn.disabled=false;btn.textContent=was}
+};
 if($('#linkBtn'))$('#linkBtn').onclick=async()=>{
   if(!cfg)return;
   const link=location.origin+location.pathname+'#cfg='+encodeURIComponent(btoa(JSON.stringify(cfg)));
@@ -3011,14 +3107,71 @@ function showVault(mode){
     if(!pass){msg('enter your passphrase',1);return}
     $('#vaultGo').disabled=true;msg('working…');
     const ok=set?await vaultCreate(pass):await vaultOpen(pass);
+    if(!ok){$('#vaultGo').disabled=false;msg('that passphrase does not open this vault',1);$('#vaultPass').select();return}
+    // A brand-new vault gets its codes immediately: a passphrase with no way back is the
+    // single likeliest way to lose this data, and later never comes.
+    let fresh=null;
+    if(set){
+      msg('generating recovery codes…');
+      const raw=await vaultRawKey(pass);
+      if(raw)fresh=await vaultMakeCodes(raw);
+    }
     $('#vaultGo').disabled=false;
-    if(!ok){msg('that passphrase does not open this vault',1);$('#vaultPass').select();return}
-    $('#vaultPass').value='';$('#vaultOv').classList.remove('show');
-    renderActive();sync();
+    $('#vaultPass').value='';$('#vaultOv').classList.remove('show');msg('');
+    if(fresh)showCodes(fresh,()=>{renderActive();sync()});
+    else{renderActive();sync()}
   };
   $('#vaultPass').onkeydown=e=>{if(e.key==='Enter')$('#vaultGo').click()};
+  // Offered only when codes exist, so it never dangles as a dead promise.
+  let alt=$('#vaultAlt');
+  if(!set&&vaultHasCodes()){
+    if(!alt){alt=document.createElement('button');alt.id='vaultAlt';alt.className='btn sm ghost';
+      alt.style.cssText='width:100%;margin-top:10px';$('#vaultGo').after(alt)}
+    alt.textContent='Use a recovery code';alt.style.display='';
+    alt.onclick=()=>{
+      $('#vaultHint').textContent='Enter one of the codes you wrote down. It looks like AL1-XXXXX-XXXXX-XXXXX-XXXXX.';
+      $('#vaultPass').type='text';$('#vaultPass').placeholder='recovery code';
+      $('#vaultPass').value='';$('#vaultPass').focus();alt.style.display='none';
+      $('#vaultGo').textContent='Unlock with code';
+      $('#vaultGo').onclick=async()=>{
+        const code=$('#vaultPass').value;
+        if(!codeParse(code)){msg('that does not look like a recovery code',1);return}
+        $('#vaultGo').disabled=true;msg('checking…');
+        const ok=await vaultOpenCode(code);
+        $('#vaultGo').disabled=false;
+        if(!ok){msg('that code does not open this vault',1);$('#vaultPass').select();return}
+        $('#vaultPass').value='';$('#vaultOv').classList.remove('show');
+        renderActive();sync();
+        // The code that just worked is written on paper and now the only way in. Replace it.
+        setTimeout(()=>alert('You are in.\n\nThat code is now the only way into this vault. Set a new passphrase from the gear and fresh codes will be issued.'),300);
+      };
+    };
+  } else if(alt) alt.style.display='none';
 }
 function msg(t,bad){const e=$('#vaultMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
+function showCodes(codes,then){
+  $('#codesList').innerHTML=codes.map(c=>'<div class="codeCell">'+esc(c)+'</div>').join('');
+  $('#codesOk').checked=false;$('#codesGo').disabled=true;
+  $('#codesMsg').textContent='';
+  if(!$('#codesRow')){
+    const row=document.createElement('div');row.className='codesRow';row.id='codesRow';
+    row.innerHTML='<button class="btn sm" id="codesCopy">Copy all</button>'+
+                  '<button class="btn sm ghost" id="codesPrint">Print</button>';
+    $('#codesList').after(row);
+    $('#codesCopy').onclick=async()=>{
+      try{await navigator.clipboard.writeText(codes.join('\n'));$('#codesCopy').textContent='Copied ✓'}
+      catch(e){$('#codesMsg').textContent='could not copy — write them by hand'}
+    };
+    $('#codesPrint').onclick=()=>window.print();
+  }
+  $('#codesOk').onchange=()=>{$('#codesGo').disabled=!$('#codesOk').checked};
+  $('#codesGo').onclick=()=>{
+    $('#codesList').innerHTML='';                 // not left sitting in the DOM
+    $('#codesOv').classList.remove('show');
+    if(then)then();
+  };
+  $('#codesOv').classList.add('show');
+}
 function amsg(t,bad){const e=$('#authMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
 /* Password recovery. Supabase mails a link back to the Site URL carrying a one-time token
    in the fragment; without a page that reads it, a forgotten password means the dashboard
