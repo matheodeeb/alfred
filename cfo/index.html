@@ -41,10 +41,8 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .stat{border-radius:4px}
   .rowBox{border-radius:5px}
   .btn{border-radius:4px}
-  #lock,#vaultOv,#authOv,#pwOv,#codesOv{backdrop-filter:blur(6px)}
+  #lock,#authOv,#pwOv{backdrop-filter:blur(6px)}
   /* the vault gate */
-  #codesOv{position:fixed;inset:0;z-index:96;background:rgba(6,8,13,.98);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
-  #codesOv.show{display:flex}
   #codesList{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:4px 0 16px}
   @media(max-width:430px){#codesList{grid-template-columns:1fr}}
   .codeCell{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.04em;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:9px 8px;color:var(--txt)}
@@ -52,14 +50,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .codesAck input{width:auto;margin:2px 0 0}
   .codesRow{display:flex;gap:8px;margin-bottom:14px}
   .codesRow button{margin-top:0}
-  @media print{body>*:not(#codesOv){display:none!important}#codesOv{position:static;background:#fff;color:#000}.codeCell{color:#000;border-color:#999}.codesAck,#codesGo,.vaultLock{display:none!important}}
   #pwOv{position:fixed;inset:0;z-index:95;background:rgba(6,8,13,.98);display:none;align-items:center;justify-content:center;padding:24px}
   #pwOv.show{display:flex}
   #authOv{position:fixed;inset:0;z-index:90;background:rgba(6,8,13,.97);display:none;align-items:center;justify-content:center;padding:24px}
   #authOv.show{display:flex}
-  #vaultOv{position:fixed;inset:0;z-index:80;background:rgba(6,8,13,.94);
-    display:none;align-items:center;justify-content:center;padding:24px}
-  #vaultOv.show{display:flex}
   .vaultBox input+input{margin-top:9px}
   .vaultBox{width:100%;max-width:360px;text-align:center}
   .vaultBox h2{font-family:"Sora",system-ui,sans-serif;font-size:19px;font-weight:600;
@@ -435,15 +429,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 </head>
 <body>
 
-<div id="codesOv"><div class="vaultBox" style="max-width:440px">
-  <div class="vaultLock">Write these down</div>
-  <h2>Recovery codes</h2>
-  <p id="codesHint">Any one of these opens your vault if you forget the passphrase. They are shown <b>once</b> — after this only their encrypted form is kept, and nobody can recover them for you. Put them on paper, somewhere that is not a device.</p>
-  <div id="codesList"></div>
-  <label class="codesAck"><input type="checkbox" id="codesOk"> I have written them down somewhere physical</label>
-  <button id="codesGo" disabled>Continue</button>
-  <div class="vaultMsg" id="codesMsg"></div>
-</div></div>
 <div id="pwOv"><div class="vaultBox">
   <div class="vaultLock">Reset</div>
   <h2>Choose a new password</h2>
@@ -461,14 +446,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   <input id="authPass" type="password" autocomplete="current-password" placeholder="password">
   <button id="authGo">Sign in</button>
   <div class="vaultMsg" id="authMsg"></div>
-</div></div>
-<div id="vaultOv"><div class="vaultBox">
-  <div class="vaultLock">Encrypted</div>
-  <h2 id="vaultTitle">Unlock the vault</h2>
-  <p id="vaultHint">Your passphrase decrypts this ledger on the device. It is never sent anywhere and cannot be reset.</p>
-  <input id="vaultPass" type="password" autocomplete="current-password" placeholder="passphrase">
-  <button id="vaultGo">Unlock</button>
-  <div class="vaultMsg" id="vaultMsg"></div>
 </div></div>
 <div id="lock">
   <div class="llogo">ALFRED<b> CFO</b></div>
@@ -526,7 +503,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   <div class="foot" style="margin-top:14px;flex-wrap:wrap">
     <button class="btn sm" id="cfgSave">Save sync config</button>
     
-    <button class="btn sm" id="codesBtn">Recovery codes</button>
     <button class="btn sm" id="pinChange">Change PIN</button>
     <button class="btn sm" id="expBtn">Export backup</button>
     <button class="btn sm" id="impBtn">Import</button>
@@ -603,142 +579,19 @@ function kill(id){const it=S.items[id];if(!it)return;it.del=true;it.up=Date.now(
 function list(sec){return Object.values(S.items).filter(i=>i.sec===sec&&!i.del)}
 function one(id){const i=S.items[id];return (i&&!i.del)?i:null}
 
-/* ---------------- vault ---------------- */
-// Rows leave this device encrypted and come back encrypted; the server holds a blob it
-// cannot read. The passphrase never leaves the browser and is never stored — it unwraps a
-// random data key, and that key is what actually encrypts the rows. Keeping the two apart
-// means changing the passphrase rewraps one small blob instead of rewriting every row.
-let DEK=null;
-const te=new TextEncoder(), td=new TextDecoder();
-const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
-const unb64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
-const KDF_ITER=600000;                         // deliberately slow, so guessing costs real time
-const VAULT_ID='cfg:vault';
-async function passKey(pass,salt){
-  const base=await crypto.subtle.importKey('raw',te.encode(pass),'PBKDF2',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:KDF_ITER,hash:'SHA-256'},
-    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-}
-function vaultBlob(){try{return JSON.parse(localStorage.cfo_vault||'null')}catch(e){return null}}
-async function useKey(raw){
-  DEK=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt','decrypt']);
-  try{sessionStorage.cfo_dek=b64(raw)}catch(e){}   // this tab only, gone when it closes
-}
-async function vaultCreate(pass){
-  const salt=crypto.getRandomValues(new Uint8Array(16));
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const raw=crypto.getRandomValues(new Uint8Array(32));
-  const wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv},await passKey(pass,salt),raw);
-  const v={v:1,salt:b64(salt),iv:b64(iv),wrapped:b64(wrapped)};
-  localStorage.cfo_vault=JSON.stringify(v);
-  await useKey(raw);
-  put('cfg',v,VAULT_ID);                       // so another device can unwrap it with the same passphrase
-  return true;
-}
-async function vaultOpen(pass){
-  const v=vaultBlob();if(!v)return false;
-  try{
-    const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},
-      await passKey(pass,unb64(v.salt)),unb64(v.wrapped));
-    await useKey(raw);return true;
-  }catch(e){return false}                      // wrong passphrase: GCM refuses, it does not guess
-}
-/* Recovery codes. The same data key, wrapped a second time under each code, so any one of
-   them opens the vault without the passphrase. Nothing is weakened by having them: a code
-   carries ~100 bits of entropy, far beyond anything guessable, and what is stored is
-   ciphertext either way.
-   The index travels in the clear at the front of the code so only ONE key derivation is
-   needed to try it. Without that, unlocking would mean grinding 600k rounds per code
-   until one fit -- slow, at the exact moment someone is panicking. */
-const CODE_ABC='ABCDEFGHJKMNPQRSTVWXYZ0123456789';   // no I, L, O or U: nothing to misread
-const CODE_LEN=20, CODE_N=8;
-function codeMake(){
-  const b=crypto.getRandomValues(new Uint8Array(CODE_LEN));
-  return [...b].map(x=>CODE_ABC[x%32]).join('');
-}
-function codeFormat(i,secret){
-  return 'AL'+(i+1)+'-'+secret.replace(/(.{5})(?=.)/g,'$1-');
-}
-function codeParse(v){
-  const t=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const m=/^AL([1-9])([A-Z0-9]{20})$/.exec(t);
-  return m?{idx:+m[1]-1,secret:m[2]}:null;
-}
-async function codeKey(secret,salt){
-  const base=await crypto.subtle.importKey('raw',te.encode('alfred-recovery:'+secret),'PBKDF2',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:KDF_ITER,hash:'SHA-256'},
-    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-}
-// Needs the key in hand, so this only runs while the vault is open.
-async function vaultMakeCodes(raw){
-  const plain=[],recov=[];
-  for(let i=0;i<CODE_N;i++){
-    const secret=codeMake();
-    const salt=crypto.getRandomValues(new Uint8Array(16));
-    const iv=crypto.getRandomValues(new Uint8Array(12));
-    const wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv},await codeKey(secret,salt),raw);
-    recov.push({salt:b64(salt),iv:b64(iv),wrapped:b64(wrapped)});
-    plain.push(codeFormat(i,secret));
-  }
-  const v=Object.assign({},vaultBlob()||{},{recov});
-  localStorage.cfo_vault=JSON.stringify(v);
-  put('cfg',v,VAULT_ID);
-  return plain;                                 // shown once, then only their ciphertext remains
-}
-function vaultHasCodes(){const v=vaultBlob();return !!(v&&Array.isArray(v.recov)&&v.recov.length)}
-async function vaultOpenCode(entered){
-  const c=codeParse(entered); if(!c)return false;
-  const v=vaultBlob(); const e=v&&v.recov&&v.recov[c.idx]; if(!e)return false;
-  try{
-    const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(e.iv)},
-      await codeKey(c.secret,unb64(e.salt)),unb64(e.wrapped));
-    await useKey(raw);return true;
-  }catch(err){return false}
-}
-// The raw key, so codes can be minted right after the passphrase is set or changed.
-async function vaultRawKey(pass){
-  const v=vaultBlob(); if(!v)return null;
-  try{
-    return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},
-      await passKey(pass,unb64(v.salt)),unb64(v.wrapped)));
-  }catch(e){return null}
-}
-async function vaultResume(){
-  let r=null;try{r=sessionStorage.cfo_dek}catch(e){}
-  if(!r)return false;
-  try{await useKey(unb64(r));return true}catch(e){return false}
-}
-function vaultLock(){DEK=null;try{delete sessionStorage.cfo_dek}catch(e){}}
-// A row's identity is bound into its own encryption, so a blob cannot be moved onto another
-// id, or quietly rolled back to an older version, without the decryption failing outright.
-const aad=(id,sec,up)=>te.encode(id+'|'+sec+'|'+up);
-async function encRow(x){
-  if(x.id===VAULT_ID)return x.d||{};           // the wrapper itself cannot be wrapped
-  if(!DEK)throw new Error('vault locked');
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const c=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad(x.id,x.sec,x.up)},
-    DEK,te.encode(JSON.stringify(x.d||{})));
-  return{v:1,iv:b64(iv),c:b64(c)};
-}
-async function decRow(r){
-  const d=r.data||{};
-  if(!d||!d.c)return d;                        // the vault row, and anything written before it
-  if(!DEK)throw new Error('vault locked');
-  const out=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv),
-    additionalData:aad(r.id,r.sec,+r.up)},DEK,unb64(d.c));
-  return JSON.parse(td.decode(out));
-}
-// Before any passphrase exists here, the only row worth fetching is the wrapper — that is how
-// a second device learns there is already a vault to join rather than a new one to create.
-async function pullVault(){
-  if(!cfg)return null;
-  try{
-    const rows=await sb('cfo_items?select=*&id=eq.'+encodeURIComponent(VAULT_ID));
-    const v=rows&&rows[0]&&rows[0].data;
-    if(v&&v.wrapped){localStorage.cfo_vault=JSON.stringify(v);return v}
-  }catch(e){}
-  return null;
-}
+/* ---------------- storage ----------------
+   There was a passphrase here that encrypted every row before it left the device. Matheo
+   asked for it to go: he wants a username and password and a reset link, and nothing else
+   to remember. The trade, stated once so nobody has to rediscover it -- rows now sit
+   readable in the database, so a breach there exposes the figures where before it yielded
+   ciphertext. What it buys is that a forgotten password is an email away rather than
+   permanent loss, which for a ledger he is the only reader of was the likelier way to lose
+   everything. The account and the row policy are what guard the data now.
+   DEK stays truthy so the "is this unlocked" guards elsewhere keep holding. */
+const DEK='open';
+async function encRow(x){return x.d||{}}
+async function decRow(r){return r.data||{}}
+function vaultLock(){}
 
 /* ---------------- account ----------------
    A real session instead of one shared string. The difference that matters: this can be
@@ -945,15 +798,16 @@ function touchAct(){lastAct=Date.now();try{localStorage.cfo_lastAct=lastAct}catc
 function idleFor(){return Date.now()-lastAct}
 // Locking clears the data key, so the rows on screen stop being readable too.
 function idleLock(){
-  if(!DEK)return;                               // already locked; don't stack prompts
   if(idleFor()<IDLE_MS)return;
-  vaultLock();showVault('enter');
+  if(!pinHash())return;                         // no PIN set: nothing to fall back to
+  if($('#lock').classList.contains('show'))return;
+  showLock('enter');
 }
 setInterval(idleLock,20000);
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden')hiddenAt=Date.now();
   else{syncSoon();idleLock();
-    if(DEK)localStorage.cfo_unlocked=Date.now();}
+    if(!$('#lock').classList.contains('show'))localStorage.cfo_unlocked=Date.now();}
 });
 
 /* ---------------- field/form engine ---------------- */
@@ -2150,7 +2004,6 @@ async function monScan(){
 }
 async function monImport(){
   if(!MONROWS||MONBUSY)return;
-  if(!DEK){alert('Unlock the vault first — rows have to be encrypted on the way out.');return}
   const fresh=MONROWS.filter(r=>!S.items[r.id]);
   if(!fresh.length){alert('Nothing new to bring over.');return}
   if(!confirm('Bring '+fresh.length+' row'+(fresh.length===1?'':'s')+' over from the monitor?\n\nThey are written through this browser, so they arrive encrypted. Anything already here is left alone.'))return;
@@ -3045,22 +2898,6 @@ $('#cfgSave').onclick=()=>{
 // A PIN chosen while the device was local-only is newer than the real one, so last-edit-wins would
 // push it to every other device. Forget it locally instead and let the first pull hand down the real one.
 function dropLocalPin(){delete S.items['cfg:pin']}
-if($('#codesBtn'))$('#codesBtn').onclick=async()=>{
-  if(!vaultBlob()){alert('Set a passphrase first.');return}
-  const pass=prompt(vaultHasCodes()
-    ? 'New codes will replace the ones you have — the old ones stop working.\n\nEnter your passphrase to continue:'
-    : 'Enter your passphrase to issue recovery codes:');
-  if(pass===null)return;
-  const btn=$('#codesBtn'),was=btn.textContent;
-  btn.disabled=true;btn.textContent='working…';
-  try{
-    const raw=await vaultRawKey(pass);
-    if(!raw){alert('That passphrase does not open this vault.');return}
-    const codes=await vaultMakeCodes(raw);
-    ov('setOv',0);
-    showCodes(codes,()=>{renderActive();sync()});
-  }finally{btn.disabled=false;btn.textContent=was}
-};
 $('#pinChange').onclick=()=>{ov('setOv',0);showLock('set')};
 $('#expBtn').onclick=()=>{
   const a=document.createElement('a');
@@ -3087,88 +2924,6 @@ $('#impFile').onchange=e=>{
 /* ---------------- boot ---------------- */
 // No setup-by-link here: the monitor's #cfg= scheme puts the sync secret in a URL, and URLs
 // end up in history and screenshots. Config is typed in, once, per device.
-function showVault(mode){
-  const set=mode==='set';
-  $('#vaultTitle').textContent=set?'Choose a passphrase':'Unlock the vault';
-  $('#vaultHint').textContent=set
-    ? 'This encrypts every row before it leaves the device. It is never sent anywhere and there is no way to reset it — write it down somewhere physical before you continue.'
-    : 'Your passphrase decrypts this ledger on the device. It is never sent anywhere.';
-  $('#vaultPass').setAttribute('autocomplete',set?'new-password':'current-password');
-  $('#vaultGo').textContent=set?'Create vault':'Unlock';
-  $('#vaultMsg').textContent='';$('#vaultMsg').classList.remove('bad');
-  $('#vaultOv').classList.add('show');
-  setTimeout(()=>$('#vaultPass').focus(),50);
-  $('#vaultGo').onclick=async()=>{
-    const pass=$('#vaultPass').value;
-    if(set&&pass.length<10){msg('at least 10 characters',1);return}
-    if(!pass){msg('enter your passphrase',1);return}
-    $('#vaultGo').disabled=true;msg('working…');
-    const ok=set?await vaultCreate(pass):await vaultOpen(pass);
-    if(!ok){$('#vaultGo').disabled=false;msg('that passphrase does not open this vault',1);$('#vaultPass').select();return}
-    // A brand-new vault gets its codes immediately: a passphrase with no way back is the
-    // single likeliest way to lose this data, and later never comes.
-    let fresh=null;
-    if(set){
-      msg('generating recovery codes…');
-      const raw=await vaultRawKey(pass);
-      if(raw)fresh=await vaultMakeCodes(raw);
-    }
-    $('#vaultGo').disabled=false;
-    $('#vaultPass').value='';$('#vaultOv').classList.remove('show');msg('');
-    if(fresh)showCodes(fresh,()=>{renderActive();sync()});
-    else{renderActive();sync()}
-  };
-  $('#vaultPass').onkeydown=e=>{if(e.key==='Enter')$('#vaultGo').click()};
-  // Offered only when codes exist, so it never dangles as a dead promise.
-  let alt=$('#vaultAlt');
-  if(!set&&vaultHasCodes()){
-    if(!alt){alt=document.createElement('button');alt.id='vaultAlt';alt.className='btn sm ghost';
-      alt.style.cssText='width:100%;margin-top:10px';$('#vaultGo').after(alt)}
-    alt.textContent='Use a recovery code';alt.style.display='';
-    alt.onclick=()=>{
-      $('#vaultHint').textContent='Enter one of the codes you wrote down. It looks like AL1-XXXXX-XXXXX-XXXXX-XXXXX.';
-      $('#vaultPass').type='text';$('#vaultPass').placeholder='recovery code';
-      $('#vaultPass').value='';$('#vaultPass').focus();alt.style.display='none';
-      $('#vaultGo').textContent='Unlock with code';
-      $('#vaultGo').onclick=async()=>{
-        const code=$('#vaultPass').value;
-        if(!codeParse(code)){msg('that does not look like a recovery code',1);return}
-        $('#vaultGo').disabled=true;msg('checking…');
-        const ok=await vaultOpenCode(code);
-        $('#vaultGo').disabled=false;
-        if(!ok){msg('that code does not open this vault',1);$('#vaultPass').select();return}
-        $('#vaultPass').value='';$('#vaultOv').classList.remove('show');
-        renderActive();sync();
-        // The code that just worked is written on paper and now the only way in. Replace it.
-        setTimeout(()=>alert('You are in.\n\nThat code is now the only way into this vault. Set a new passphrase from the gear and fresh codes will be issued.'),300);
-      };
-    };
-  } else if(alt) alt.style.display='none';
-}
-function msg(t,bad){const e=$('#vaultMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
-function showCodes(codes,then){
-  $('#codesList').innerHTML=codes.map(c=>'<div class="codeCell">'+esc(c)+'</div>').join('');
-  $('#codesOk').checked=false;$('#codesGo').disabled=true;
-  $('#codesMsg').textContent='';
-  if(!$('#codesRow')){
-    const row=document.createElement('div');row.className='codesRow';row.id='codesRow';
-    row.innerHTML='<button class="btn sm" id="codesCopy">Copy all</button>'+
-                  '<button class="btn sm ghost" id="codesPrint">Print</button>';
-    $('#codesList').after(row);
-    $('#codesCopy').onclick=async()=>{
-      try{await navigator.clipboard.writeText(codes.join('\n'));$('#codesCopy').textContent='Copied ✓'}
-      catch(e){$('#codesMsg').textContent='could not copy — write them by hand'}
-    };
-    $('#codesPrint').onclick=()=>window.print();
-  }
-  $('#codesOk').onchange=()=>{$('#codesGo').disabled=!$('#codesOk').checked};
-  $('#codesGo').onclick=()=>{
-    $('#codesList').innerHTML='';                 // not left sitting in the DOM
-    $('#codesOv').classList.remove('show');
-    if(then)then();
-  };
-  $('#codesOv').classList.add('show');
-}
 function amsg(t,bad){const e=$('#authMsg');e.textContent=t;e.classList.toggle('bad',!!bad)}
 /* Password recovery. Supabase mails a link back to the Site URL carrying a one-time token
    in the fragment; without a page that reads it, a forgotten password means the dashboard
@@ -3220,13 +2975,8 @@ function showAuth(note){
   };
   ['#authEmail','#authPass'].forEach(k=>$(k).onkeydown=e=>{if(e.key==='Enter')$('#authGo').click()});
 }
-// Signed in; now the vault. Two separate things on purpose: the account decides whether the
-// server will hand over the rows, the passphrase decides whether they can be read.
-async function afterAuth(){
-  if(await vaultResume()){sync();return}
-  if(!vaultBlob())await pullVault();
-  showVault(vaultBlob()?'enter':'set');
-}
+// Signed in, and that is the whole gate now.
+async function afterAuth(){renderActive();sync()}
 (function(){
   load();initNav();
   if(!MODS[activePage]&&!SPECIAL[activePage])activePage='cfo';
