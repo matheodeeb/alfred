@@ -1,4 +1,4 @@
-const V = 'alfred-cfo-v1';
+const V = 'alfred-cfo-v2';
 
 // The shell is code, so it is safe to cache. Data never is: every Supabase call goes to the
 // network or fails, so a stale ledger can never be served from disk.
@@ -18,7 +18,10 @@ self.addEventListener('fetch', e => {
 
   if (e.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
     e.respondWith(
-      fetch(e.request).then(r => {
+      // no-store: ask the origin, not the HTTP cache. Network-first is worthless if the
+      // network answer comes from a stale cached copy, which is how a deploy stayed
+      // invisible for minutes at a time.
+      fetch(e.request, { cache: 'no-store' }).then(r => {
         if (r.ok) { const copy = r.clone(); caches.open(V).then(c => c.put('./index.html', copy)); }
         return r;
       }).catch(() => caches.match('./index.html'))
