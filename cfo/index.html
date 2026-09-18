@@ -2035,6 +2035,139 @@ function monPanel(){
   return h;
 }
 
+/* ---------------- Plaid ----------------
+   The bank feed. The access token that reads his accounts lives in a row of HIS database,
+   reachable only by his signed-in account, and the edge function keeps nothing between
+   calls -- the browser hands the token over for the length of one request. Plaid's own
+   secret never leaves the function's environment and is never in this page.
+   Worth a line for the security pass later: with the passphrase gone that token is stored
+   readable, guarded by the account rather than by a key. Fine for sandbox; move it behind
+   the function before real bank data flows through. */
+let PLAIDBUSY=0, PLAIDMSG='';
+function plaidLoad(){
+  if(window.Plaid)return Promise.resolve();
+  if(!plaidLoad._p)plaidLoad._p=new Promise((res,rej)=>{
+    const el=document.createElement('script');
+    el.src='https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    el.onload=res; el.onerror=()=>{plaidLoad._p=null;rej(new Error('could not reach Plaid'))};
+    document.head.appendChild(el);
+  });
+  return plaidLoad._p;
+}
+async function plaidFn(action,body){
+  const tok=await authToken();
+  if(!tok)throw new Error('sign in first');
+  const r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/plaid',{method:'POST',
+    headers:{apikey:cfg.key,Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({action},body||{}))});
+  const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch(e){}
+  if(!r.ok)throw new Error(j.error||('Plaid call failed ('+r.status+')'));
+  return j;
+}
+function plaidItems(){return list('plaid')}
+// Plaid's primary category cannot tell groceries from a restaurant, so the detailed one
+// decides first where it actually matters to a budget.
+const PFC={FOOD_AND_DRINK:'Restaurants',GENERAL_MERCHANDISE:'Shopping',TRANSPORTATION:'Transport',
+  TRAVEL:'Travel',MEDICAL:'Health',PERSONAL_CARE:'Health',RENT_AND_UTILITIES:'Home',
+  HOME_IMPROVEMENT:'Home',BANK_FEES:'Fees & interest',LOAN_PAYMENTS:'Fees & interest',
+  ENTERTAINMENT:'Other',GENERAL_SERVICES:'Other',INCOME:'Other',
+  TRANSFER_IN:'Other',TRANSFER_OUT:'Other',GOVERNMENT_AND_NON_PROFIT:'Other'};
+function plaidCat(t){
+  const d=String(t.det||'');
+  if(/GROCER|SUPERMARKET/.test(d))return 'Groceries';
+  if(/GAS|FUEL/.test(d))return 'Fuel';
+  if(/SUBSCRIPTION|STREAM/.test(d))return 'Subscriptions';
+  if(/CLOTHING|ACCESSOR/.test(d))return 'Clothing';
+  if(/ELECTRONIC|SOFTWARE|TECHNOLOG/.test(d))return 'Tech';
+  if(/ATM|CASH_ADVANCE|WITHDRAWAL/.test(d))return 'Cash withdrawal';
+  return PFC[t.cat]||'Other';
+}
+// Plaid reports money leaving as a positive amount, which is this register's convention too.
+function plaidRow(t,card){
+  return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,
+    cat:plaidCat(t),cur:t.cur||'USD',notes:t.pending?'pending':''};
+}
+async function plaidSyncAll(){
+  const items=plaidItems();
+  if(!items.length)return{added:0,updated:0,removed:0,items:0};
+  let added=0,updated=0,removed=0;
+  for(const it of items){
+    const accts=it.d.accts||[];
+    const nameOf=id=>{const a=accts.find(x=>x.id===id);
+      return a?(a.name||'Account')+(a.mask?' ••'+a.mask:''):(it.d.inst||'Bank')};
+    const out=await plaidFn('sync',{access_token:it.d.tok,cursor:it.d.cursor||undefined});
+    // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
+    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account)),'tx:plaid:'+t.id);added++});
+    (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account)),'tx:plaid:'+t.id);updated++});
+    (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
+    put('plaid',{cursor:out.cursor||'',last:new Date().toISOString()},it.id);
+  }
+  return{added,updated,removed,items:items.length};
+}
+async function plaidConnect(){
+  PLAIDBUSY=1;PLAIDMSG='opening Plaid…';renderActive();
+  try{
+    await plaidLoad();
+    const {link_token}=await plaidFn('link_token');
+    PLAIDMSG='waiting for you to finish in Plaid…';renderActive();
+    await new Promise(done=>{
+      const h=Plaid.create({
+        token:link_token,
+        onSuccess:async(public_token,meta)=>{
+          try{
+            PLAIDBUSY=1;PLAIDMSG='connecting…';renderActive();
+            const ex=await plaidFn('exchange',{public_token});
+            put('plaid',{item:ex.item_id,tok:ex.access_token,cursor:'',
+              inst:(meta&&meta.institution&&meta.institution.name)||'Bank',
+              accts:ex.accounts||[],added:today()},'plaid:'+ex.item_id);
+            PLAIDMSG='fetching transactions…';renderActive();
+            const r=await plaidSyncAll();
+            PLAIDMSG='';
+            alert('Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.');
+          }catch(e){alert('Could not finish connecting: '+e.message)}
+          done();
+        },
+        onExit:(err)=>{if(err)PLAIDMSG='';done()},
+      });
+      h.open();
+    });
+  }catch(e){alert(e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+async function plaidSyncNow(){
+  PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
+  try{
+    const r=await plaidSyncAll();
+    alert(r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.');
+  }catch(e){alert('Sync failed: '+e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+function plaidDisconnect(id){
+  const it=one(id);if(!it)return;
+  if(!confirm('Disconnect '+(it.d.inst||'this bank')+'?\n\nThe transactions already brought in stay. New ones stop arriving, and the stored bank token is deleted.'))return;
+  kill(id);renderActive();
+}
+function plaidPanel(){
+  const items=plaidItems();
+  let h='<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Bank connections</h2>';
+  if(PLAIDBUSY)return h+'<div class="hint">'+esc(PLAIDMSG||'working…')+'</div></div>';
+  if(!items.length){
+    return h+'<div class="hint">Connect a card or account and every transaction on it arrives here — dated, named, assigned to the right card and already categorised. Your Plaid secret stays on the server and never reaches this page.<br><br>Syncing happens when you open Alfred rather than overnight.</div>'+
+      '<button class="btn sm" onclick="plaidConnect()">Connect a bank</button></div>';
+  }
+  h+=items.map(i=>{
+    const n=(i.d.accts||[]).length;
+    const last=i.d.last?new Date(i.d.last).toLocaleString():'never';
+    return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
+      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+'</span></span>'+
+      '<button class="btn sm ghost" style="margin-left:auto" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></div>';
+  }).join('');
+  h+='<div style="display:flex;gap:8px;margin-top:12px">'+
+     '<button class="btn sm" onclick="plaidSyncNow()">Sync now</button>'+
+     '<button class="btn sm ghost" onclick="plaidConnect()">Connect another</button></div></div>';
+  return h;
+}
+
 /* ---------------- transactions ----------------
    The per-purchase ledger. Everything else in the finance pages says what a card was
    PAID; only this says what was BOUGHT, which is the only thing that can be cut.
@@ -2153,6 +2286,7 @@ function txPage(){
     [['','All cards'],...cards.map(c=>[c,c])].map(([k,l],i)=>
       `<button class="${TXCARD===k?'active':''}" onclick="txSetCardIdx(${i-1})">${esc(l)}</button>`).join('')+`</div>`;
 
+  h+=plaidPanel();
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Import a statement</h2>`;
   if(!TXIMP)h+=`<div class="hint">Download the CSV from Citi, Amex or Wells Fargo and paste it here \u2014 it reads all three without being told which is which. Nothing is written until you have seen the preview.</div>
     <button class="btn sm" onclick="TXIMP=1;renderActive()">Paste a statement</button></div>`;
