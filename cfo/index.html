@@ -2083,8 +2083,8 @@ function plaidCat(t){
   return PFC[t.cat]||'Other';
 }
 // Plaid reports money leaving as a positive amount, which is this register's convention too.
-function plaidRow(t,card){
-  return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,
+function plaidRow(t,card,item){
+  return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,item:item||'',
     cat:plaidCat(t),cur:t.cur||'USD',notes:t.pending?'pending':''};
 }
 async function plaidSyncAll(){
@@ -2097,8 +2097,8 @@ async function plaidSyncAll(){
       return a?(a.name||'Account')+(a.mask?' ••'+a.mask:''):(it.d.inst||'Bank')};
     const out=await plaidFn('sync',{access_token:it.d.tok,cursor:it.d.cursor||undefined});
     // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
-    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account)),'tx:plaid:'+t.id);added++});
-    (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account)),'tx:plaid:'+t.id);updated++});
+    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++});
+    (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);updated++});
     (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
     put('plaid',{cursor:out.cursor||'',last:new Date().toISOString()},it.id);
   }
@@ -2142,9 +2142,19 @@ async function plaidSyncNow(){
   }catch(e){alert('Sync failed: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
+// Rows carry the connection they came from; older ones predate that, so fall back to
+// matching the account names this connection actually reported.
+function plaidRowsOf(it){
+  const names=new Set((it.d.accts||[]).map(a=>(a.name||'Account')+(a.mask?' \u2022\u2022'+a.mask:'')));
+  return list('tx').filter(x=>x.d.item===it.id||(!x.d.item&&x.id.startsWith('tx:plaid:')&&names.has(x.d.card)));
+}
 function plaidDisconnect(id){
   const it=one(id);if(!it)return;
-  if(!confirm('Disconnect '+(it.d.inst||'this bank')+'?\n\nThe transactions already brought in stay. New ones stop arriving, and the stored bank token is deleted.'))return;
+  const rows=plaidRowsOf(it), name=it.d.inst||'this bank';
+  if(!confirm('Disconnect '+name+'?\n\nNew transactions stop arriving and the stored bank token is deleted.'))return;
+  if(rows.length&&confirm('Also delete the '+rows.length+' transaction'+(rows.length===1?'':'s')+' it brought in?\n\nOK deletes them. Cancel keeps them.\n\nDelete them if this was a test connection \u2014 sandbox data is invented and will otherwise sit in your real figures.')){
+    rows.forEach(x=>kill(x.id));
+  }
   kill(id);renderActive();
 }
 function plaidPanel(){
