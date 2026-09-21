@@ -1751,7 +1751,7 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these. One task can keep a different time on one day: turn on "Choose times daily" and tap that day\'s block.',
   sort:byStart,
   fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'splitDaily',l:'Choose specifics daily',t:'check'},{k:'split',l:d=>d&&d.splitDaily&&editCtx?.day?'Specifics — '+editCtx.day:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},
-          {k:'timeDaily',l:'Choose times daily',t:'check'},
+          {k:'timeDaily',l:'Choose times daily',t:'check',full:1},
           {k:'start',l:d=>d&&d.timeDaily&&editCtx?.day?'Starts — '+editCtx.day:'Starts',t:'time'},
           {k:'end',l:d=>d&&d.timeDaily&&editCtx?.day?'Ends — '+editCtx.day:'Ends',t:'time'},
           {k:'notes',l:'Notes',t:'ta',full:1}],
