@@ -224,6 +224,19 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   table.ft td.ed{cursor:pointer}
   table.ft td.ed:hover{background:var(--panel2)}
   table.ft tr.tot td{border-top:2px solid var(--line2);font-weight:600}
+  /* the house menu, drawn as the printed sheet: a table per week, left-aligned and wrapping */
+  .mnWk{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin:18px 0 6px}
+  table.ft.mn{min-width:520px;font-size:13px}
+  table.ft.mn th,table.ft.mn td{text-align:left;white-space:normal;vertical-align:top;font-family:"Public Sans",sans-serif}
+  table.ft.mn th{font-family:"IBM Plex Mono"}
+  table.ft.mn tbody tr{cursor:pointer}
+  table.ft.mn tbody tr:hover td{background:var(--panel2)}
+  table.ft.mn td.mnDay{font-weight:600;white-space:nowrap}
+  table.ft.mn td.mnMeal{white-space:nowrap;color:var(--muted)}
+  .mnSides{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+  .mnNote{color:var(--txt);font-size:12px}
+  .mnNote.empty{color:var(--faint)}
   .neg{color:var(--bad)} .pos{color:#2e7247}
   .finRow{display:flex;align-items:baseline;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .finRow:hover{background:var(--panel2)}
@@ -462,10 +475,12 @@ const money=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US'
 const money2=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
 const signCls=n=>(+n||0)<0?'neg':(+n||0)>0?'pos':'';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-// The cooks work a four-week rotation: A, B, C, D, then A again.
-const MENU_WEEKS=['Week A','Week B','Week C','Week D'];
-const MENU_DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const MENU_MEALS=['Lunch','Dinner'];
+// The cooks work a four-week rotation: A, B, C, D, then A again. The sheet they work from is
+// in French, so the page is too — renaming it into English would only mean translating it
+// back every time something is read out to them.
+const MENU_WEEKS=['Semaine A','Semaine B','Semaine C','Semaine D'];
+const MENU_DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const MENU_MEALS=['Déjeuner','Dîner'];
 const fdate=s=>{if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})};
 const dlabel=(s,noOverdue)=>{     // noOverdue: a finished task is never late
   if(!s)return'No date';
@@ -1761,27 +1776,22 @@ acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and time
     return d},
   card:i=>({t:esc(i.d.name),s:[esc(actSplits(i)),i.d.timeDaily?'':(i.d.days||'').split(',').filter(Boolean).join(' · '),esc(actTimes(i)),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
-menu:{title:'Home menu',color:'var(--orange)',hint:'The four-week rotation the cooks work from — A, B, C, D, then A again. Notes are yours: what worked, what to change, what never to serve again.',
-  fields:[{k:'week',l:'Week',t:'sel',opt:MENU_WEEKS,req:1},
-          {k:'day',l:'Day',t:'sel',opt:MENU_DAYS,req:1},
-          {k:'meal',l:'Meal',t:'sel',opt:MENU_MEALS,def:'Dinner'},
-          {k:'dish',l:'Menu',t:'text',req:1,ph:'Chicken · Riz Black Beans'},
-          {k:'sides',l:'With it',t:'text',ph:'Salad, Avocado, Pikliz'},
-          {k:'notes',l:'Thoughts on this meal',t:'ta',full:1,ph:'too salty, more pikliz, make this again…'}],
-  chips:[{l:'All',f:()=>1}].concat(MENU_WEEKS.map(w=>({l:w,f:i=>i.d.week===w}))),
-  group:i=>i.d.week||'Unfiled',
-  groupOrder:(a,b)=>(a==='Unfiled'?1:0)-(b==='Unfiled'?1:0)||a.localeCompare(b),
+menu:{title:'Menu de la maison',color:'var(--orange)',hint:'La rotation de quatre semaines — A, B, C, D, puis A de nouveau. La colonne Notes est la vôtre : ce qui a marché, ce qu\'il faut changer.',
+  fields:[{k:'week',l:'Semaine',t:'sel',opt:MENU_WEEKS,req:1},
+          {k:'day',l:'Jour',t:'sel',opt:MENU_DAYS,req:1},
+          {k:'meal',l:'Repas',t:'sel',opt:MENU_MEALS,def:'Dîner'},
+          {k:'dish',l:'Menu',t:'text',req:1,ph:'Poulet · Du Riz Sauce Pois Noirs'},
+          {k:'sides',l:'Accompagnements',t:'text',ph:'Salade, Avocat, Pikliz'},
+          {k:'notes',l:'Notes sur ce repas',t:'ta',full:1,ph:'trop salé, plus de pikliz, à refaire…'}],
   // A week reads down the days the way the printed sheet does, lunch before dinner.
   sort:(a,b)=>MENU_DAYS.indexOf(a.d.day)-MENU_DAYS.indexOf(b.d.day)
     ||MENU_MEALS.indexOf(a.d.meal)-MENU_MEALS.indexOf(b.d.meal),
   stats:it=>{const noted=it.filter(i=>String(i.d.notes||'').trim()).length;
-    return[{k:'Meals',v:it.length,u:new Set(it.map(i=>i.d.week).filter(Boolean)).size+' weeks',c:'var(--orange)'},
-           {k:'Noted',v:noted,u:noted?'':'nothing written down yet',c:'var(--gold)'}]},
-  // The day and meal are what you scan for; the dish and its sides are the row itself.
+    return[{k:'Repas',v:it.length,u:new Set(it.map(i=>i.d.week).filter(Boolean)).size+' semaines',c:'var(--orange)'},
+           {k:'Annotés',v:noted,u:noted?'':'rien de noté',c:'var(--gold)'}]},
   card:i=>({t:esc([i.d.day,i.d.meal].filter(Boolean).join(' · ')),
-    s:[esc(i.d.dish||''),esc(i.d.sides||'')].filter(Boolean).join(' — '),
-    pill:String(i.d.notes||'').trim()?{cls:'acc',txt:'noted'}:null}),
-  empty:'Nothing on the menu yet — hit + to add a meal.'},
+    s:[esc(i.d.dish||''),esc(i.d.sides||'')].filter(Boolean).join(' — ')}),
+  empty:'Rien au menu — appuyez sur + pour ajouter un repas.'},
 brief:{title:'Daily brief',color:'var(--gold)',
   fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
   card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
@@ -1949,6 +1959,37 @@ function fincashPage(){
     h+=rateItem?`<div class="panel"><div class="finRow" onclick="openForm('fincash','${rateItem.id}')"><span class="n">Exchange rate</span><span class="v">${rate} HTG / USD</span></div></div>`:'';
   }
   return h;
+}
+// The menu is the one page that is a table rather than a list: it is read across — day, meal,
+// what is served — the way the sheet pinned in the kitchen is, and a list of cards loses that.
+// One table per week. A row opens for editing, which is how a note gets written on a meal.
+function menuPage(){
+  const m=MODS.menu, items=list('menu');
+  let h='';
+  if(m.stats)h+='<div class="grid stats">'+statsHtml(m,items)+'</div>';
+  h+=`<div class="panel"><h2><span class="sw" style="background:${m.color}"></span>${m.title}</h2>`
+    +`<div class="hint">${m.hint}</div>`;
+  const weeks=MENU_WEEKS.concat(
+    [...new Set(items.map(i=>i.d.week).filter(w=>w&&MENU_WEEKS.indexOf(w)<0))]);
+  let drawn=0;
+  weeks.forEach(w=>{
+    const rows=items.filter(i=>i.d.week===w).sort(m.sort);
+    if(!rows.length)return;
+    drawn++;
+    h+=`<div class="mnWk">${esc(w)}</div><div class="ftWrap"><table class="ft mn">`
+      +'<thead><tr><th>Jour</th><th>Repas</th><th>Menu</th><th>Notes</th></tr></thead><tbody>';
+    rows.forEach(i=>{
+      const note=String(i.d.notes||'').trim();
+      h+=`<tr onclick="openForm('menu','${i.id}')">`
+        +`<td class="mnDay">${esc(i.d.day||'')}</td>`
+        +`<td class="mnMeal">${esc(i.d.meal||'')}</td>`
+        +`<td>${esc(i.d.dish||'')}${i.d.sides?`<span class="mnSides">${esc(i.d.sides)}</span>`:''}</td>`
+        +`<td class="mnNote${note?'':' empty'}">${note?esc(note):'—'}</td></tr>`;
+    });
+    h+='</tbody></table></div>';
+  });
+  if(!drawn)h+=`<div class="empty">${m.empty}</div>`;
+  return h+'</div>';
 }
 function stmtCell(src,mn){const it=list('finstmt').find(i=>i.d.src===src&&i.d.month===mn);openForm('finstmt',it?.id,{src,month:mn})}
 function finstmtPage(){
@@ -2877,7 +2918,7 @@ const NAV=[
   {t:'To-do',p:'todo',cls:'todo'},
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
-  {t:'Nutrition',g:[['Home menu','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
+  {t:'Nutrition',g:[['Menu de la maison','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
   {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
@@ -2895,6 +2936,7 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   fincash:{render:fincashPage,fab:'fincash'},
   invest:{render:investPage,bind:bindInvest,fab:'invest'},
   finstmt:{render:finstmtPage,fab:'finstmt'},
+  menu:{render:menuPage,fab:'menu'},
   fintx:{render:fintxPage,fab:'fintx'},
   cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV},
   schedule:{render:schedulePage,fab:'acts'}};
