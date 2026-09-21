@@ -462,6 +462,11 @@ const money=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US'
 const money2=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
 const signCls=n=>(+n||0)<0?'neg':(+n||0)>0?'pos':'';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+// The cooks work a four-week rotation: A, B, C, D, then A again. The week carries the fish it
+// is built around, so the heading says which one without opening a row.
+const MENU_WEEKS=['Week A — Salmon','Week B — Sea Bass','Week C — Salmon','Week D — Sea Bass'];
+const MENU_DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const MENU_MEALS=['Lunch','Dinner'];
 const fdate=s=>{if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})};
 const dlabel=(s,noOverdue)=>{     // noOverdue: a finished task is never late
   if(!s)return'No date';
@@ -1757,12 +1762,27 @@ acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and time
     return d},
   card:i=>({t:esc(i.d.name),s:[esc(actSplits(i)),i.d.timeDaily?'':(i.d.days||'').split(',').filter(Boolean).join(' · '),esc(actTimes(i)),esc(i.d.time||'')].filter(Boolean).join(' — '),
     pill:actToday(i)?{cls:'ok',txt:'today'}:null})},
-menu:{title:'Home menu',color:'var(--orange)',hint:'What the cooks at the house can make for you.',
-  fields:[{k:'name',l:'Dish',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Breakfast','Proteins','Pasta & carbs','Sandwich','Sides','Soups','Snacks','Drinks','Other']},{k:'ing',l:'What goes in it',t:'ta',full:1},{k:'notes',l:'Notes for the cook',t:'ta',full:1}],
-  group:i=>i.d.cat||'Other',
-  sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
-  card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,110))}),
-  empty:'Nothing on the menu yet — hit + to add what the cooks can make.'},
+menu:{title:'Home menu',color:'var(--orange)',hint:'The four-week rotation the cooks work from — A, B, C, D, then A again. Notes are yours: what worked, what to change, what never to serve again.',
+  fields:[{k:'week',l:'Week',t:'sel',opt:MENU_WEEKS,req:1},
+          {k:'day',l:'Day',t:'sel',opt:MENU_DAYS,req:1},
+          {k:'meal',l:'Meal',t:'sel',opt:MENU_MEALS,def:'Dinner'},
+          {k:'dish',l:'Menu',t:'text',req:1,ph:'Chicken · Riz Black Beans'},
+          {k:'sides',l:'With it',t:'text',ph:'Salad, Avocado, Pikliz'},
+          {k:'notes',l:'Thoughts on this meal',t:'ta',full:1,ph:'too salty, more pikliz, make this again…'}],
+  chips:[{l:'All',f:()=>1}].concat(MENU_WEEKS.map(w=>({l:w.split(' — ')[0],f:i=>i.d.week===w}))),
+  group:i=>i.d.week||'Unfiled',
+  groupOrder:(a,b)=>(a==='Unfiled'?1:0)-(b==='Unfiled'?1:0)||a.localeCompare(b),
+  // A week reads down the days the way the printed sheet does, lunch before dinner.
+  sort:(a,b)=>MENU_DAYS.indexOf(a.d.day)-MENU_DAYS.indexOf(b.d.day)
+    ||MENU_MEALS.indexOf(a.d.meal)-MENU_MEALS.indexOf(b.d.meal),
+  stats:it=>{const noted=it.filter(i=>String(i.d.notes||'').trim()).length;
+    return[{k:'Meals',v:it.length,u:new Set(it.map(i=>i.d.week).filter(Boolean)).size+' weeks',c:'var(--orange)'},
+           {k:'Noted',v:noted,u:noted?'':'nothing written down yet',c:'var(--gold)'}]},
+  // The day and meal are what you scan for; the dish and its sides are the row itself.
+  card:i=>({t:esc([i.d.day,i.d.meal].filter(Boolean).join(' · ')),
+    s:[esc(i.d.dish||''),esc(i.d.sides||'')].filter(Boolean).join(' — '),
+    pill:String(i.d.notes||'').trim()?{cls:'acc',txt:'noted'}:null}),
+  empty:'Nothing on the menu yet — hit + to add a meal.'},
 brief:{title:'Daily brief',color:'var(--gold)',
   fields:[{k:'date',l:'Date',t:'date',req:1},{k:'title',l:'Headline',t:'text'},{k:'body',l:'Brief',t:'ta',full:1,req:1}],
   card:i=>({t:fdate(i.d.date),s:esc((i.d.body||'').slice(0,120))})},
