@@ -227,7 +227,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* the house menu, drawn as the printed sheet: a table per week, left-aligned and wrapping */
   .mnWk{font-family:"IBM Plex Mono";font-size:13px;letter-spacing:.07em;text-transform:uppercase;
     color:var(--muted);margin:22px 0 7px}
-  table.ft.mn{min-width:520px;font-size:13px}
+  /* Each week is its own table, so left to themselves the columns size to that week's
+     own longest dish and no two weeks line up. Fixed widths make every week identical,
+     and the rules carry the eye straight down the page through all of them. */
+  table.ft.mn{min-width:520px;font-size:13px;table-layout:fixed}
+  table.ft.mn th:nth-child(1),table.ft.mn td:nth-child(1){width:18%}
+  table.ft.mn th:nth-child(2),table.ft.mn td:nth-child(2){width:16%}
+  table.ft.mn th:nth-child(3),table.ft.mn td:nth-child(3){width:48%}
+  table.ft.mn th:nth-child(4),table.ft.mn td:nth-child(4){width:18%}
+  table.ft.mn th+th,table.ft.mn td+td{border-left:1px solid var(--line)}
   table.ft.mn th,table.ft.mn td{text-align:left;white-space:normal;vertical-align:top;font-family:"Public Sans",sans-serif}
   table.ft.mn th{font-family:"IBM Plex Mono"}
   table.ft.mn tbody tr{cursor:pointer}
