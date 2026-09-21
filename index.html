@@ -462,9 +462,8 @@ const money=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US'
 const money2=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
 const signCls=n=>(+n||0)<0?'neg':(+n||0)>0?'pos':'';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-// The cooks work a four-week rotation: A, B, C, D, then A again. The week carries the fish it
-// is built around, so the heading says which one without opening a row.
-const MENU_WEEKS=['Week A — Salmon','Week B — Sea Bass','Week C — Salmon','Week D — Sea Bass'];
+// The cooks work a four-week rotation: A, B, C, D, then A again.
+const MENU_WEEKS=['Week A','Week B','Week C','Week D'];
 const MENU_DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const MENU_MEALS=['Lunch','Dinner'];
 const fdate=s=>{if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})};
@@ -1769,7 +1768,7 @@ menu:{title:'Home menu',color:'var(--orange)',hint:'The four-week rotation the c
           {k:'dish',l:'Menu',t:'text',req:1,ph:'Chicken · Riz Black Beans'},
           {k:'sides',l:'With it',t:'text',ph:'Salad, Avocado, Pikliz'},
           {k:'notes',l:'Thoughts on this meal',t:'ta',full:1,ph:'too salty, more pikliz, make this again…'}],
-  chips:[{l:'All',f:()=>1}].concat(MENU_WEEKS.map(w=>({l:w.split(' — ')[0],f:i=>i.d.week===w}))),
+  chips:[{l:'All',f:()=>1}].concat(MENU_WEEKS.map(w=>({l:w,f:i=>i.d.week===w}))),
   group:i=>i.d.week||'Unfiled',
   groupOrder:(a,b)=>(a==='Unfiled'?1:0)-(b==='Unfiled'?1:0)||a.localeCompare(b),
   // A week reads down the days the way the printed sheet does, lunch before dinner.
