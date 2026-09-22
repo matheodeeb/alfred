@@ -2040,9 +2040,11 @@ function monPanel(){
    reachable only by his signed-in account, and the edge function keeps nothing between
    calls -- the browser hands the token over for the length of one request. Plaid's own
    secret never leaves the function's environment and is never in this page.
-   Worth a line for the security pass later: with the passphrase gone that token is stored
-   readable, guarded by the account rather than by a key. Fine for sandbox; move it behind
-   the function before real bank data flows through. */
+   The token is never handed to this page. It is written into a table the browser cannot
+   read -- RLS on, no policies, no grants -- and only the edge function's service role can
+   reach it. This page knows an item_id and nothing more, which is the whole point: a
+   stolen session can ask for transactions but cannot walk away with the credential that
+   fetches them. */
 let PLAIDBUSY=0, PLAIDMSG='';
 function plaidLoad(){
   if(window.Plaid)return Promise.resolve();
@@ -2064,7 +2066,21 @@ async function plaidFn(action,body){
   if(!r.ok)throw new Error(j.error||('Plaid call failed ('+r.status+')'));
   return j;
 }
+// Connections live server-side now. This mirror holds only what the page needs to draw
+// them -- id, institution, accounts -- and never a token.
 function plaidItems(){return list('plaid')}
+async function plaidPull(){
+  try{
+    const out=await plaidFn('items');
+    const seen=new Set();
+    (out.items||[]).forEach(it=>{
+      seen.add('plaid:'+it.item_id);
+      put('plaid',{item:it.item_id,inst:it.institution||'Bank',
+        accts:it.accounts||[],last:it.updated_at||''},'plaid:'+it.item_id);
+    });
+    list('plaid').forEach(x=>{if(!seen.has(x.id))kill(x.id)});   // removed elsewhere
+  }catch(e){}                                                    // offline is not an error here
+}
 // Plaid's primary category cannot tell groceries from a restaurant, so the detailed one
 // decides first where it actually matters to a budget.
 const PFC={FOOD_AND_DRINK:'Restaurants',GENERAL_MERCHANDISE:'Shopping',TRANSPORTATION:'Transport',
@@ -2095,12 +2111,12 @@ async function plaidSyncAll(){
     const accts=it.d.accts||[];
     const nameOf=id=>{const a=accts.find(x=>x.id===id);
       return a?(a.name||'Account')+(a.mask?' ••'+a.mask:''):(it.d.inst||'Bank')};
-    const out=await plaidFn('sync',{access_token:it.d.tok,cursor:it.d.cursor||undefined});
+    const out=await plaidFn('sync',{item_id:it.d.item});
     // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
     (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++});
     (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);updated++});
     (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
-    put('plaid',{cursor:out.cursor||'',last:new Date().toISOString()},it.id);
+    put('plaid',{last:new Date().toISOString()},it.id);   // the cursor is the server's now
   }
   return{added,updated,removed,items:items.length};
 }
@@ -2116,9 +2132,9 @@ async function plaidConnect(){
         onSuccess:async(public_token,meta)=>{
           try{
             PLAIDBUSY=1;PLAIDMSG='connecting…';renderActive();
-            const ex=await plaidFn('exchange',{public_token});
-            put('plaid',{item:ex.item_id,tok:ex.access_token,cursor:'',
-              inst:(meta&&meta.institution&&meta.institution.name)||'Bank',
+            const ex=await plaidFn('exchange',{public_token,
+              institution:(meta&&meta.institution&&meta.institution.name)||''});
+            put('plaid',{item:ex.item_id,inst:ex.institution||'Bank',
               accts:ex.accounts||[],added:today()},'plaid:'+ex.item_id);
             PLAIDMSG='fetching transactions…';renderActive();
             const r=await plaidSyncAll();
@@ -2148,10 +2164,12 @@ function plaidRowsOf(it){
   const names=new Set((it.d.accts||[]).map(a=>(a.name||'Account')+(a.mask?' \u2022\u2022'+a.mask:'')));
   return list('tx').filter(x=>x.d.item===it.id||(!x.d.item&&x.id.startsWith('tx:plaid:')&&names.has(x.d.card)));
 }
-function plaidDisconnect(id){
+async function plaidDisconnect(id){
   const it=one(id);if(!it)return;
   const rows=plaidRowsOf(it), name=it.d.inst||'this bank';
-  if(!confirm('Disconnect '+name+'?\n\nNew transactions stop arriving and the stored bank token is deleted.'))return;
+  if(!confirm('Disconnect '+name+'?\n\nNew transactions stop arriving, Plaid is told to drop the connection, and the stored bank token is deleted.'))return;
+  try{ await plaidFn('remove',{item_id:it.d.item}) }
+  catch(e){ if(!confirm('Could not reach Plaid to revoke it: '+e.message+'\n\nRemove it from this page anyway?'))return }
   if(rows.length&&confirm('Also delete the '+rows.length+' transaction'+(rows.length===1?'':'s')+' it brought in?\n\nOK deletes them. Cancel keeps them.\n\nDelete them if this was a test connection \u2014 sandbox data is invented and will otherwise sit in your real figures.')){
     rows.forEach(x=>kill(x.id));
   }
@@ -2296,6 +2314,7 @@ function txPage(){
     [['','All cards'],...cards.map(c=>[c,c])].map(([k,l],i)=>
       `<button class="${TXCARD===k?'active':''}" onclick="txSetCardIdx(${i-1})">${esc(l)}</button>`).join('')+`</div>`;
 
+  if(!plaidPanel._pulled){plaidPanel._pulled=1;plaidPull().then(renderActive)}
   h+=plaidPanel();
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Import a statement</h2>`;
   if(!TXIMP)h+=`<div class="hint">Download the CSV from Citi, Amex or Wells Fargo and paste it here \u2014 it reads all three without being told which is which. Nothing is written until you have seen the preview.</div>
