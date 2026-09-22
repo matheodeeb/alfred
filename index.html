@@ -245,6 +245,23 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .mnSides{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
   .mnNote{color:var(--txt);font-size:12px}
   .mnNote.empty{color:var(--faint)}
+  /* building an order out of open wants */
+  .ordSec{margin-top:14px}
+  .ordSec h4{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);font-weight:400;margin-bottom:6px}
+  .ordRow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
+  .ordRow:first-of-type{border-top:0}
+  .ordRow input[type=text]{flex:1;min-width:0}
+  .ordRow input.pz{width:96px;flex:none;text-align:right}
+  .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px}
+  .ordRow .rm:hover{color:var(--bad)}
+  .ordRow label{flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
+  .ordRow label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ordSum{margin-top:14px;border-top:2px solid var(--line2);padding-top:10px;font-family:"IBM Plex Mono";font-size:12.5px}
+  .ordSum div{display:flex;justify-content:space-between;padding:3px 0}
+  .ordSum .big{font-size:14px;font-weight:600;color:var(--txt)}
+  .ordSum .mut{color:var(--muted)}
+  .ordSum .warn{color:var(--bad)}
   .neg{color:var(--bad)} .pos{color:#2e7247}
   .finRow{display:flex;align-items:baseline;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .finRow:hover{background:var(--panel2)}
@@ -444,6 +461,17 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     <span class="spacer"></span>
     <button class="btn ghost" onclick="closeModal()">Cancel</button>
     <button class="btn primary" id="mSave">Save</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="ordOv"><div class="modal">
+  <button class="close" onclick="ov('ordOv',0)">×</button>
+  <h3>Into an order</h3>
+  <div id="ordBody"></div>
+  <div class="foot">
+    <span class="spacer"></span>
+    <button class="btn ghost" onclick="ov('ordOv',0)">Cancel</button>
+    <button class="btn primary" id="ordGo">Create order</button>
   </div>
 </div></div>
 
@@ -893,7 +921,7 @@ let editCtx=null;
 function openForm(sec,id,defs){
   const m=MODS[sec];if(!m||!m.fields)return;
   const it=id?one(id):null;
-  editCtx={sec,id,day:(defs&&defs._day)||''};   // set when a planner block was tapped
+  editCtx={sec,id,defs:defs||null,day:(defs&&defs._day)||''};   // set when a planner block was tapped
   $('#mTitle').textContent=(it?'Edit — ':'Add — ')+m.title;
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
@@ -939,6 +967,10 @@ $('#mSave').onclick=()=>{
   if(req){const e=$('#f_'+req.k);
     if(e){e.style.borderColor='var(--bad)';e.scrollIntoView({block:'center'});try{e.focus()}catch(x){}}
     return}
+  // A default that is not one of the fields — the done/got flags the + button sets from
+  // whichever half you are in — would otherwise be dropped on the way to the store.
+  if(editCtx.defs)for(const k in editCtx.defs){
+    if(k[0]!=='_'&&!(k in d)&&!m.fields.some(f=>f.k===k))d[k]=editCtx.defs[k]}
   if(m.formOut)m.formOut(d);
   if(m.ranked&&isFinished(d))d.pri='';        // read / watched drops out of the ranking
   try{
@@ -1360,6 +1392,101 @@ function whenLabel(d){
   return spanLabel(d.start,d.end);
 }
 const projStart=i=>whenStart(i.d);
+/* ---------------- building an order out of open wants ---------------- */
+// Ticking an open want used to move it straight to ordered on its own, which is only
+// right when it was bought alone. Usually it arrived in a basket with other things and
+// one payment covering the lot, so ticking now asks what else was on that order — other
+// things already on the list, or things never listed — and what the bill actually came
+// to. The gap between the items and the bill is the tax and the delivery, and it is
+// worked out rather than typed, because the receipt only ever shows the total.
+let ordSeed=null;
+function openOrderBuilder(it){
+  ordSeed=it;
+  const others=list('wants').filter(o=>o.id!==it.id&&wOpen(o)&&!wantLines(o.d).length);
+  const px=v=>String(v??'')===''?'':(+v||0);
+  let h=`<div class="frow one"><div class="field full"><label>What to call this order</label>`
+    +`<input id="ordName" type="text" value="${esc(it.d.name||'')}"></div></div>`
+    +`<div class="ordSec"><h4>On this order</h4><div class="ordRow">`
+    +`<label><input type="checkbox" checked disabled><span>${esc(it.d.name||'')}</span></label>`
+    +`<input class="pz ordP" type="number" step="0.01" data-id="${it.id}" `
+    +`value="${px(it.d.price)}" placeholder="price"></div></div>`;
+  if(others.length){
+    h+=`<div class="ordSec"><h4>Also on it — already on your list</h4>`
+      +others.map(o=>`<div class="ordRow"><label><input type="checkbox" class="ordPick" data-id="${o.id}">`
+        +`<span>${esc(o.d.name||'')}</span></label>`
+        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${px(o.d.price)}" placeholder="price"></div>`).join('')
+      +`</div>`;
+  }
+  h+=`<div class="ordSec"><h4>Also on it — not on your list yet</h4><div id="ordNew"></div>`
+    +`<button class="btn sm ghost" id="ordAdd" style="margin-top:8px">+ Add an item</button></div>`
+    +`<div class="frow one"><div class="field full"><label>Total actually paid</label>`
+    +`<input id="ordPaid" type="number" step="0.01" placeholder="what the bill came to"></div></div>`
+    +`<div class="ordSum" id="ordSum"></div>`;
+  $('#ordBody').innerHTML=h;
+  $('#ordAdd').onclick=e=>{e.preventDefault();ordAddRow()};
+  $('#ordBody').addEventListener('input',ordRecalc);
+  $('#ordBody').addEventListener('change',ordRecalc);
+  ordRecalc();
+  ov('ordOv',1);
+}
+function ordAddRow(){
+  const d=document.createElement('div');
+  d.className='ordRow';
+  d.innerHTML='<input type="text" class="ordNewName" placeholder="what it is">'
+    +'<input class="pz ordNewP" type="number" step="0.01" placeholder="price">'
+    +'<button class="rm" title="Remove">×</button>';
+  d.querySelector('.rm').onclick=e=>{e.preventDefault();d.remove();ordRecalc()};
+  $('#ordNew').appendChild(d);
+  d.querySelector('.ordNewName').focus();
+  ordRecalc();
+}
+// Everything ticked, plus everything typed in — the one list the order is built from.
+function ordChosen(){
+  const out=[];
+  const seedP=$('#ordBody').querySelector('.ordP[data-id="'+ordSeed.id+'"]');
+  out.push({id:ordSeed.id,name:ordSeed.d.name||'',price:+seedP.value||0});
+  $('#ordBody').querySelectorAll('.ordPick:checked').forEach(c=>{
+    const o=one(c.dataset.id); if(!o)return;
+    const pe=$('#ordBody').querySelector('.ordP[data-id="'+c.dataset.id+'"]');
+    out.push({id:o.id,name:o.d.name||'',price:+pe.value||0});
+  });
+  $('#ordBody').querySelectorAll('#ordNew .ordRow').forEach(r=>{
+    const n=r.querySelector('.ordNewName').value.trim();
+    if(n)out.push({id:null,name:n,price:+r.querySelector('.ordNewP').value||0});
+  });
+  return out;
+}
+function ordRecalc(){
+  const picked=ordChosen(), sub=picked.reduce((t,x)=>t+x.price,0);
+  const paidRaw=$('#ordPaid').value, paid=+paidRaw||0, has=String(paidRaw).trim()!=='';
+  const fees=Math.round((paid-sub)*100)/100;
+  const share=splitTax(fees,picked.length);
+  const noPrice=picked.filter(x=>!x.price).length;
+  let h=`<div><span class="mut">${picked.length} item${picked.length===1?'':'s'}</span><span>${money(sub)}</span></div>`;
+  if(has){
+    h+=`<div><span class="mut">Tax, delivery and the rest</span><span class="${fees<0?'warn':''}">${money(fees)}</span></div>`
+      +`<div class="big"><span>Paid</span><span>${money(paid)}</span></div>`;
+    if(fees<0)h+=`<div class="warn" style="display:block;padding-top:6px">The bill is less than the items add up to — a discount, or a price needs correcting.</div>`;
+    else h+=`<div class="mut" style="display:block;padding-top:6px">Each item carries ${money(share[0])} of that, so they cost `
+      +picked.map((x,n)=>money(Math.round((x.price+share[n])*100)/100)).join(' · ')+'.</div>';
+  }else{
+    h+=`<div class="mut" style="display:block;padding-top:6px">Put in what you actually paid and the difference becomes the tax and fees, split across the items.</div>`;
+  }
+  if(noPrice)h+=`<div class="warn" style="display:block;padding-top:6px">${noPrice} item${noPrice===1?' has':'s have'} no price yet.</div>`;
+  $('#ordSum').innerHTML=h;
+}
+$('#ordGo').onclick=()=>{
+  if(!ordSeed)return;
+  const picked=ordChosen(), paidRaw=$('#ordPaid').value;
+  const name=$('#ordName').value.trim()||ordSeed.d.name||'Order';
+  const d={name,grp:ordSeed.d.grp||'',link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
+    lines:picked.map(x=>x.name+' | '+x.price).join('\n'),
+    paid:String(paidRaw).trim()===''?'':+paidRaw||0,
+    price:'',done:1,doneAt:today()};
+  put('wants',d,ordSeed.id);                       // the tapped row becomes the order itself
+  picked.forEach(x=>{if(x.id&&x.id!==ordSeed.id)kill(x.id)});   // the ones folded into it retire
+  ordSeed=null;ov('ordOv',0);renderActive();
+};
 /* ---------------- an order with several things in it ---------------- */
 // A want is usually one thing, but an order is often several bought together under one
 // total — and until it turns up, one total is all you know. So a row can carry its items
@@ -1376,12 +1503,23 @@ function wantLines(d){
            price:+m[2].replace(/[$,]/g,'')||0};
   });
 }
-// The order's real cost: what the items came to, plus the tax charged on top of them.
+// What the items on an order came to, before anything was added on top.
+function wantSub(d){return wantLines(d).reduce((t,l)=>t+l.price,0)}
+// Tax is not typed in, it is what is left over: the difference between the sum of the
+// items and the figure actually charged. That gap is the tax and every other fee —
+// delivery, handling, package protection — without needing to know which is which.
+function wantFees(d){
+  if(!wantLines(d).length)return 0;
+  if(String(d.paid??'')!=='')return Math.round((+d.paid - wantSub(d))*100)/100;
+  return +d.tax||0;                                  // rows written before `paid` existed
+}
+// The order's real cost: what was charged, or the items plus fees when nothing was.
 // A row with no lines is an ordinary want and keeps answering with its own price.
 function wantTotal(d){
   const ls=wantLines(d);
   if(!ls.length)return +d.price||0;
-  return ls.reduce((t,l)=>t+l.price,0)+(+d.tax||0);
+  if(String(d.paid??'')!=='')return +d.paid||0;
+  return wantSub(d)+(+d.tax||0);
 }
 // Tax splits evenly across the items, to the cent. Dividing by three leaves pennies over,
 // so they go to the first rows rather than being dropped — the parts add back to the whole.
@@ -1393,7 +1531,7 @@ function splitTax(total,n){
 // carrying its share of the tax, and the order row retires having done its job.
 function receiveOrder(it){
   const ls=wantLines(it.d); if(!ls.length)return false;
-  const share=splitTax(it.d.tax,ls.length), when=today();
+  const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
     put('wants',{name:l.name,grp:it.d.grp||'',price:paid,link:it.d.link||'',
@@ -1689,14 +1827,21 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
     return r(a)-r(b)||a.localeCompare(b)},
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received. An order bought as one lot can list its items and its tax: it stays a single row until it arrives, then breaks into one row per item with the tax shared evenly between them. Perfume you\'ve run out of shows up here on its own.',
+wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly. Perfume you\'ve run out of shows up here on its own.',
+  // Items and a total paid only mean anything once something has been ordered, so they
+  // stay out of the way on an open want and appear the moment a row is an order.
   fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
-          {k:'price',l:'Est. price — leave blank if you list items below',t:'money'},
-          {k:'lines',l:'Items in this order',t:'ta',full:1,
-           ph:'One per line, name then price:\nBeats 360 Headphones — Cloud | 349.99\nCushion Kit — Sky | 9.99'},
-          {k:'tax',l:'Tax on the order',t:'money'},
+          {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
+          {k:'lines',l:'Items in this order',t:'ta',full:1,showIf:d=>!!d.done,
+           ph:'One per line, name then price:\nLoro Piana Summer Walk | 900\nBelt | 400'},
+          {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  // The + button adds into whichever half you are looking at: open stays a plain want,
+  // ordered starts life already ordered so it can carry its items and its total.
+  fabDefs:()=>{const c=chipState.wants??0;
+    return c===1?{done:1,doneAt:today()}
+      :c===2?{done:1,doneAt:today(),got:1,gotAt:today()}:{}},
   group:i=>String(i.d.grp||'').trim()||'Other',
   groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
   groupNote:arr=>money(arr.reduce((t,i)=>t+wantTotal(i.d),0)),
@@ -1706,14 +1851,14 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move
            {k:'Spent',v:money(sum(paid)),u:paid.length+' item'+(paid.length===1?'':'s'),c:'var(--ok)'}]},
   chips:[{l:'Open',f:wOpen},{l:'Ordered',f:i=>i.d.done&&!i.d.got},{l:'Received',f:i=>!!i.d.got}],
   onToggle:i=>{const d=i.d;
-    if(wOpen(i))put('wants',{done:1,doneAt:today()},i.id);            // open  → ordered
+    if(wOpen(i))openOrderBuilder(i);                                  // open  → ask what it was bought with
     else if(!d.got){if(!receiveOrder(i))                              // ordered → received…
       put('wants',{got:1,gotAt:today()},i.id)}                        // …or, for a lot, into its items
     else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
   toggle:'done',
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
-      s:[tot?money(tot):'',ls.length?ls.length+' items'+(+i.d.tax?' · tax '+money(i.d.tax):''):'',
+      s:[tot?money(tot):'',ls.length?ls.length+' items'+(wantFees(i.d)?' · +'+money(wantFees(i.d))+' tax & fees':''):'',
          esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
@@ -3056,7 +3201,7 @@ function renderActive(){
   markNav();
   const fabSec=sp?(typeof sp.fab==='function'?sp.fab():sp.fab):(MODS[activePage]?.fields?activePage:null);
   $('#fab').style.display=fabSec?'flex':'none';
-  $('#fab').onclick=()=>openForm(fabSec);
+  $('#fab').onclick=()=>openForm(fabSec,null,MODS[fabSec]&&MODS[fabSec].fabDefs?MODS[fabSec].fabDefs():null);
   setPill();
 }
 
