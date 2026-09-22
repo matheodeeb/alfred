@@ -1360,6 +1360,50 @@ function whenLabel(d){
   return spanLabel(d.start,d.end);
 }
 const projStart=i=>whenStart(i.d);
+/* ---------------- an order with several things in it ---------------- */
+// A want is usually one thing, but an order is often several bought together under one
+// total — and until it turns up, one total is all you know. So a row can carry its items
+// as lines, stay a single row while it is open and on its way, and break into one row per
+// item the moment it arrives. "Name | 49.99" per line; a trailing $ or a figure with cents
+// is read too, so a name ending in a number is not mistaken for a price.
+function wantLines(d){
+  return String(d&&d.lines||'').split('\n').map(t=>t.trim()).filter(Boolean).map(t=>{
+    const bar=t.lastIndexOf('|');
+    if(bar>-1)return{name:t.slice(0,bar).trim()||t,price:+t.slice(bar+1).replace(/[^0-9.\-]/g,'')||0};
+    const m=t.match(/^(.*?)[\s]*\$?\s*(\d[\d,]*\.\d{2}|\$\d[\d,]*)\s*$/);
+    if(!m)return{name:t,price:0};
+    return{name:m[1].trim().replace(/[—–|,-]+$/,'').trim()||t,
+           price:+m[2].replace(/[$,]/g,'')||0};
+  });
+}
+// The order's real cost: what the items came to, plus the tax charged on top of them.
+// A row with no lines is an ordinary want and keeps answering with its own price.
+function wantTotal(d){
+  const ls=wantLines(d);
+  if(!ls.length)return +d.price||0;
+  return ls.reduce((t,l)=>t+l.price,0)+(+d.tax||0);
+}
+// Tax splits evenly across the items, to the cent. Dividing by three leaves pennies over,
+// so they go to the first rows rather than being dropped — the parts add back to the whole.
+function splitTax(total,n){
+  const c=Math.round((+total||0)*100), base=Math.floor(c/n), rem=c-base*n;
+  return Array.from({length:n},(_,k)=>(base+(k<rem?1:0))/100);
+}
+// Arrival is what turns one order into its items: each becomes its own received row,
+// carrying its share of the tax, and the order row retires having done its job.
+function receiveOrder(it){
+  const ls=wantLines(it.d); if(!ls.length)return false;
+  const share=splitTax(it.d.tax,ls.length), when=today();
+  ls.forEach((l,n)=>{
+    const paid=Math.round((l.price+share[n])*100)/100;
+    put('wants',{name:l.name,grp:it.d.grp||'',price:paid,link:it.d.link||'',
+      done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when,
+      notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
+        +`${money(l.price)} plus ${money(share[n])} tax.`},it.id+':'+(n+1));
+  });
+  kill(it.id);
+  return true;
+}
 const MODS={
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
@@ -1645,24 +1689,33 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
     return r(a)-r(b)||a.localeCompare(b)},
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received. Perfume you\'ve run out of shows up here on its own.',
-  fields:[{k:'name',l:'Item',t:'text',req:1},{k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
-          {k:'price',l:'Est. price',t:'money'},{k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick to move it along: open → ordered → received. An order bought as one lot can list its items and its tax: it stays a single row until it arrives, then breaks into one row per item with the tax shared evenly between them. Perfume you\'ve run out of shows up here on its own.',
+  fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
+          {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
+          {k:'price',l:'Est. price — leave blank if you list items below',t:'money'},
+          {k:'lines',l:'Items in this order',t:'ta',full:1,
+           ph:'One per line, name then price:\nBeats 360 Headphones — Cloud | 349.99\nCushion Kit — Sky | 9.99'},
+          {k:'tax',l:'Tax on the order',t:'money'},
+          {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>String(i.d.grp||'').trim()||'Other',
   groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
-  groupNote:arr=>money(arr.reduce((t,i)=>t+(+i.d.price||0),0)),
-  stats:it=>{const sum=a=>a.reduce((t,i)=>t+(+i.d.price||0),0);
-    const open=it.filter(wOpen), paid=it.filter(i=>!wOpen(i)), noPrice=open.filter(i=>!(+i.d.price)).length;
+  groupNote:arr=>money(arr.reduce((t,i)=>t+wantTotal(i.d),0)),
+  stats:it=>{const sum=a=>a.reduce((t,i)=>t+wantTotal(i.d),0);
+    const open=it.filter(wOpen), paid=it.filter(i=>!wOpen(i)), noPrice=open.filter(i=>!wantTotal(i.d)).length;
     return[{k:'To spend',v:money(sum(open)),u:open.length+' item'+(open.length===1?'':'s')+(noPrice?' · '+noPrice+' without a price':''),c:'var(--gold)'},
            {k:'Spent',v:money(sum(paid)),u:paid.length+' item'+(paid.length===1?'':'s'),c:'var(--ok)'}]},
   chips:[{l:'Open',f:wOpen},{l:'Ordered',f:i=>i.d.done&&!i.d.got},{l:'Received',f:i=>!!i.d.got}],
   onToggle:i=>{const d=i.d;
     if(wOpen(i))put('wants',{done:1,doneAt:today()},i.id);            // open  → ordered
-    else if(!d.got)put('wants',{got:1,gotAt:today()},i.id);           // ordered → received
+    else if(!d.got){if(!receiveOrder(i))                              // ordered → received…
+      put('wants',{got:1,gotAt:today()},i.id)}                        // …or, for a lot, into its items
     else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
   toggle:'done',
-  card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
-    pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
+  card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
+    return{t:esc(i.d.name),
+      s:[tot?money(tot):'',ls.length?ls.length+' items'+(+i.d.tax?' · tax '+money(i.d.tax):''):'',
+         esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+      pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
