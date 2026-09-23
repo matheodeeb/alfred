@@ -91,6 +91,7 @@ const LIMITS: Record<string, { max: number; windowMs: number }> = {
   exchange:    { max: 10, windowMs: 60_000 },
   sync:        { max: 30, windowMs: 60_000 },
   liabilities: { max: 30, windowMs: 60_000 },
+  balances:    { max: 30, windowMs: 60_000 },
   items:       { max: 60, windowMs: 60_000 },
   remove:      { max: 10, windowMs: 60_000 },
   _total:      { max: 120, windowMs: 60_000 },
@@ -317,6 +318,7 @@ Deno.serve(async (req: Request) => {
             bal: owed(c.account_id), apr: purchaseApr(c.aprs),
             min: typeof c.minimum_payment_amount === "number" ? c.minimum_payment_amount : null,
             day: dueDay(c.next_payment_due_date),
+            stmtDay: dueDay(c.last_statement_issue_date),
             statement: typeof c.last_statement_balance === "number" ? c.last_statement_balance : null,
             overdue: !!c.is_overdue,
           });
@@ -348,6 +350,33 @@ Deno.serve(async (req: Request) => {
         }));
 
         return json({ debts, balances });
+      }
+
+      /* Every account's balance. /liabilities/get carries balances too, but only for a bank
+       * that has a credit line at all -- a checking-only bank answers PRODUCTS_NOT_SUPPORTED
+       * and hands back nothing. This asks the question every bank can answer, which is what
+       * the Accounts page needs: a typed-in balance is only ever true on the day it is typed. */
+      case "balances": {
+        if (typeof body.item_id !== "string" || !body.item_id) return json({ error: "item_id required" }, 400);
+        const rows = await db(`plaid_items?item_id=eq.${qs(body.item_id)}&owner=eq.${qs(user)}&select=access_token`);
+        const row = rows?.[0];
+        if (!row) return json({ error: "no such connection" }, 404);
+        const out = await plaid("/accounts/balance/get", { access_token: row.access_token });
+        const balances = (out.accounts ?? []).map((a: any) => ({
+          id: a.account_id, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype,
+          current: a.balances?.current ?? null, available: a.balances?.available ?? null,
+          limit: a.balances?.limit ?? null, cur: a.balances?.iso_currency_code || "USD",
+        }));
+        // The stored account list is refreshed while we are here, so a card opened since the
+        // connection was made does not stay invisible until it is reconnected.
+        await db(`plaid_items?item_id=eq.${qs(body.item_id)}&owner=eq.${qs(user)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            accounts: balances.map((a: any) => ({ id: a.id, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype })),
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        return json({ balances });
       }
 
       // Connections belonging to the caller. Tokens are excluded from the projection.
