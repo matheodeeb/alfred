@@ -1568,7 +1568,7 @@ function receiveOne(id,n){
   const ls=wantLines(it.d); if(!ls[n])return;
   const share=splitTax(wantFees(it.d),ls.length);
   const paidFor=Math.round((ls[n].price+share[n])*100)/100;
-  put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),price:paidFor,
+  put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),paid:paidFor,
     spec:String(ls[n].spec||'').trim()||it.d.spec||'',      // its own size, or the order's
     done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today()},id+':'+uid());
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
@@ -1786,7 +1786,7 @@ function receiveOrder(it){
   const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
-    put('wants',{name:l.name,grp:lineGrp(l,it.d),price:paid,link:it.d.link||'',
+    put('wants',{name:l.name,grp:lineGrp(l,it.d),paid:paid,link:it.d.link||'',
       spec:String(l.spec||'').trim()||it.d.spec||'',
       done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when},it.id+':'+(n+1));
   });
