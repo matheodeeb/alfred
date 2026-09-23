@@ -1705,7 +1705,8 @@ function ordRecalc(){
     else h+=`<div class="say">Each item carries ${money(share[0])} of that, so they cost `
       +picked.map((x,n)=>money(Math.round((x.price+share[n])*100)/100)).join(' · ')+'.</div>';
   }else{
-    h+=`<div class="say">Put in what you actually paid and the difference becomes the tax and fees, split across the items.</div>`;
+    h+=`<div class="say">Put in what you actually paid and the difference becomes the tax and fees, split across the items. `
+      +`Leave it blank and the items' own total stands — ${money(sub)}, nothing added.</div>`;
   }
   if(noPrice)h+=`<div class="say bad">${noPrice} item${noPrice===1?' has':'s have'} no price yet.</div>`;
   $('#ordSum').innerHTML=h;
@@ -1713,12 +1714,16 @@ function ordRecalc(){
 $('#ordGo').onclick=()=>{
   if(!ordSeed)return;
   const picked=ordChosen(), paidRaw=$('#ordPaid').value;
+  // Nothing typed means there was nothing on top: the order cost what its items cost.
+  // Storing that rather than leaving it blank gives the row a figure of its own instead of
+  // one inferred every time it is read.
+  const sub=Math.round(picked.reduce((t,x)=>t+x.price,0)*100)/100;
   const name=$('#ordName').value.trim();
   if(!name){const e=$('#ordName');e.style.borderColor='var(--bad)';e.focus();return}
   const d={name,grp:($('#ordGrp')||{}).value||ordSeed.d.grp||'',
     link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
     lines:picked.map(lineText).join('\n'),
-    paid:String(paidRaw).trim()===''?'':+paidRaw||0,
+    paid:String(paidRaw).trim()===''?sub:(+paidRaw||0),
     price:'',done:1,doneAt:today()};
   put('wants',d,ordSeed.id);                       // the tapped row becomes the order itself
   picked.forEach(x=>{if(x.id&&x.id!==ordSeed.id)kill(x.id)});   // the ones folded into it retire
