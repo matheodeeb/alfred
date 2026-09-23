@@ -126,6 +126,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .editBtn:hover{border-color:var(--acc);color:var(--acc)}
   .chk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:transparent;transition:.15s}
   .chk.done{background:var(--ok);border-color:var(--ok);color:#faf6ec}
+  /* How many things are on the order. It is a label, not a control: no pointer, no tap. */
+  .cnt{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line2);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;
+    color:var(--muted);background:var(--bg2);pointer-events:none;user-select:none}
   .rinfo{min-width:0;flex:1}
   .rinfo .t{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
   .rinfo .s{font-family:"IBM Plex Mono";font-size:11px;margin-top:2px;color:var(--muted);overflow-wrap:anywhere}
@@ -174,6 +178,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field textarea{min-height:120px;resize:vertical;font-family:"Public Sans",sans-serif;line-height:1.5}
   .field.full textarea{min-height:min(40vh,300px)}
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
+  .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
   .modal .foot .spacer{flex:1}
   .note{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.55}
@@ -262,22 +267,34 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ordRow input[type=text]:focus,.ordRow input[type=number]:focus{outline:none;border-color:var(--acc)}
   .ordRow input.pz{width:104px;flex:none;text-align:right}
   .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px;flex:none}
-  .ordRow .lnPen{font-size:14px}
-  .ordRow .lnPen.on{color:var(--acc)}
-  .lnRow{border-top:1px solid var(--line);padding-bottom:6px}
-  .lnRow:first-of-type{border-top:0}
-  .lnRow .ordRow{border-top:0}
-  .lnRow .lnS{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
-    padding:7px 10px;font-size:13px;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--txt)}
-  .lnRow .lnS:focus{outline:none;border-color:var(--acc)}
+  .lnHead,.lnRow{display:grid;grid-template-columns:1.5fr 118px 1.2fr 92px 20px;gap:8px;align-items:center}
+  .lnHead{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);padding:0 2px 2px}
+  .lnRow{padding:4px 0}
+  .lnRow input,.lnRow select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
+    padding:7px 10px;font-size:13px;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--txt);
+    width:100%;min-width:0}
+  .lnRow input:focus,.lnRow select:focus{outline:none;border-color:var(--acc)}
+  .lnRow input.lnP{text-align:right;font-family:"IBM Plex Mono"}
+  .lnRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0;width:20px}
+  .lnRow .rm:hover{color:var(--bad)}
+  /* Narrow: two across, the name over the top, so nothing is squeezed to unreadable. */
+  @media(max-width:620px){
+    .lnHead{display:none}
+    .lnRow{grid-template-columns:1fr 1fr 20px;row-gap:6px;
+      border-top:1px solid var(--line);padding:8px 0}
+    .lnRow:first-of-type{border-top:0}
+    .lnRow .lnN{grid-column:1/-1}
+    .lnRow .lnS{grid-column:1/2}
+    .lnRow .lnP{grid-column:2/3}
+    .lnRow .lnG{grid-column:1/-1}
+  }
   .ordRow select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);
     padding:8px 9px;font-family:"IBM Plex Mono";font-size:12.5px;flex:none;width:112px;-webkit-appearance:none}
   .ordRow select:focus{outline:none;border-color:var(--acc)}
   .ordRow .oSec{flex:none;width:112px;text-align:right;font-family:"IBM Plex Mono";font-size:11px;
     color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lineEd{display:block}
-  .lineEd .lnRow:first-child{border-top:0}
-  .lineEd .lnN{flex:1;min-width:0}
   .btn.lineAdd{margin-top:9px}
   .ordRow .rm:hover{color:var(--bad)}
   .ordSum{margin-top:16px;border-top:1px solid var(--line2);padding-top:10px}
@@ -795,7 +812,12 @@ function fieldHtml(f,v,sec,ctx){
   }
   if(f.t==='lines'){
     const ls=wantLines({lines:v}), grps=wantGrpOpts();
-    return`<div class="lineEd" ${base}>`+(ls.length?ls:[{}]).map(l=>lineRowHtml(l,grps)).join('')+`</div>`
+    // The headings are written once above the rows rather than on each of them: the same
+    // four questions the form asks of a single item, asked of every item on the order.
+    return`<div class="lineEd" ${base}>`
+      +`<div class="lnHead"><span>Item</span><span>Section</span><span>Size, colour</span>`
+      +`<span>Price</span><span></span></div>`
+      +(ls.length?ls:[{}]).map(l=>lineRowHtml(l,grps)).join('')+`</div>`
       +`<button type="button" class="btn sm ghost lineAdd" onclick="addLineRow(this)">+ Add an item</button>`;
   }
   if(f.t==='check')return`<select ${base}><option value="">No</option><option value="1" ${v?'selected':''}>Yes</option></select>`;
@@ -810,33 +832,23 @@ function fieldHtml(f,v,sec,ctx){
 // Three pairs of trousers on one order can be three different sizes, so the detail belongs
 // to the item, not to the order. It hides behind a pencil rather than taking a fourth box
 // on every row — most items never need one, and a row of empty boxes is its own clutter.
+// Every item on an order gets the same boxes the form gives a single item: what it is,
+// which section, its own size and colour, and what it cost. The size used to hide behind a
+// pencil, which made it look like an afterthought rather than one of the four things worth
+// knowing about a thing you bought.
 function lineRowHtml(l,grps){
   const p=(l&&(l.price||l.price===0))?l.price:'';
-  const sp=String(l&&l.spec||'').trim();
   return`<div class="lnRow">`
-    +`<div class="ordRow">`
     +`<input type="text" class="lnN" placeholder="what it is" value="${esc(l&&l.name||'')}">`
-    +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
     +`<select class="lnG">`+['',...grps].map(g=>
        `<option value="${esc(g)}"${g===String(l&&l.grp||'')?' selected':''}>${g?esc(g):'—'}</option>`).join('')
     +`</select>`
-    +`<button type="button" class="rm lnPen${sp?' on':''}" title="Size, colour — this item only" `
-    +`onclick="toggleLineSpec(this)">✎</button>`
-    +`<button type="button" class="rm" title="Remove" onclick="this.closest('.lnRow').remove()">×</button>`
-    +`</div>`
-    +`<input type="text" class="lnS" placeholder="size, colour — this item only" `
-    +`value="${esc(sp)}"${sp?'':' style="display:none"'}>`
+    +`<input type="text" class="lnS" placeholder="size, colour" value="${esc(String(l&&l.spec||'').trim())}">`
+    +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
+    +`<button type="button" class="rm" title="Remove" onclick="removeLineRow(this)">×</button>`
     +`</div>`;
 }
-// The pencil lights up while the item carries a detail, so a closed row still says whether
-// there is anything behind it.
-function toggleLineSpec(btn){
-  const row=btn.closest('.lnRow'), inp=row.querySelector('.lnS');
-  const open=inp.style.display==='none';
-  inp.style.display=open?'':'none';
-  if(open)inp.focus(); else inp.value='';
-  btn.classList.toggle('on',open);
-}
+function removeLineRow(btn){btn.closest('.lnRow').remove();syncWantFields()}
 function addLineRow(btn){
   wantGoGroup();
   const box=btn.previousElementSibling;
@@ -991,13 +1003,41 @@ function syncWhenField(){
    order is a group one rather than waiting for the order to have been placed. Both are
    hidden rather than left out, so switching back and forth does not lose what was typed;
    the save keeps the stored value of whichever is hidden. */
+// Items typed into the form, not the ones last saved — the menu has to answer to what is
+// on screen right now.
+// Whether the items list has been on screen carrying something during this edit. Reset
+// each time the form opens, so one row's history never speaks for the next.
+let wantListLive=false;
+function liveLineCount(){
+  const box=document.getElementById('f_lines');if(!box)return 0;
+  return [...box.querySelectorAll('.lnRow .lnN')].filter(i=>i.value.trim()).length;
+}
 function syncWantFields(){
   const t=document.getElementById('f_otype');if(!t)return;
+  // Two items settle the question outright — such a row is a group order however it was
+  // labelled. Below that: you cannot walk away from a list you are looking at. Once the
+  // items have been on screen with something on them, Individual is off the menu, because
+  // choosing it would hide the item rather than deal with it. Empty the list and the
+  // choice comes back.
+  // A row that was never a group order and happens to carry one old line is left alone —
+  // its list is not on screen, so there is nothing to strand.
+  const n=liveLineCount();
+  if(t.value==='Group order'&&n>=1)wantListLive=true;
+  const lock=n>1||(wantListLive&&n>=1);
+  // Greying the option stops a person choosing it; snapping the value back stops anything
+  // else — a disabled option can still be assigned to.
+  if(lock&&t.value!=='Group order')t.value='Group order';
+  [...t.options].forEach(o=>{if(o.value==='Individual order')o.disabled=lock});
   const group=t.value==='Group order';
-  const done=!!(editCtx?.id?one(editCtx.id)?.d?.done:editCtx?.defs?.done);
   const show=(k,on)=>{const e=document.getElementById('fw_'+k);if(e)e.style.display=on?'':'none'};
   show('spec',!group);
-  show('lines',group||done);
+  show('lines',group);
+  // One row is an item and has a name; several rows are an order and it is called
+  // something. The labels follow the menu as you change it, not just as the form opens.
+  const lab=(k,t2)=>{const e=document.querySelector('#fw_'+k+' label');if(e)e.textContent=t2};
+  lab('name',group?'What to call the order':'Item');
+  lab('paid',group?'Total actually paid — the gap over the items is the tax and fees'
+                  :'What it cost, all in');
 }
 // Adding a second item is the moment an order stops being one thing, so it says so rather
 // than making you set the menu yourself to explain what you have just done.
@@ -1036,7 +1076,7 @@ function openForm(sec,id,defs){
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
       let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(typeof f.l==='function'?f.l(Object.assign({},it?.d,defs)):f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
+      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(typeof f.l==='function'?f.l(Object.assign({},it?.d,defs)):f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}${f.hint?`<div class="fhint">${esc(f.hint)}</div>`:''}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   if(sec==='projects'){                   // an estimate shows only the fields its kind needs
@@ -1050,8 +1090,11 @@ function openForm(sec,id,defs){
     syncRecurFields();
   }
   if(sec==='wants'){                      // a group order keeps its sizes on the items
+    wantListLive=false;
     const t=document.getElementById('f_otype');
     if(t)['change','input'].forEach(ev=>t.addEventListener(ev,syncWantFields));
+    const box=document.getElementById('f_lines');
+    if(box)box.addEventListener('input',syncWantFields);   // naming a second item settles it
     syncWantFields();
   }
   if(sec==='todo'){                       // order options follow the date / section as you pick them
@@ -1272,6 +1315,7 @@ function rowHtml(sec,i){
   return`<div class="rowBox ${c.dim?'dim':''} ${OPEN.has(i.id)?'open':''}" data-id="${i.id}">
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
+    ${c.badge?`<span class="cnt" title="${c.badge} item${c.badge===1?'':'s'} on this order">${c.badge}</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
     <div class="rright">${c.step?stepHtml(i,c.step):''}${c.act?`<button class="btn sm ${c.act.cls||'ordBtn'}" onclick="event.stopPropagation();${c.act.fn}">${c.act.txt}</button>`:''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
     </div>
@@ -1327,6 +1371,19 @@ function patchRow(sec,id){
   const c=m.card(i);
   box.classList.toggle('dim',!!c.dim);
   if(c.step){const q=box.querySelector('.qtyVal');if(q)q.textContent=+i.d[c.step]||0}
+  // Patching a row has to move everything the row shows, or the part left behind quietly
+  // goes stale: the tick, and the circle counting what is still on the order — which drops
+  // by one every time an item is taken off it.
+  const dk=m.toggle&&(m.toggle.k||m.toggle), chk=box.querySelector('.chk');
+  if(chk&&dk)chk.classList.toggle('done',!!i.d[dk]);
+  const row=box.querySelector('.row');
+  let cnt=box.querySelector('.cnt');
+  if(c.badge){
+    if(!cnt){cnt=document.createElement('span');cnt.className='cnt';
+      row.insertBefore(cnt,row.querySelector('.rinfo'))}
+    cnt.textContent=c.badge;
+    cnt.title=c.badge+' item'+(c.badge===1?'':'s')+' on this order';
+  } else if(cnt)cnt.remove();
   const info=box.querySelector('.rinfo');
   if(info){
     const t=info.querySelector('.t');if(t)t.innerHTML=c.t;
@@ -1568,7 +1625,7 @@ function receiveOne(id,n){
   const ls=wantLines(it.d); if(!ls[n])return;
   const share=splitTax(wantFees(it.d),ls.length);
   const paidFor=Math.round((ls[n].price+share[n])*100)/100;
-  put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),price:paidFor,
+  put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),paid:paidFor,
     spec:String(ls[n].spec||'').trim()||it.d.spec||'',      // its own size, or the order's
     done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today()},id+':'+uid());
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
@@ -1595,7 +1652,6 @@ let ordSeed=null, ordGrps=[], ordSeedGrp='';
 function openOrderBuilder(it){
   ordSeed=it;
   const others=list('wants').filter(o=>o.id!==it.id&&wOpen(o)&&!wantLines(o.d).length);
-  const px=v=>String(v??'')===''?'':(+v||0);
   // Every section already in use, plus the standard ones, so a new item can be filed
   // where it belongs rather than being swept into the section of whatever was ticked.
   ordGrps=wantGrpOpts();
@@ -1613,13 +1669,13 @@ function openOrderBuilder(it){
     +`<div class="ordSec"><h4>On this order</h4><div class="ordRow">`
     +`<label><input type="checkbox" checked disabled><span>${esc(it.d.name||'')}</span></label>`
     +`<input class="pz ordP" type="number" step="0.01" data-id="${it.id}" `
-    +`value="${px(it.d.price)}" placeholder="price">`
+    +`value="${wantOne(it.d)}" placeholder="price">`
     +`<span class="oSec">${esc(it.d.grp||'—')}</span></div></div>`;
   if(others.length){
     h+=`<div class="ordSec"><h4>Also on it — already on your list</h4>`
       +others.map(o=>`<div class="ordRow"><label><input type="checkbox" class="ordPick" data-id="${o.id}">`
         +`<span>${esc(o.d.name||'')}</span></label>`
-        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${px(o.d.price)}" placeholder="price">`
+        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${wantOne(o.d)}" placeholder="price">`
         +`<span class="oSec">${esc(o.d.grp||'—')}</span></div>`).join('')
       +`</div>`;
   }
@@ -1679,7 +1735,8 @@ function ordRecalc(){
     else h+=`<div class="say">Each item carries ${money(share[0])} of that, so they cost `
       +picked.map((x,n)=>money(Math.round((x.price+share[n])*100)/100)).join(' · ')+'.</div>';
   }else{
-    h+=`<div class="say">Put in what you actually paid and the difference becomes the tax and fees, split across the items.</div>`;
+    h+=`<div class="say">Put in what you actually paid and the difference becomes the tax and fees, split across the items. `
+      +`Leave it blank and the items' own total stands — ${money(sub)}, nothing added.</div>`;
   }
   if(noPrice)h+=`<div class="say bad">${noPrice} item${noPrice===1?' has':'s have'} no price yet.</div>`;
   $('#ordSum').innerHTML=h;
@@ -1687,12 +1744,19 @@ function ordRecalc(){
 $('#ordGo').onclick=()=>{
   if(!ordSeed)return;
   const picked=ordChosen(), paidRaw=$('#ordPaid').value;
+  // Nothing typed means there was nothing on top: the order cost what its items cost.
+  // Storing that rather than leaving it blank gives the row a figure of its own instead of
+  // one inferred every time it is read.
+  const sub=Math.round(picked.reduce((t,x)=>t+x.price,0)*100)/100;
   const name=$('#ordName').value.trim();
   if(!name){const e=$('#ordName');e.style.borderColor='var(--bad)';e.focus();return}
   const d={name,grp:($('#ordGrp')||{}).value||ordSeed.d.grp||'',
     link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
+    // Several things under one bill is a group order, and saying so on the row means the
+    // drawer, the count and the form all agree without having to count the lines again.
+    otype:picked.length>1?'Group order':'Individual order',
     lines:picked.map(lineText).join('\n'),
-    paid:String(paidRaw).trim()===''?'':+paidRaw||0,
+    paid:String(paidRaw).trim()===''?sub:(+paidRaw||0),
     price:'',done:1,doneAt:today()};
   put('wants',d,ordSeed.id);                       // the tapped row becomes the order itself
   picked.forEach(x=>{if(x.id&&x.id!==ordSeed.id)kill(x.id)});   // the ones folded into it retire
@@ -1734,10 +1798,6 @@ function wantGrpOpts(){
 // An item keeps the section it was filed under before the order swept it up; only one
 // that never had one falls back to the order's.
 const lineGrp=(l,d)=>String(l.grp||'').trim()||d.grp||'';
-// Whether this row is a group order. Two or more lines makes it one outright; `multi` is
-// stamped the first time an item is received off it, so the last one left still behaves
-// like part of an order rather than reverting to a plain single item.
-const wantMulti=d=>wantLines(d).length>1||!!d.multi;
 /* Whether to treat this row as a group order, from the three things that can say so.
    `multi` comes first and is not overridable: it is stamped when an item is received off
    an order, so the last one left is the remnant of a group order however the row is
@@ -1747,9 +1807,10 @@ const wantMulti=d=>wantLines(d).length>1||!!d.multi;
    one does not. */
 function wantIsGroup(d){
   if(!d)return false;
-  if(d.multi)return true;
-  if(d.otype)return d.otype==='Group order';
-  return wantLines(d).length>1;
+  if(d.multi)return true;                    // a part-received order is the remnant of one
+  if(wantLines(d).length>1)return true;      // several items is a group order, label or not
+  if(d.otype)return d.otype==='Group order'; // one item can still be declared an order
+  return false;
 }
 // Written back in the same shape, so a section survives a round trip through the field.
 const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'')
@@ -1767,10 +1828,27 @@ function wantFees(d){
 // The order's real cost: what was charged, or the items plus fees when nothing was.
 // A row with no lines is an ordinary want and keeps answering with its own price.
 function wantTotal(d){
-  const ls=wantLines(d);
-  if(!ls.length)return +d.price||0;
+  // An open want answers with its estimate, even if it once was an order and still carries
+  // that order's items: nothing has been bought, so nothing has been charged.
+  if(!d.done&&String(d.price??'')!=='')return +d.price||0;
+  // Otherwise what was actually charged wins whenever it is known, items or not: an order
+  // without a list still has a figure, and reading `price` first left such a row answering
+  // with an empty estimate once the money had moved onto `paid`.
   if(String(d.paid??'')!=='')return +d.paid||0;
+  const ls=wantLines(d);
+  if(!ls.length)return +d.price||0;                  // an open want answers with its estimate
   return wantSub(d)+(+d.tax||0);
+}
+// The figure a single row carries, whichever key is holding it. A want keeps its estimate
+// in `price` while it is open and its real cost in `paid` once ordered, and a row that has
+// been round the loop — ordered, arrived, then un-ticked back — can be sitting on either.
+// Anything that wants "the number on this row" asks here instead of naming one key and
+// coming up empty half the time. Blank, not zero, so an unpriced row still reads unpriced.
+function wantOne(d){
+  if(!d)return'';
+  if(String(d.price??'')!=='')return +d.price||0;
+  if(String(d.paid??'')!=='')return +d.paid||0;
+  return'';
 }
 // Tax splits evenly across the items, to the cent. Dividing by three leaves pennies over,
 // so they go to the first rows rather than being dropped — the parts add back to the whole.
@@ -1783,11 +1861,11 @@ function splitTax(total,n){
 function receiveOrder(it){
   // Splitting an order into its items only means something when there is more than one.
   // A single-item order already *is* that item, so it stays one row and simply arrives.
-  const ls=wantLines(it.d); if(!ls.length||!wantMulti(it.d))return false;
+  const ls=wantLines(it.d); if(!ls.length||!wantIsGroup(it.d))return false;
   const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
-    put('wants',{name:l.name,grp:lineGrp(l,it.d),price:paid,link:it.d.link||'',
+    put('wants',{name:l.name,grp:lineGrp(l,it.d),paid:paid,link:it.d.link||'',
       spec:String(l.spec||'').trim()||it.d.spec||'',
       done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when},it.id+':'+(n+1));
   });
@@ -1919,7 +1997,7 @@ goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when
   fields:[{k:'name',l:'Goal',t:'text',req:1},
           {k:'target',l:'Target amount',t:'money',req:1},
           {k:'track',l:'Progress from',t:'sel',opt:['Typed in below','Net liquid — live'],def:'Typed in below'},
-          {k:'saved',l:'Put aside so far',t:'money',hintTxt:'Ignored when progress reads from net liquid.'},
+          {k:'saved',l:'Put aside so far',t:'money',hint:'Ignored when progress reads from net liquid.'},
           {k:'by',l:'Target date',t:'date'},
           {k:'pri',l:'Priority',t:'sel',opt:['1 — first','2 — next','3 — later','Someday'],def:'2 — next'},
           {k:'notes',l:'Why it matters',t:'ta',full:1}],
@@ -2082,21 +2160,37 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
 wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly. Perfume you\'ve run out of shows up here on its own.',
   // Items and a total paid only mean anything once something has been ordered, so they
   // stay out of the way on an open want and appear the moment a row is an order.
-  fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
+  fields:[{k:'name',l:d=>wantIsGroup(d)?'What to call the order':'Item',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'otype',l:'Individual or group order',t:'sel',opt:['Individual order','Group order'],def:'Individual order'},
           {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'lines',full:1},
-          {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
+          {k:'paid',l:d=>wantIsGroup(d)?'Total actually paid — the gap over the items is the tax and fees':'What it cost, all in',
+           t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  // Once the figure is answering as `paid`, it stops also being `price`: two places for one
+  // number is how they drift apart.
+  formOut:d=>{const was=editCtx?.id?one(editCtx.id)?.d:null;
+    if(wantLines(d).length>1)d.otype='Group order';   // the items outrank the label
+    const done=d.done||was?.done;
+    if(done&&String(d.paid??'')!=='')d.price='';
+    if(!done&&String(d.price??'')!=='')d.paid='';
+    return d},
   // The + button adds into whichever half you are looking at: open stays a plain want,
   // ordered starts life already ordered so it can carry its items and its total.
   fabDefs:()=>{const c=chipState.wants??0;
     return c===1?{done:1,doneAt:today()}
       :c===2?{done:1,doneAt:today(),got:1,gotAt:today()}:{}},
   // Opening an older order must not quietly relabel it: the menu shows what it already is.
-  formIn:(it,k,v)=>k==='otype'?(v||(wantIsGroup(it.d)?'Group order':'Individual order')):v,
+  // And a row ordered without itemising keeps its figure in `price`, so the money box is
+  // filled from whichever key actually holds it rather than coming up empty.
+  formIn:(it,k,v)=>{
+    if(k==='otype')return v||(wantIsGroup(it.d)?'Group order':'Individual order');
+    if(k==='paid'&&String(v??'')===''&&it?.d?.done)return it.d.price??'';
+    if(k==='price'&&String(v??'')===''&&!it?.d?.done)return it.d.paid??'';
+    return v;
+  },
   group:i=>String(i.d.grp||'').trim()||'Other',
   groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
   groupNote:arr=>money(arr.reduce((t,i)=>t+wantTotal(i.d),0)),
@@ -2109,7 +2203,8 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     if(wOpen(i))openOrderBuilder(i);                                  // open  → ask what it was bought with
     else if(!d.got){if(!receiveOrder(i))                              // ordered → received…
       put('wants',{got:1,gotAt:today()},i.id)}                        // …or, for a lot, into its items
-    else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
+    else put('wants',{done:'',got:'',doneAt:'',gotAt:'',            // received → back to open
+      price:String(d.paid??'')!==''?d.paid:(d.price??''),paid:''},i.id)},  // …and the money follows
   toggle:'done',
   // Open an order and its items are listed one per line, each with its own tick, showing
   // what it truly cost once its share of the tax and delivery is counted in. The list
@@ -2133,14 +2228,13 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // paragraph printed under every item turns a list you can scan into one you have to read.
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
-      // An individual order is plainly one thing, so a count beside it is noise. A group
-      // order is worth counting even at one, because the count is what says the row opens.
-      // Part-way through arriving it says how many are still coming, which is the more
-      // useful reading of the same number. The fees stand on their own either way.
+      // How many things are on the order rides in a circle beside the tick, not in the line
+      // of figures: written there it sat between the price and the fees and read as though
+      // it were money. An individual order is plainly one thing and gets no circle; a group
+      // order gets one even at one item, and part-way through arriving the number is what
+      // is still coming.
+      badge:wantIsGroup(i.d)&&ls.length?ls.length:0,
       s:[tot?money(tot):'',
-         wantIsGroup(i.d)&&ls.length
-           ?(i.d.multi&&ls.length===1?'1 item left':ls.length+(ls.length===1?' item':' items'))
-           :'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
          wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},

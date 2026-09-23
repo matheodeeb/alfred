@@ -1,8 +1,18 @@
-const V = 'alfred-v17';
+const V = 'alfred-v18';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
+// addAll is all-or-nothing: one missing file and the whole install rejects, the worker is
+// thrown away, and the app has no offline copy at all — which is exactly what happened while
+// the icons were absent from the repo. So each file is fetched on its own and a miss is
+// allowed to be a miss. The shell is what matters; an icon that failed to cache is a
+// cosmetic loss, not a reason to have no app.
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(V)
+      .then(c => Promise.all(CORE.map(u =>
+        c.add(u).catch(err => console.warn('[sw] could not cache', u, err.message)))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
