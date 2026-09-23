@@ -108,6 +108,17 @@ Two sections are not their own rows. **Timeline → Past** (`travpast`) is a vie
 `travels` row, not by writing a `travpast` row. And `cfg` holds the app's own settings
 (PIN hash, tab preferences); never write it as data entry.
 
+**Received means in his hands.** A `wants` row moves open → ordered → received, and the
+last step is not the courier's word for it. A parcel marked delivered, sitting at a
+collection point or with a doorman, is still **ordered** — it becomes received when he has
+actually picked it up. Put the delivery — carrier, tracking, the date it was dropped — in
+the notes, and leave `got` empty until he says he has it.
+
+**Record what was actually paid, not the sticker.** Tax, shipping and fees belong in the
+figure. An order of several things carries them as `lines` (`Name | price | Section`) plus
+`paid`, and the gap between the two is split across the items when they arrive; a single
+item with fees works the same way. Where there are no fees at all, a plain `price` is enough.
+
 Conventions worth knowing: money fields are plain numbers, no symbols or commas. Dates are
 `YYYY-MM-DD`. An empty `date` on a spoil means *still on the list* — it gets a date when
 the thing is actually acquired. `ing` and `steps` are newline-separated.
