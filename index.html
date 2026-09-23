@@ -262,22 +262,34 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ordRow input[type=text]:focus,.ordRow input[type=number]:focus{outline:none;border-color:var(--acc)}
   .ordRow input.pz{width:104px;flex:none;text-align:right}
   .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px;flex:none}
-  .ordRow .lnPen{font-size:14px}
-  .ordRow .lnPen.on{color:var(--acc)}
-  .lnRow{border-top:1px solid var(--line);padding-bottom:6px}
-  .lnRow:first-of-type{border-top:0}
-  .lnRow .ordRow{border-top:0}
-  .lnRow .lnS{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
-    padding:7px 10px;font-size:13px;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--txt)}
-  .lnRow .lnS:focus{outline:none;border-color:var(--acc)}
+  .lnHead,.lnRow{display:grid;grid-template-columns:1.5fr 118px 1.2fr 92px 20px;gap:8px;align-items:center}
+  .lnHead{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);padding:0 2px 2px}
+  .lnRow{padding:4px 0}
+  .lnRow input,.lnRow select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
+    padding:7px 10px;font-size:13px;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--txt);
+    width:100%;min-width:0}
+  .lnRow input:focus,.lnRow select:focus{outline:none;border-color:var(--acc)}
+  .lnRow input.lnP{text-align:right;font-family:"IBM Plex Mono"}
+  .lnRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0;width:20px}
+  .lnRow .rm:hover{color:var(--bad)}
+  /* Narrow: two across, the name over the top, so nothing is squeezed to unreadable. */
+  @media(max-width:620px){
+    .lnHead{display:none}
+    .lnRow{grid-template-columns:1fr 1fr 20px;row-gap:6px;
+      border-top:1px solid var(--line);padding:8px 0}
+    .lnRow:first-of-type{border-top:0}
+    .lnRow .lnN{grid-column:1/-1}
+    .lnRow .lnS{grid-column:1/2}
+    .lnRow .lnP{grid-column:2/3}
+    .lnRow .lnG{grid-column:1/-1}
+  }
   .ordRow select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);
     padding:8px 9px;font-family:"IBM Plex Mono";font-size:12.5px;flex:none;width:112px;-webkit-appearance:none}
   .ordRow select:focus{outline:none;border-color:var(--acc)}
   .ordRow .oSec{flex:none;width:112px;text-align:right;font-family:"IBM Plex Mono";font-size:11px;
     color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lineEd{display:block}
-  .lineEd .lnRow:first-child{border-top:0}
-  .lineEd .lnN{flex:1;min-width:0}
   .btn.lineAdd{margin-top:9px}
   .ordRow .rm:hover{color:var(--bad)}
   .ordSum{margin-top:16px;border-top:1px solid var(--line2);padding-top:10px}
@@ -795,7 +807,12 @@ function fieldHtml(f,v,sec,ctx){
   }
   if(f.t==='lines'){
     const ls=wantLines({lines:v}), grps=wantGrpOpts();
-    return`<div class="lineEd" ${base}>`+(ls.length?ls:[{}]).map(l=>lineRowHtml(l,grps)).join('')+`</div>`
+    // The headings are written once above the rows rather than on each of them: the same
+    // four questions the form asks of a single item, asked of every item on the order.
+    return`<div class="lineEd" ${base}>`
+      +`<div class="lnHead"><span>Item</span><span>Section</span><span>Size, colour</span>`
+      +`<span>Price</span><span></span></div>`
+      +(ls.length?ls:[{}]).map(l=>lineRowHtml(l,grps)).join('')+`</div>`
       +`<button type="button" class="btn sm ghost lineAdd" onclick="addLineRow(this)">+ Add an item</button>`;
   }
   if(f.t==='check')return`<select ${base}><option value="">No</option><option value="1" ${v?'selected':''}>Yes</option></select>`;
@@ -810,32 +827,21 @@ function fieldHtml(f,v,sec,ctx){
 // Three pairs of trousers on one order can be three different sizes, so the detail belongs
 // to the item, not to the order. It hides behind a pencil rather than taking a fourth box
 // on every row — most items never need one, and a row of empty boxes is its own clutter.
+// Every item on an order gets the same boxes the form gives a single item: what it is,
+// which section, its own size and colour, and what it cost. The size used to hide behind a
+// pencil, which made it look like an afterthought rather than one of the four things worth
+// knowing about a thing you bought.
 function lineRowHtml(l,grps){
   const p=(l&&(l.price||l.price===0))?l.price:'';
-  const sp=String(l&&l.spec||'').trim();
   return`<div class="lnRow">`
-    +`<div class="ordRow">`
     +`<input type="text" class="lnN" placeholder="what it is" value="${esc(l&&l.name||'')}">`
-    +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
     +`<select class="lnG">`+['',...grps].map(g=>
        `<option value="${esc(g)}"${g===String(l&&l.grp||'')?' selected':''}>${g?esc(g):'—'}</option>`).join('')
     +`</select>`
-    +`<button type="button" class="rm lnPen${sp?' on':''}" title="Size, colour — this item only" `
-    +`onclick="toggleLineSpec(this)">✎</button>`
+    +`<input type="text" class="lnS" placeholder="size, colour" value="${esc(String(l&&l.spec||'').trim())}">`
+    +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
     +`<button type="button" class="rm" title="Remove" onclick="this.closest('.lnRow').remove()">×</button>`
-    +`</div>`
-    +`<input type="text" class="lnS" placeholder="size, colour — this item only" `
-    +`value="${esc(sp)}"${sp?'':' style="display:none"'}>`
     +`</div>`;
-}
-// The pencil lights up while the item carries a detail, so a closed row still says whether
-// there is anything behind it.
-function toggleLineSpec(btn){
-  const row=btn.closest('.lnRow'), inp=row.querySelector('.lnS');
-  const open=inp.style.display==='none';
-  inp.style.display=open?'':'none';
-  if(open)inp.focus(); else inp.value='';
-  btn.classList.toggle('on',open);
 }
 function addLineRow(btn){
   wantGoGroup();
