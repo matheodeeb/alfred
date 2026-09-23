@@ -1,4 +1,4 @@
-const V = 'alfred-v18';
+const V = 'alfred-v19';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 // addAll is all-or-nothing: one missing file and the whole install rejects, the worker is
@@ -28,9 +28,16 @@ self.addEventListener('fetch', e => {
   if (url.hostname.endsWith('.supabase.co')) return; // never cache data calls
 
   // App shell: network-first so updates land, cache fallback so offline works.
+  //
+  // `cache: 'reload'` is the whole point of this branch. A plain fetch() may be answered
+  // from the browser's own HTTP cache, and GitHub Pages sends the shell with ten minutes
+  // of max-age — so "network-first" quietly meant "ten-minute-old copy first", and that
+  // stale copy was then written into the cache below and served again. A change could be
+  // live, deployed and green, and the app would keep running yesterday's code through
+  // refresh after refresh. This goes past the HTTP cache to the server every time.
   if (e.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
     e.respondWith(
-      fetch(e.request).then(r => {
+      fetch(e.request.url, { cache: 'reload', credentials: 'same-origin' }).then(r => {
         if (r.ok) {                       // never cache a 404/502 as the app shell
           const copy = r.clone();
           caches.open(V).then(c => c.put('./index.html', copy));

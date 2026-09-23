@@ -541,6 +541,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     <div class="setRow"><span class="l">Items stored</span><span class="v" id="setCount">—</span></div>
     <div class="setRow"><span class="l">On-device size</span><span class="v" id="setStore">—</span></div>
     <div class="setRow"><span class="l">Last error</span><span class="v" id="setErr">—</span></div>
+    <div class="setRow"><span class="l">Build</span><span class="v" id="setBuild">—</span></div>
   </div>
   <div class="frow one">
     <div class="field"><label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
@@ -559,6 +560,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 </div></div>
 
 <script>
+/* Which build is in front of you, shown in Settings. There is no build step to stamp this
+   automatically, so it is bumped by hand with each change — its whole job is to answer
+   "is this actually the new version?" without guessing from behaviour. */
+const BUILD='2026-09-23 · 20:15';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -3610,6 +3615,7 @@ $('#gearBtn').onclick=()=>{
   const kb=((localStorage.alfred_state||'').length+(localStorage.alfred_bulk||'').length)/1024;
   $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
   $('#setErr').textContent=storeErr||syncErr||'none';
+  $('#setBuild').textContent=BUILD;
   $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
   $('#linkBtn').disabled=!cfg;$('#linkBtn').textContent='Copy setup link';
   ov('setOv',1);
@@ -3684,7 +3690,23 @@ $('#impFile').onchange=e=>{
   else if(Date.now()-recent>GRACE)showLock('enter');
   vocabMirror();                                // words saved before this existed still upload
   sync();
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  // Registering it was the whole of this before, which meant a version could go live and
+  // the tab in front of you would keep running the old one until you happened to reload at
+  // the right moment. Now: ask for an update on every start and whenever you come back to
+  // the app, and when a new worker actually takes over, reload once so the page you are
+  // looking at is the version that just arrived. The flag is what keeps "once" honest —
+  // without it the reload re-triggers the change and the app spins.
+  if('serviceWorker'in navigator){
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      reg.update().catch(()=>{});
+      document.addEventListener('visibilitychange',()=>{
+        if(!document.hidden)reg.update().catch(()=>{})});
+    }).catch(()=>{});
+    let reloading=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(reloading)return;reloading=true;location.reload();
+    });
+  }
 })();
 </script>
 </body>
