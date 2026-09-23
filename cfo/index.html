@@ -1744,6 +1744,7 @@ function finStats(bt,ct,ov,u,bills){
 function billBump(id,dir){const i=one(id);if(!i)return;const dn=+i.d.denom||0;if(!dn)return;
   put('fincash',{amt:Math.max(0,(+i.d.amt||0)+dir*dn)},id);renderActive()}
 function fincashPage(){
+  plaidPullOnce();                    // the balances on this page are the connections' to keep
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
   const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const row=i=>{const cyc=cycTxt(i);
@@ -2167,7 +2168,7 @@ function plaidRelabel(){
 // Plaid reports money leaving as a positive amount, which is this register's convention too.
 function plaidRow(t,card,item){
   return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,item:item||'',
-    acct:t.account||'',cat:plaidCat(t),cur:t.cur||'USD',notes:t.pending?'pending':''};
+    acct:t.account||'',cat:plaidCat(t),det:t.det||'',cur:t.cur||'USD',notes:t.pending?'pending':''};
 }
 /* The three fields the payoff comparison cannot work without -- APR, minimum payment and
    due day -- are printed on a statement four times a year and typed in by hand roughly
@@ -2196,9 +2197,115 @@ async function plaidLiabSync(){
       if(d.min!=null)row.min=d.min;
       if(d.day!=null)row.day=d.day;
       put('debt',row,id);filled++;
+      const fid='fin:plaid:'+d.account;          // the same card, over on the Accounts page
+      if(one(fid)){
+        const f={};
+        if(d.day!=null)f.dueDay=d.day;
+        if(d.stmtDay!=null)f.stmtDay=d.stmtDay;
+        if(Object.keys(f).length)put('fincash',f,fid);
+      }
     });
   }
   return{filled,failed};
+}
+/* Depository money is cash, a card's balance counts against it, and an investment account
+   is the Investment log's business rather than this page's. */
+function plaidFinGrp(a){
+  const t=String(a&&a.type||'').toLowerCase();
+  return t==='depository'?'Banking':t==='credit'?'Credit':'';
+}
+// Which column on the Statements page a card's payments belong under. The label is ours
+// now, so the bank is a surer guide than guessing at the words in it.
+const PLAID_SRC={'Citi':'Citibank CC','Amex':'Amex CC','Wells Fargo':'Wells Fargo CC'};
+
+/* A balance you typed in was true on the day you typed it, which is the whole reason for
+   connecting a bank. Accounts arrive as rows on the Accounts page and keep themselves
+   current -- and because net liquid reads that page, the figure the goal is measured
+   against follows without anyone maintaining it.
+
+   Keyed on Plaid's account id, so a refresh corrects the row it made before instead of
+   adding a second. The name is set once and left alone after, so a rename sticks. A
+   balance the bank declined to give is skipped rather than written down as zero. */
+async function plaidBalSync(){
+  let filled=0,failed=0;
+  for(const it of plaidItems()){
+    let out;
+    try{ out=await plaidFn('balances',{item_id:it.d.item}) }
+    catch(e){ failed++; continue }
+    (out.balances||[]).forEach(a=>{
+      const grp=plaidFinGrp(a);
+      if(!grp||a.current==null)return;
+      const id='fin:plaid:'+a.id, fresh=!one(id);
+      const row={grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,
+        amt:grp==='Credit'?-Math.abs(+a.current||0):(+a.current||0)};
+      if(fresh){
+        row.name=plaidAcctLabel(it.d.inst,a);
+        row.card=grp==='Credit'?(PLAID_SRC[plaidInstShort(it.d.inst)]||guessSrc(row.name)):'';
+      }
+      put('fincash',row,id);filled++;
+    });
+  }
+  return{filled,failed};
+}
+
+/* Plaid reports a card payment as money arriving on the card, so it is the negative rows
+   on a credit account that say what was paid. The bank's own category names them where
+   there is one; rows pulled before that was kept have only the words on the line, so
+   those are read too.
+
+   The Statements page holds one row per month per card with no year on it, so only this
+   year is filled -- writing last September over this September would be worse than
+   leaving it alone. */
+function plaidIsCardPayment(x){
+  if(x.d.det==='LOAN_PAYMENTS_CREDIT_CARD_PAYMENT')return true;
+  return (+x.d.amt||0)<0&&/\b(payment|autopay|thank you|pymt|epay)\b/i.test(String(x.d.desc||''));
+}
+function plaidStmtSync(){
+  const col=new Map();
+  list('fincash').forEach(f=>{if(f.d.grp==='Credit'&&f.d.acct&&f.d.card)col.set(f.d.acct,f.d.card)});
+  if(!col.size)return 0;
+  const yr=String(new Date().getFullYear()), tot=new Map();
+  list('tx').forEach(x=>{
+    const src=col.get(x.d.acct); if(!src||!plaidIsCardPayment(x))return;
+    const d=String(x.d.date||''); if(d.slice(0,4)!==yr)return;
+    const k=src+'|'+MONTHS[+d.slice(5,7)-1];
+    tot.set(k,(tot.get(k)||0)+Math.abs(+x.d.amt||0));
+  });
+  let n=0;
+  tot.forEach((amt,k)=>{
+    const [src,month]=k.split('|'); if(!month)return;
+    put('finstmt',{src,month,amt:Math.round(amt*100)/100,src2:'Plaid'},'finstmt:plaid:'+src+':'+month);n++;
+  });
+  return n;
+}
+
+/* Zelle is how money actually moves between people, and a transfer is not a purchase --
+   it belongs on the Transfers page as well as in the ledger. Matched on the word itself,
+   which every bank puts on the line. Money out of the account is money out of the
+   transfer, so the sign flips to the convention that page uses. */
+function plaidZelleSync(){
+  let n=0;
+  list('tx').forEach(x=>{
+    if(!/zelle/i.test(String(x.d.desc||'')))return;
+    const d=String(x.d.date||''); if(!d)return;
+    put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',desc:x.d.desc||'Zelle',
+      acct:'American',cur:x.d.cur||'USD',amt:-(+x.d.amt||0),src2:'Plaid'},
+      'fintx:plaid:'+x.id.replace(/^tx:plaid:/,''));n++;
+  });
+  return n;
+}
+
+/* Connected should mean current when you open the page, not when you remember to ask.
+   Banks and Plaid both dislike being asked every few seconds, so a visit refreshes at
+   most once every six hours; the button is there for the times you want it now. */
+const PLAID_AUTO_MS=6*60*60*1000;
+function plaidAutoSync(){
+  if(plaidAutoSync._going||!plaidItems().length)return;
+  if(Date.now()-(+localStorage.cfo_plaidAuto||0)<PLAID_AUTO_MS)return;
+  plaidAutoSync._going=1;
+  try{localStorage.cfo_plaidAuto=String(Date.now())}catch(e){}
+  plaidSyncAll().then(()=>{plaidAutoSync._going=0;renderActive()})
+                .catch(()=>{plaidAutoSync._going=0});
 }
 async function plaidSyncAll(){
   const items=plaidItems();
@@ -2216,8 +2323,11 @@ async function plaidSyncAll(){
     put('plaid',{last:new Date().toISOString()},it.id);   // the cursor is the server's now
   }
   plaidRelabel();
+  const bal=await plaidBalSync();               // balances first: the rest hang off those rows
   const liab=await plaidLiabSync();
-  return{added,updated,removed,items:items.length,debts:liab.filled};
+  const stmts=plaidStmtSync(), zelle=plaidZelleSync();
+  return{added,updated,removed,items:items.length,
+    debts:liab.filled,accts:bal.filled,stmts,zelle};
 }
 async function plaidConnect(){
   PLAIDBUSY=1;PLAIDMSG='opening Plaid…';renderActive();
@@ -2238,8 +2348,12 @@ async function plaidConnect(){
             PLAIDMSG='fetching transactions…';renderActive();
             const r=await plaidSyncAll();
             PLAIDMSG='';
-            alert('Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.'+
-              (r.debts?'\n'+r.debts+' card'+(r.debts===1?'':'s')+' on the Debts page now carry their real APR, minimum and due date.':''));
+            alert(['Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.',
+              r.accts?r.accts+' account'+(r.accts===1?'':'s')+' now keep their balance current.':'',
+              r.debts?r.debts+' card'+(r.debts===1?'':'s')+' carry their real APR, minimum and due date.':'',
+              r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
+              r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':''
+            ].filter(Boolean).join('\n'));
           }catch(e){alert('Could not finish connecting: '+e.message)}
           done();
         },
@@ -2254,8 +2368,12 @@ async function plaidSyncNow(){
   PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
   try{
     const r=await plaidSyncAll();
-    alert(r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.'+
-      (r.debts?'\n'+r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':''));
+    alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
+      r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
+      r.debts?r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':'',
+      r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
+      r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':''
+    ].filter(Boolean).join('\n'));
   }catch(e){alert('Sync failed: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
@@ -2284,7 +2402,7 @@ async function plaidDisconnect(id){
 function plaidPullOnce(){
   if(plaidPullOnce._done)return;
   plaidPullOnce._done=1;
-  plaidPull().then(renderActive);
+  plaidPull().then(()=>{renderActive();plaidAutoSync()});
 }
 /* Connecting a bank is something you do a handful of times and then never think about
    again, so it had no business sitting at the top of the page you open every day. On its
