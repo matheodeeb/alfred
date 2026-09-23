@@ -126,6 +126,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .editBtn:hover{border-color:var(--acc);color:var(--acc)}
   .chk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:transparent;transition:.15s}
   .chk.done{background:var(--ok);border-color:var(--ok);color:#faf6ec}
+  /* How many things are on the order. It is a label, not a control: no pointer, no tap. */
+  .cnt{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line2);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;
+    color:var(--muted);background:var(--bg2);pointer-events:none;user-select:none}
   .rinfo{min-width:0;flex:1}
   .rinfo .t{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
   .rinfo .s{font-family:"IBM Plex Mono";font-size:11px;margin-top:2px;color:var(--muted);overflow-wrap:anywhere}
@@ -174,6 +178,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field textarea{min-height:120px;resize:vertical;font-family:"Public Sans",sans-serif;line-height:1.5}
   .field.full textarea{min-height:min(40vh,300px)}
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
+  .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
   .modal .foot .spacer{flex:1}
   .note{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.55}
@@ -1071,7 +1076,7 @@ function openForm(sec,id,defs){
   $('#mBody').innerHTML='<div class="frow'+(m.fields.length<2?' one':'')+'">'+
     m.fields.filter(f=>!f.showIf||f.showIf(Object.assign({},it?.d,defs))).map(f=>{
       let v=it?.d?.[f.k]??defs?.[f.k];if(m.formIn&&it)v=m.formIn(it,f.k,v);
-      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(typeof f.l==='function'?f.l(Object.assign({},it?.d,defs)):f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}</div>`}).join('')+'</div>';
+      return`<div class="field${f.full?' full':''}" id="fw_${f.k}" ${f.full?'style="grid-column:1/-1"':''}><label>${esc(typeof f.l==='function'?f.l(Object.assign({},it?.d,defs)):f.l)}</label>${fieldHtml(f,v,sec,Object.assign({},it?.d,defs))}${f.hint?`<div class="fhint">${esc(f.hint)}</div>`:''}</div>`}).join('')+'</div>';
   $('#mDel').style.display=it?'':'none';
   $('#mBody').querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   if(sec==='projects'){                   // an estimate shows only the fields its kind needs
@@ -1310,6 +1315,7 @@ function rowHtml(sec,i){
   return`<div class="rowBox ${c.dim?'dim':''} ${OPEN.has(i.id)?'open':''}" data-id="${i.id}">
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
+    ${c.badge?`<span class="cnt" title="${c.badge} item${c.badge===1?'':'s'} on this order">${c.badge}</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
     <div class="rright">${c.step?stepHtml(i,c.step):''}${c.act?`<button class="btn sm ${c.act.cls||'ordBtn'}" onclick="event.stopPropagation();${c.act.fn}">${c.act.txt}</button>`:''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
     </div>
@@ -1365,6 +1371,19 @@ function patchRow(sec,id){
   const c=m.card(i);
   box.classList.toggle('dim',!!c.dim);
   if(c.step){const q=box.querySelector('.qtyVal');if(q)q.textContent=+i.d[c.step]||0}
+  // Patching a row has to move everything the row shows, or the part left behind quietly
+  // goes stale: the tick, and the circle counting what is still on the order — which drops
+  // by one every time an item is taken off it.
+  const dk=m.toggle&&(m.toggle.k||m.toggle), chk=box.querySelector('.chk');
+  if(chk&&dk)chk.classList.toggle('done',!!i.d[dk]);
+  const row=box.querySelector('.row');
+  let cnt=box.querySelector('.cnt');
+  if(c.badge){
+    if(!cnt){cnt=document.createElement('span');cnt.className='cnt';
+      row.insertBefore(cnt,row.querySelector('.rinfo'))}
+    cnt.textContent=c.badge;
+    cnt.title=c.badge+' item'+(c.badge===1?'':'s')+' on this order';
+  } else if(cnt)cnt.remove();
   const info=box.querySelector('.rinfo');
   if(info){
     const t=info.querySelector('.t');if(t)t.innerHTML=c.t;
@@ -1633,7 +1652,6 @@ let ordSeed=null, ordGrps=[], ordSeedGrp='';
 function openOrderBuilder(it){
   ordSeed=it;
   const others=list('wants').filter(o=>o.id!==it.id&&wOpen(o)&&!wantLines(o.d).length);
-  const px=v=>String(v??'')===''?'':(+v||0);
   // Every section already in use, plus the standard ones, so a new item can be filed
   // where it belongs rather than being swept into the section of whatever was ticked.
   ordGrps=wantGrpOpts();
@@ -1651,13 +1669,13 @@ function openOrderBuilder(it){
     +`<div class="ordSec"><h4>On this order</h4><div class="ordRow">`
     +`<label><input type="checkbox" checked disabled><span>${esc(it.d.name||'')}</span></label>`
     +`<input class="pz ordP" type="number" step="0.01" data-id="${it.id}" `
-    +`value="${px(it.d.price)}" placeholder="price">`
+    +`value="${wantOne(it.d)}" placeholder="price">`
     +`<span class="oSec">${esc(it.d.grp||'—')}</span></div></div>`;
   if(others.length){
     h+=`<div class="ordSec"><h4>Also on it — already on your list</h4>`
       +others.map(o=>`<div class="ordRow"><label><input type="checkbox" class="ordPick" data-id="${o.id}">`
         +`<span>${esc(o.d.name||'')}</span></label>`
-        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${px(o.d.price)}" placeholder="price">`
+        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${wantOne(o.d)}" placeholder="price">`
         +`<span class="oSec">${esc(o.d.grp||'—')}</span></div>`).join('')
       +`</div>`;
   }
@@ -1734,6 +1752,9 @@ $('#ordGo').onclick=()=>{
   if(!name){const e=$('#ordName');e.style.borderColor='var(--bad)';e.focus();return}
   const d={name,grp:($('#ordGrp')||{}).value||ordSeed.d.grp||'',
     link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
+    // Several things under one bill is a group order, and saying so on the row means the
+    // drawer, the count and the form all agree without having to count the lines again.
+    otype:picked.length>1?'Group order':'Individual order',
     lines:picked.map(lineText).join('\n'),
     paid:String(paidRaw).trim()===''?sub:(+paidRaw||0),
     price:'',done:1,doneAt:today()};
@@ -1817,6 +1838,17 @@ function wantTotal(d){
   const ls=wantLines(d);
   if(!ls.length)return +d.price||0;                  // an open want answers with its estimate
   return wantSub(d)+(+d.tax||0);
+}
+// The figure a single row carries, whichever key is holding it. A want keeps its estimate
+// in `price` while it is open and its real cost in `paid` once ordered, and a row that has
+// been round the loop — ordered, arrived, then un-ticked back — can be sitting on either.
+// Anything that wants "the number on this row" asks here instead of naming one key and
+// coming up empty half the time. Blank, not zero, so an unpriced row still reads unpriced.
+function wantOne(d){
+  if(!d)return'';
+  if(String(d.price??'')!=='')return +d.price||0;
+  if(String(d.paid??'')!=='')return +d.paid||0;
+  return'';
 }
 // Tax splits evenly across the items, to the cent. Dividing by three leaves pennies over,
 // so they go to the first rows rather than being dropped — the parts add back to the whole.
@@ -1965,7 +1997,7 @@ goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when
   fields:[{k:'name',l:'Goal',t:'text',req:1},
           {k:'target',l:'Target amount',t:'money',req:1},
           {k:'track',l:'Progress from',t:'sel',opt:['Typed in below','Net liquid — live'],def:'Typed in below'},
-          {k:'saved',l:'Put aside so far',t:'money',hintTxt:'Ignored when progress reads from net liquid.'},
+          {k:'saved',l:'Put aside so far',t:'money',hint:'Ignored when progress reads from net liquid.'},
           {k:'by',l:'Target date',t:'date'},
           {k:'pri',l:'Priority',t:'sel',opt:['1 — first','2 — next','3 — later','Someday'],def:'2 — next'},
           {k:'notes',l:'Why it matters',t:'ta',full:1}],
@@ -2196,14 +2228,13 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // paragraph printed under every item turns a list you can scan into one you have to read.
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
-      // An individual order is plainly one thing, so a count beside it is noise. A group
-      // order is worth counting even at one, because the count is what says the row opens.
-      // Part-way through arriving it says how many are still coming, which is the more
-      // useful reading of the same number. The fees stand on their own either way.
+      // How many things are on the order rides in a circle beside the tick, not in the line
+      // of figures: written there it sat between the price and the fees and read as though
+      // it were money. An individual order is plainly one thing and gets no circle; a group
+      // order gets one even at one item, and part-way through arriving the number is what
+      // is still coming.
+      badge:wantIsGroup(i.d)&&ls.length?ls.length:0,
       s:[tot?money(tot):'',
-         wantIsGroup(i.d)&&ls.length
-           ?(i.d.multi&&ls.length===1?'1 item left':ls.length+(ls.length===1?' item':' items'))
-           :'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
          wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
