@@ -47,6 +47,29 @@ left empty on purpose. House style lives in the data, not in a spec.
 1239) defines each section's `fields:` array. The map below is a convenience copy and can
 drift; when a field matters, check `MODS`.
 
+**6. Never write prose into `notes`.** `notes` is Matheo's field, not yours. Leave it
+empty unless he asks for something specific to go in it, and never fill it with a
+description assembled from a listing or a confirmation email.
+
+This was learned the hard way: order rows arrived carrying full write-ups — colourways,
+promo maths, tracking numbers, order references, shipping thresholds — and the Wants page
+became something to read rather than scan. His words: *"this adds too much information and
+makes the page overwhelming… I don't want fully written descriptions."* If he wants the
+detail he will open the original email.
+
+What belongs on a row instead is one short line of the facts true of **any** order —
+size, colour, quantity — in `spec`:
+
+```
+Size M          Size M · Coastal Blue          W33 L32          Size XL · Green
+```
+
+Leave `spec` empty rather than restating something already in the name: a row called
+"Aer Sports Duffel — Black" does not need `spec: 'Black'`, and "Beats 360 — Cloud" does
+not need the colourway again. No badge printing, no fabric technology, no exchange rates,
+no order numbers, no delivery estimates. If a detail does not fit on one line beside the
+price, it does not go on the row at all.
+
 ## ids
 
 Rows created by the app carry a random base36 id (`Date.now().toString(36)` + 5 random
@@ -71,7 +94,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `todo` | To-do list | task, grp, gord, due, ord, notes |
 | `tlspoils` | Timeline → Spoils | date, name, cost, notes |
 | `travels` | Timeline → Travels / Past | place, trip, start, end, notes |
-| `wants` | Wants | name, grp, price, link, notes |
+| `wants` | Wants | name, grp, spec, price, lines, paid, link, notes |
 | `needs` | To order | name, src, qty, price, link, notes |
 | `stock` | Bathroom | name, count, min, par, place |
 | `kitchen` | Living room | name, count, min, par, unit, notes |
@@ -111,8 +134,8 @@ Two sections are not their own rows. **Timeline → Past** (`travpast`) is a vie
 **Received means in his hands.** A `wants` row moves open → ordered → received, and the
 last step is not the courier's word for it. A parcel marked delivered, sitting at a
 collection point or with a doorman, is still **ordered** — it becomes received when he has
-actually picked it up. Put the delivery — carrier, tracking, the date it was dropped — in
-the notes, and leave `got` empty until he says he has it.
+actually picked it up. Track that yourself and tell him in chat; it does not go in the
+row, and `got` stays empty until he says he has it.
 
 **Record what was actually paid, not the sticker.** Tax, shipping and fees belong in the
 figure. An order of several things carries them as `lines` (`Name | price | Section`) plus
@@ -130,7 +153,7 @@ the thing is actually acquired. `ing` and `steps` are newline-separated.
 ```sql
 insert into items (id, sec, data, up, del) values
   ('tl:rolex-daytona-126519ln', 'tlspoils',
-   '{"name":"Rolex Daytona 126519LN black dial on Oysterflex","cost":48000,"date":"","notes":"Watch"}'::jsonb,
+   '{"name":"Rolex Daytona 126519LN black dial on Oysterflex","cost":48000,"date":""}'::jsonb,
    (extract(epoch from now()) * 1000)::bigint, false)
 on conflict (id) do update
   set data = items.data || excluded.data,
@@ -169,6 +192,10 @@ select id, data from items
 Read the details off the image — brand, reference, dial, bracelet, price — and write them
 in the section's own naming order. If the price is a dealer ask rather than retail, use it
 but say so, so the user can correct it.
+
+Most of what a listing tells you does not belong on the row. Take the name, the price,
+and — for a `wants` row — size and colour into `spec`. Everything else you learned stays
+in your reply to him, not in the database (rule 6).
 
 ## Finishing
 

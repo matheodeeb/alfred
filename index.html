@@ -1988,6 +1988,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // stay out of the way on an open want and appear the moment a row is an order.
   fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
+          {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'lines',full:1,showIf:d=>!!d.done},
           {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
@@ -2025,10 +2026,13 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
           +`<span class="oN">${esc(l.name)}${g?`<em>${esc(g)}</em>`:''}</span>`
           +`<span class="oP"><b>${money(real)}</b>${share[n]?`<i>${money(l.price)} + ${money(share[n])}</i>`:''}</span></div>`
       }).join('')+'</div>'},
+  // The card carries the money, the count, and one short line of size or colour. Notes stay
+  // off it entirely: they are for whatever you want to write, read by opening the row, and a
+  // paragraph printed under every item turns a list you can scan into one you have to read.
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
       s:[tot?money(tot):'',ls.length?ls.length+(ls.length===1?' item':' items')+(wantFees(i.d)?' · +'+money(wantFees(i.d))+' tax & fees':''):'',
-         esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+         esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
