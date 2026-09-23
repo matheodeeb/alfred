@@ -813,8 +813,13 @@ function addLineRow(btn){
   box.insertAdjacentHTML('beforeend',lineRowHtml({},wantGrpOpts()));
   const r=box.lastElementChild; r.querySelector('.lnN').focus();
 }
+// The box for a brand-new value belongs on screen only while "+ Add new…" is the choice.
+// It used to be shown in the other branch, so picking an ordinary value from the menu put
+// an empty second box under it on every page with one of these fields.
 function dynSel(el){const inp=document.getElementById(el.id+'__new');if(!inp)return;
-  const on=el.value==='__new';inp.style.display=on?'':'block';inp.style.marginTop='6px';if(on)inp.focus()}
+  const on=el.value==='__new';
+  inp.style.display=on?'block':'none';inp.style.marginTop='6px';
+  if(on)inp.focus(); else inp.value='';}
 // Priority ranking, scoped to the section an item sits in.
 // Inserting at N pushes the current N and everything below it down one.
 function rankGroupOf(sec,i){const m=MODS[sec];return m.group?m.group(i):''}
@@ -1526,8 +1531,13 @@ function openOrderBuilder(it){
   // The order is not the first thing on it: naming it after that shoe hides the other two
   // and reads wrong the moment a second item is added. So it starts empty and is asked for.
   const hint=(it.d.name||'').split(/[:—–]/)[0].trim().split(/\s+/).slice(0,2).join(' ');
-  let h=`<div class="frow one"><div class="field full"><label>Name this order</label>`
-    +`<input id="ordName" type="text" placeholder="${esc(hint?hint+' order':'what to call it')}"></div></div>`
+  // The items keep their own sections, but the order is a row too and has to sit
+  // somewhere until it arrives — so it is asked for rather than borrowing the first item's.
+  let h=`<div class="frow"><div class="field"><label>Name this order</label>`
+    +`<input id="ordName" type="text" placeholder="${esc(hint?hint+' order':'what to call it')}"></div>`
+    +`<div class="field"><label>Section for the order</label><select id="ordGrp">`
+    +ordGrps.map(g=>`<option${g===ordSeedGrp?' selected':''}>${esc(g)}</option>`).join('')
+    +`</select></div></div>`
     +`<div class="ordSec"><h4>On this order</h4><div class="ordRow">`
     +`<label><input type="checkbox" checked disabled><span>${esc(it.d.name||'')}</span></label>`
     +`<input class="pz ordP" type="number" step="0.01" data-id="${it.id}" `
@@ -1607,7 +1617,8 @@ $('#ordGo').onclick=()=>{
   const picked=ordChosen(), paidRaw=$('#ordPaid').value;
   const name=$('#ordName').value.trim();
   if(!name){const e=$('#ordName');e.style.borderColor='var(--bad)';e.focus();return}
-  const d={name,grp:ordSeed.d.grp||'',link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
+  const d={name,grp:($('#ordGrp')||{}).value||ordSeed.d.grp||'',
+    link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
     lines:picked.map(lineText).join('\n'),
     paid:String(paidRaw).trim()===''?'':+paidRaw||0,
     price:'',done:1,doneAt:today()};
