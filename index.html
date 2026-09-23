@@ -1574,7 +1574,7 @@ function receiveOne(id,n){
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
   const rest=ls.filter((_,k)=>k!==n);
   if(!rest.length){kill(id)}                       // nothing left to wait for
-  else put('wants',{lines:rest.map(lineText).join('\n'),
+  else put('wants',{lines:rest.map(lineText).join('\n'),multi:1,   // it was a group order, and stays one
     paid:String(it.d.paid??'')===''?'':Math.round((+it.d.paid-paidFor)*100)/100},id);
   // Only three things on screen can have changed: this row and its drawer, the heading
   // above it, and the totals at the top. Redrawing the page for that threw away the
@@ -1726,13 +1726,6 @@ function wantLines(d){
            price:+m[2].replace(/[$,]/g,'')||0,grp:'',spec};
   });
 }
-/* An order written before this menu existed says nothing about which kind it is. One
-   carrying several items plainly was a group order and is still read as one, so no
-   existing order loses its drawer or its count the day the menu arrives. Anything else
-   is the individual order it has always behaved like. */
-function wantIsGroup(d){
-  return d&&d.otype?d.otype==='Group order':wantLines(d).length>1;
-}
 // Every section in play: the standard ones plus any already in use.
 function wantGrpOpts(){
   return [...new Set([...(MODS.wants.fields.find(f=>f.k==='grp').opt||[]),
@@ -1741,6 +1734,23 @@ function wantGrpOpts(){
 // An item keeps the section it was filed under before the order swept it up; only one
 // that never had one falls back to the order's.
 const lineGrp=(l,d)=>String(l.grp||'').trim()||d.grp||'';
+// Whether this row is a group order. Two or more lines makes it one outright; `multi` is
+// stamped the first time an item is received off it, so the last one left still behaves
+// like part of an order rather than reverting to a plain single item.
+const wantMulti=d=>wantLines(d).length>1||!!d.multi;
+/* Whether to treat this row as a group order, from the three things that can say so.
+   `multi` comes first and is not overridable: it is stamped when an item is received off
+   an order, so the last one left is the remnant of a group order however the row is
+   labelled -- and reading that as individual would hide the list still holding it.
+   Failing that the order says what it is. An order written before the menu existed says
+   nothing, so it is read the way it always behaved: several items make it a group order,
+   one does not. */
+function wantIsGroup(d){
+  if(!d)return false;
+  if(d.multi)return true;
+  if(d.otype)return d.otype==='Group order';
+  return wantLines(d).length>1;
+}
 // Written back in the same shape, so a section survives a round trip through the field.
 const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'')
   +(String(l.spec||'').trim()?' :: '+String(l.spec).trim():'');
@@ -1773,7 +1783,7 @@ function splitTax(total,n){
 function receiveOrder(it){
   // Splitting an order into its items only means something when there is more than one.
   // A single-item order already *is* that item, so it stays one row and simply arrives.
-  const ls=wantLines(it.d); if(ls.length<2)return false;
+  const ls=wantLines(it.d); if(!ls.length||!wantMulti(it.d))return false;
   const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
@@ -2102,14 +2112,13 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
   toggle:'done',
   // Open an order and its items are listed one per line, each with its own tick, showing
-  // what it truly cost once its share of the tax and delivery is counted in. A one-item
-  // order gets no list: ticking the order and ticking its only item are the same act, and
-  // offering both just asks the question twice.
-  /* The drawer is the group order's, and a group order of one still has it: that is the
-     whole point of calling an order a group one before the rest of it is typed in. An
-     individual order is already the item, so a drawer under it would only repeat the row. */
+  // what it truly cost once its share of the tax and delivery is counted in. The list
+  // belongs to the group order, and a group order of one still has it: naming an order a
+  // group one before the rest of it is typed in is the whole point of being able to name
+  // it. An individual order is already the item, so a list under it would only repeat the
+  // row and ask the same question twice.
   detail:i=>{const ls=wantLines(i.d);
-    if(!wantIsGroup(i.d)||!ls.length||i.d.got)return'';
+    if(!ls.length||!wantIsGroup(i.d)||i.d.got)return'';
     const share=splitTax(wantFees(i.d),ls.length);
     return'<div class="rDetL">Items in this order — tick one as it arrives</div><div class="oItems">'
       +ls.map((l,n)=>{const real=Math.round((l.price+share[n])*100)/100;
@@ -2124,9 +2133,14 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // paragraph printed under every item turns a list you can scan into one you have to read.
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
-      // A count only tells you something when there is more than one; "1 item" is noise
-      // beside a row that is plainly one thing. The fees stand on their own either way.
-      s:[tot?money(tot):'',wantIsGroup(i.d)&&ls.length?ls.length+(ls.length===1?' item':' items'):'',
+      // An individual order is plainly one thing, so a count beside it is noise. A group
+      // order is worth counting even at one, because the count is what says the row opens.
+      // Part-way through arriving it says how many are still coming, which is the more
+      // useful reading of the same number. The fees stand on their own either way.
+      s:[tot?money(tot):'',
+         wantIsGroup(i.d)&&ls.length
+           ?(i.d.multi&&ls.length===1?'1 item left':ls.length+(ls.length===1?' item':' items'))
+           :'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
          wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
