@@ -1113,10 +1113,11 @@ $('#mSave').onclick=()=>{
     let v;
     if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
     if((f.t==='ord'||f.t==='gord')&&document.getElementById('fw_'+f.k)?.style.display==='none'){d[f.k]='';continue}
-    // A field on screen but hidden is not a field left blank: read it and an individual
-    // order would lose the items it was carrying a moment ago.
-    if(f.t==='lines'&&document.getElementById('fw_'+f.k)?.style.display==='none'){
-      d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}
+    // The items box is read whether or not it is on show. Hiding it — which is all that
+    // switching to an individual order does — leaves every row sitting in the form with
+    // its values, so the list still survives the switch. Reading the stored list instead,
+    // as this did, meant rows deleted just before the switch came back on save: the box
+    // was empty on screen and the row still said three items.
     if(f.t==='lines')v=[...$('#f_'+f.k).querySelectorAll('.lnRow')]
       .map(r=>({name:r.querySelector('.lnN').value.trim().replace(/::/g,':'),
                 price:+r.querySelector('.lnP').value||0,
