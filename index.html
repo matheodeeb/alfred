@@ -1541,7 +1541,7 @@ function receiveOne(id,n){
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
   const rest=ls.filter((_,k)=>k!==n);
   if(!rest.length){kill(id)}                       // nothing left to wait for
-  else put('wants',{lines:rest.map(lineText).join('\n'),
+  else put('wants',{lines:rest.map(lineText).join('\n'),multi:1,   // it was a group order, and stays one
     paid:String(it.d.paid??'')===''?'':Math.round((+it.d.paid-paidFor)*100)/100},id);
   // Only three things on screen can have changed: this row and its drawer, the heading
   // above it, and the totals at the top. Redrawing the page for that threw away the
@@ -1701,6 +1701,10 @@ function wantGrpOpts(){
 // An item keeps the section it was filed under before the order swept it up; only one
 // that never had one falls back to the order's.
 const lineGrp=(l,d)=>String(l.grp||'').trim()||d.grp||'';
+// Whether this row is a group order. Two or more lines makes it one outright; `multi` is
+// stamped the first time an item is received off it, so the last one left still behaves
+// like part of an order rather than reverting to a plain single item.
+const wantMulti=d=>wantLines(d).length>1||!!d.multi;
 // Written back in the same shape, so a section survives a round trip through the field.
 const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'')
   +(String(l.spec||'').trim()?' :: '+String(l.spec).trim():'');
@@ -1733,7 +1737,7 @@ function splitTax(total,n){
 function receiveOrder(it){
   // Splitting an order into its items only means something when there is more than one.
   // A single-item order already *is* that item, so it stays one row and simply arrives.
-  const ls=wantLines(it.d); if(ls.length<2)return false;
+  const ls=wantLines(it.d); if(!ls.length||!wantMulti(it.d))return false;
   const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
@@ -2062,7 +2066,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // what it truly cost once its share of the tax and delivery is counted in. A one-item
   // order gets no list: ticking the order and ticking its only item are the same act, and
   // offering both just asks the question twice.
-  detail:i=>{const ls=wantLines(i.d); if(ls.length<2||i.d.got)return'';
+  detail:i=>{const ls=wantLines(i.d); if(!ls.length||!wantMulti(i.d)||i.d.got)return'';
     const share=splitTax(wantFees(i.d),ls.length);
     return'<div class="rDetL">Items in this order — tick one as it arrives</div><div class="oItems">'
       +ls.map((l,n)=>{const real=Math.round((l.price+share[n])*100)/100;
@@ -2079,7 +2083,8 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     return{t:esc(i.d.name),
       // A count only tells you something when there is more than one; "1 item" is noise
       // beside a row that is plainly one thing. The fees stand on their own either way.
-      s:[tot?money(tot):'',ls.length>1?ls.length+' items':'',
+      s:[tot?money(tot):'',
+         ls.length>1?ls.length+' items':(i.d.multi&&ls.length===1?'1 item left':''),
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
          esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
