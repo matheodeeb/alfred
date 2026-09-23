@@ -1523,7 +1523,7 @@ income:{title:'Income',color:'var(--green)',hint:'Everything that comes in. What
     s:[esc(i.d.cyc||'Monthly'),i.d.cur==='HTG'?(+i.d.amt||0).toLocaleString('en-US')+' HTG':money2(i.d.amt),i.d.acct?'→ '+esc(i.d.acct):''].filter(Boolean).join(' · '),
     pill:{cls:'acc',txt:money2(cfoMo(i.d))+'/mo'}}),
   empty:'Nothing recorded yet. This is the biggest hole in your picture — every surplus, savings-rate and payoff number below stays blank until one source is here.'},
-debt:{title:'Debts',color:'var(--red)',hint:'Enter the balance as a positive number — this page is about what you owe. Fill in APR and the minimum and the payoff strategies run themselves.',
+debt:{title:'Debts',color:'var(--red)',hint:'Enter the balance as a positive number — this page is about what you owe. Fill in APR and the minimum and the payoff strategies run themselves. Cards you connect through Plaid fill those in on their own and say “from your bank”; if one of those duplicates a row you typed yourself, delete the typed one — otherwise the totals count the same card twice.',
   fields:[{k:'name',l:'Debt',t:'text',req:1},
           {k:'kind',l:'Type',t:'sel',opt:['Credit card','Line of credit','Personal loan','Auto loan','Mortgage','Student loan','Family / private','Other'],def:'Credit card'},
           {k:'bal',l:'Balance owed',t:'money',req:1},
@@ -1543,7 +1543,7 @@ debt:{title:'Debts',color:'var(--red)',hint:'Enter the balance as a positive num
            {k:'Interest / month',v:money2(int),u:money2(int*12)+' a year',c:'var(--gold)'},
            {k:'Minimums / month',v:money2(it.reduce((s,i)=>s+cfoUsd(i.d.min,i.d.cur),0)),c:'var(--blue)'}]},
   card:i=>({t:esc(i.d.name),
-    s:[(+i.d.apr||0)?i.d.apr+'% APR':'no APR set',cfoUsd(i.d.min,i.d.cur)?money2(cfoUsd(i.d.min,i.d.cur))+'/mo min':'no minimum set',(+i.d.day||0)?'due the '+i.d.day+'th':''].filter(Boolean).join(' · '),
+    s:[(+i.d.apr||0)?i.d.apr+'% APR':'no APR set',cfoUsd(i.d.min,i.d.cur)?money2(cfoUsd(i.d.min,i.d.cur))+'/mo min':'no minimum set',(+i.d.day||0)?'due the '+i.d.day+'th':'',i.d.src==='Plaid'?'from your bank':''].filter(Boolean).join(' · '),
     pill:{cls:(+i.d.apr||0)>=20?'bad':(+i.d.apr||0)>=10?'warn':'mut',txt:money2(cfoUsd(i.d.bal,i.d.cur))}}),
   empty:'No debts recorded. Add one per card or loan — the avalanche-vs-snowball comparison needs the APR and the minimum to say anything real.'},
 goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when. A target date turns a wish into a monthly number.',
@@ -2103,6 +2103,37 @@ function plaidRow(t,card,item){
   return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,item:item||'',
     cat:plaidCat(t),cur:t.cur||'USD',notes:t.pending?'pending':''};
 }
+/* The three fields the payoff comparison cannot work without -- APR, minimum payment and
+   due day -- are printed on a statement four times a year and typed in by hand roughly
+   never. Plaid knows them, so they arrive with everything else.
+
+   A row is keyed on Plaid's own account id, so a refresh corrects the card it created
+   before instead of adding a second one. Only values Plaid actually returned are written:
+   a bank that reports no APR leaves a typed-in one alone rather than blanking it, and the
+   name, notes and anything else you set by hand are never touched after the first sync.
+
+   A checking-only bank has no liabilities at all and says so. That is an ordinary answer,
+   not a failure, and one bank refusing must not stop the others. */
+async function plaidLiabSync(){
+  let filled=0,failed=0;
+  for(const it of plaidItems()){
+    let out;
+    try{ out=await plaidFn('liabilities',{item_id:it.d.item}) }
+    catch(e){ failed++; continue }
+    (out.debts||[]).forEach(d=>{
+      if(!d.account)return;
+      const id='debt:plaid:'+d.account, fresh=!one(id);
+      const row={cur:'USD',src:'Plaid',acct:d.account,item:it.id};
+      if(fresh){row.name=d.name||'Card';row.kind=d.kind||'Credit card'}
+      if(d.bal!=null)row.bal=d.bal;
+      if(d.apr!=null)row.apr=d.apr;
+      if(d.min!=null)row.min=d.min;
+      if(d.day!=null)row.day=d.day;
+      put('debt',row,id);filled++;
+    });
+  }
+  return{filled,failed};
+}
 async function plaidSyncAll(){
   const items=plaidItems();
   if(!items.length)return{added:0,updated:0,removed:0,items:0};
@@ -2118,7 +2149,8 @@ async function plaidSyncAll(){
     (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
     put('plaid',{last:new Date().toISOString()},it.id);   // the cursor is the server's now
   }
-  return{added,updated,removed,items:items.length};
+  const liab=await plaidLiabSync();
+  return{added,updated,removed,items:items.length,debts:liab.filled};
 }
 async function plaidConnect(){
   PLAIDBUSY=1;PLAIDMSG='opening Plaid…';renderActive();
@@ -2139,7 +2171,8 @@ async function plaidConnect(){
             PLAIDMSG='fetching transactions…';renderActive();
             const r=await plaidSyncAll();
             PLAIDMSG='';
-            alert('Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.');
+            alert('Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.'+
+              (r.debts?'\n'+r.debts+' card'+(r.debts===1?'':'s')+' on the Debts page now carry their real APR, minimum and due date.':''));
           }catch(e){alert('Could not finish connecting: '+e.message)}
           done();
         },
@@ -2154,7 +2187,8 @@ async function plaidSyncNow(){
   PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
   try{
     const r=await plaidSyncAll();
-    alert(r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.');
+    alert(r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.'+
+      (r.debts?'\n'+r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':''));
   }catch(e){alert('Sync failed: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
