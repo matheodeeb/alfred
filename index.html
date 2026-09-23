@@ -994,10 +994,15 @@ function syncWhenField(){
 function syncWantFields(){
   const t=document.getElementById('f_otype');if(!t)return;
   const group=t.value==='Group order';
-  const done=!!(editCtx?.id?one(editCtx.id)?.d?.done:editCtx?.defs?.done);
   const show=(k,on)=>{const e=document.getElementById('fw_'+k);if(e)e.style.display=on?'':'none'};
   show('spec',!group);
-  show('lines',group||done);
+  show('lines',group);
+  // One row is an item and has a name; several rows are an order and it is called
+  // something. The labels follow the menu as you change it, not just as the form opens.
+  const lab=(k,t2)=>{const e=document.querySelector('#fw_'+k+' label');if(e)e.textContent=t2};
+  lab('name',group?'What to call the order':'Item');
+  lab('paid',group?'Total actually paid — the gap over the items is the tax and fees'
+                  :'What it cost, all in');
 }
 // Adding a second item is the moment an order stops being one thing, so it says so rather
 // than making you set the menu yourself to explain what you have just done.
@@ -2081,13 +2086,13 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
 wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly. Perfume you\'ve run out of shows up here on its own.',
   // Items and a total paid only mean anything once something has been ordered, so they
   // stay out of the way on an open want and appear the moment a row is an order.
-  fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
+  fields:[{k:'name',l:d=>wantIsGroup(d)?'What to call the order':'Item',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'otype',l:'Individual or group order',t:'sel',opt:['Individual order','Group order'],def:'Individual order'},
           {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'lines',full:1},
-          {k:'paid',l:d=>wantLines(d).length?'Total actually paid — the gap over the items is the tax and fees':'What it cost, all in',
+          {k:'paid',l:d=>wantIsGroup(d)?'Total actually paid — the gap over the items is the tax and fees':'What it cost, all in',
            t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   // Once the figure is answering as `paid`, it stops also being `price`: two places for one
