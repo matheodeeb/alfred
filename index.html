@@ -1684,7 +1684,9 @@ function splitTax(total,n){
 // Arrival is what turns one order into its items: each becomes its own received row,
 // carrying its share of the tax, and the order row retires having done its job.
 function receiveOrder(it){
-  const ls=wantLines(it.d); if(!ls.length)return false;
+  // Splitting an order into its items only means something when there is more than one.
+  // A single-item order already *is* that item, so it stays one row and simply arrives.
+  const ls=wantLines(it.d); if(ls.length<2)return false;
   const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
@@ -1986,6 +1988,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // stay out of the way on an open want and appear the moment a row is an order.
   fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
+          {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'lines',full:1,showIf:d=>!!d.done},
           {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
@@ -2010,8 +2013,10 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
   toggle:'done',
   // Open an order and its items are listed one per line, each with its own tick, showing
-  // what it truly cost once its share of the tax and delivery is counted in.
-  detail:i=>{const ls=wantLines(i.d); if(!ls.length||i.d.got)return'';
+  // what it truly cost once its share of the tax and delivery is counted in. A one-item
+  // order gets no list: ticking the order and ticking its only item are the same act, and
+  // offering both just asks the question twice.
+  detail:i=>{const ls=wantLines(i.d); if(ls.length<2||i.d.got)return'';
     const share=splitTax(wantFees(i.d),ls.length);
     return'<div class="rDetL">Items in this order — tick one as it arrives</div><div class="oItems">'
       +ls.map((l,n)=>{const real=Math.round((l.price+share[n])*100)/100;
@@ -2021,10 +2026,13 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
           +`<span class="oN">${esc(l.name)}${g?`<em>${esc(g)}</em>`:''}</span>`
           +`<span class="oP"><b>${money(real)}</b>${share[n]?`<i>${money(l.price)} + ${money(share[n])}</i>`:''}</span></div>`
       }).join('')+'</div>'},
+  // The card carries the money, the count, and one short line of size or colour. Notes stay
+  // off it entirely: they are for whatever you want to write, read by opening the row, and a
+  // paragraph printed under every item turns a list you can scan into one you have to read.
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
-      s:[tot?money(tot):'',ls.length?ls.length+' items'+(wantFees(i.d)?' · +'+money(wantFees(i.d))+' tax & fees':''):'',
-         esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+      s:[tot?money(tot):'',ls.length?ls.length+(ls.length===1?' item':' items')+(wantFees(i.d)?' · +'+money(wantFees(i.d))+' tax & fees':''):'',
+         esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
