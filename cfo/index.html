@@ -697,7 +697,6 @@ async function sync(){
           try{d=await decRow(r)}
           catch(e){bad++;continue}              // not ours to read — leave it alone, say so at the end
           S.items[r.id]={id:r.id,sec:r.sec,d,up:+r.up,...(r.del?{del:true}:{})};changed=true;
-          if(r.id===VAULT_ID)localStorage.cfo_vault=JSON.stringify(d);
         }
         if(+r.up>maxUp)maxUp=+r.up;
       }
