@@ -262,6 +262,14 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ordRow input[type=text]:focus,.ordRow input[type=number]:focus{outline:none;border-color:var(--acc)}
   .ordRow input.pz{width:104px;flex:none;text-align:right}
   .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px;flex:none}
+  .ordRow .lnPen{font-size:14px}
+  .ordRow .lnPen.on{color:var(--acc)}
+  .lnRow{border-top:1px solid var(--line);padding-bottom:6px}
+  .lnRow:first-of-type{border-top:0}
+  .lnRow .ordRow{border-top:0}
+  .lnRow .lnS{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
+    padding:7px 10px;font-size:13px;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--txt)}
+  .lnRow .lnS:focus{outline:none;border-color:var(--acc)}
   .ordRow select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);
     padding:8px 9px;font-family:"IBM Plex Mono";font-size:12.5px;flex:none;width:112px;-webkit-appearance:none}
   .ordRow select:focus{outline:none;border-color:var(--acc)}
@@ -799,14 +807,35 @@ function fieldHtml(f,v,sec,ctx){
 }
 // A list of things is not a paragraph. Typing "Name | 900 | Shoes" into a textarea asks
 // someone to be a parser; three boxes and a + button ask them to fill in three boxes.
+// Three pairs of trousers on one order can be three different sizes, so the detail belongs
+// to the item, not to the order. It hides behind a pencil rather than taking a fourth box
+// on every row — most items never need one, and a row of empty boxes is its own clutter.
 function lineRowHtml(l,grps){
   const p=(l&&(l.price||l.price===0))?l.price:'';
-  return`<div class="ordRow lnRow">`
+  const sp=String(l&&l.spec||'').trim();
+  return`<div class="lnRow">`
+    +`<div class="ordRow">`
     +`<input type="text" class="lnN" placeholder="what it is" value="${esc(l&&l.name||'')}">`
     +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
     +`<select class="lnG">`+['',...grps].map(g=>
        `<option value="${esc(g)}"${g===String(l&&l.grp||'')?' selected':''}>${g?esc(g):'—'}</option>`).join('')
-    +`</select><button type="button" class="rm" title="Remove" onclick="this.parentNode.remove()">×</button></div>`;
+    +`</select>`
+    +`<button type="button" class="rm lnPen${sp?' on':''}" title="Size, colour — this item only" `
+    +`onclick="toggleLineSpec(this)">✎</button>`
+    +`<button type="button" class="rm" title="Remove" onclick="this.closest('.lnRow').remove()">×</button>`
+    +`</div>`
+    +`<input type="text" class="lnS" placeholder="size, colour — this item only" `
+    +`value="${esc(sp)}"${sp?'':' style="display:none"'}>`
+    +`</div>`;
+}
+// The pencil lights up while the item carries a detail, so a closed row still says whether
+// there is anything behind it.
+function toggleLineSpec(btn){
+  const row=btn.closest('.lnRow'), inp=row.querySelector('.lnS');
+  const open=inp.style.display==='none';
+  inp.style.display=open?'':'none';
+  if(open)inp.focus(); else inp.value='';
+  btn.classList.toggle('on',open);
 }
 function addLineRow(btn){
   const box=btn.previousElementSibling;
@@ -1013,9 +1042,10 @@ $('#mSave').onclick=()=>{
     if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
     if((f.t==='ord'||f.t==='gord')&&document.getElementById('fw_'+f.k)?.style.display==='none'){d[f.k]='';continue}
     if(f.t==='lines')v=[...$('#f_'+f.k).querySelectorAll('.lnRow')]
-      .map(r=>({name:r.querySelector('.lnN').value.trim(),
+      .map(r=>({name:r.querySelector('.lnN').value.trim().replace(/::/g,':'),
                 price:+r.querySelector('.lnP').value||0,
-                grp:r.querySelector('.lnG').value}))
+                grp:r.querySelector('.lnG').value,
+                spec:(r.querySelector('.lnS')?.value||'').trim().replace(/::/g,':')}))
       .filter(x=>x.name).map(lineText).join('\n');
     else if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
     else if(f.t==='dyn'){v=$('#f_'+f.k).value;if(v==='__new')v=($('#f_'+f.k+'__new').value||'').trim()}
@@ -1506,9 +1536,8 @@ function receiveOne(id,n){
   const share=splitTax(wantFees(it.d),ls.length);
   const paidFor=Math.round((ls[n].price+share[n])*100)/100;
   put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),price:paidFor,
-    done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today(),
-    notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
-      +`${money(ls[n].price)} plus ${money(share[n])} tax and fees.`},id+':'+uid());
+    spec:String(ls[n].spec||'').trim()||it.d.spec||'',      // its own size, or the order's
+    done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today()},id+':'+uid());
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
   const rest=ls.filter((_,k)=>k!==n);
   if(!rest.length){kill(id)}                       // nothing left to wait for
@@ -1644,17 +1673,24 @@ $('#ordGo').onclick=()=>{
 // is read too, so a name ending in a number is not mistaken for a price.
 function wantLines(d){
   const num=x=>+String(x).replace(/[^0-9.\-]/g,'')||0;
-  return String(d&&d.lines||'').split('\n').map(t=>t.trim()).filter(Boolean).map(t=>{
+  return String(d&&d.lines||'').split('\n').map(t=>t.trim()).filter(Boolean).map(raw=>{
+    // An item's own size or colour rides after "::". It is kept out of the pipe-separated
+    // part on purpose: the price and section are read as the LAST two fields so a name may
+    // contain a pipe, and a fourth pipe field would have broken that. A line written before
+    // this existed has no "::" and parses exactly as it always did.
+    const ix=raw.indexOf('::');
+    const spec=ix<0?'':raw.slice(ix+2).trim();
+    const t=(ix<0?raw:raw.slice(0,ix)).trim();
     const parts=t.split('|').map(x=>x.trim());
     // "Name | 900 | Shoes" — the section is the item's own, not the order's. Two parts is
     // the older shape and simply has no section of its own to keep.
     if(parts.length>=3)return{name:parts.slice(0,-2).join(' | ')||t,
-      price:num(parts[parts.length-2]),grp:parts[parts.length-1]};
-    if(parts.length===2)return{name:parts[0]||t,price:num(parts[1]),grp:''};
+      price:num(parts[parts.length-2]),grp:parts[parts.length-1],spec};
+    if(parts.length===2)return{name:parts[0]||t,price:num(parts[1]),grp:'',spec};
     const m=t.match(/^(.*?)[\s]*\$?\s*(\d[\d,]*\.\d{2}|\$\d[\d,]*)\s*$/);
-    if(!m)return{name:t,price:0,grp:''};
+    if(!m)return{name:t,price:0,grp:'',spec};
     return{name:m[1].trim().replace(/[—–|,-]+$/,'').trim()||t,
-           price:+m[2].replace(/[$,]/g,'')||0,grp:''};
+           price:+m[2].replace(/[$,]/g,'')||0,grp:'',spec};
   });
 }
 // Every section in play: the standard ones plus any already in use.
@@ -1666,7 +1702,8 @@ function wantGrpOpts(){
 // that never had one falls back to the order's.
 const lineGrp=(l,d)=>String(l.grp||'').trim()||d.grp||'';
 // Written back in the same shape, so a section survives a round trip through the field.
-const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'');
+const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'')
+  +(String(l.spec||'').trim()?' :: '+String(l.spec).trim():'');
 // What the items on an order came to, before anything was added on top.
 function wantSub(d){return wantLines(d).reduce((t,l)=>t+l.price,0)}
 // Tax is not typed in, it is what is left over: the difference between the sum of the
@@ -1701,9 +1738,8 @@ function receiveOrder(it){
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
     put('wants',{name:l.name,grp:lineGrp(l,it.d),price:paid,link:it.d.link||'',
-      done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when,
-      notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
-        +`${money(l.price)} plus ${money(share[n])} tax.`},it.id+':'+(n+1));
+      spec:String(l.spec||'').trim()||it.d.spec||'',
+      done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when},it.id+':'+(n+1));
   });
   kill(it.id);
   return true;
@@ -2033,7 +2069,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
         const g=lineGrp(l,i.d);
         return`<div class="oItem"><button class="oTick" title="Mark this one arrived" `
           +`onclick="event.stopPropagation();receiveOne('${i.id}',${n})">✓</button>`
-          +`<span class="oN">${esc(l.name)}${g?`<em>${esc(g)}</em>`:''}</span>`
+          +`<span class="oN">${esc(l.name)}${l.spec?`<em>${esc(l.spec)}</em>`:''}${g?`<em>${esc(g)}</em>`:''}</span>`
           +`<span class="oP"><b>${money(real)}</b>${share[n]?`<i>${money(l.price)} + ${money(share[n])}</i>`:''}</span></div>`
       }).join('')+'</div>'},
   // The card carries the money, the count, and one short line of size or colour. Notes stay
@@ -2041,7 +2077,10 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // paragraph printed under every item turns a list you can scan into one you have to read.
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
-      s:[tot?money(tot):'',ls.length?ls.length+(ls.length===1?' item':' items')+(wantFees(i.d)?' · +'+money(wantFees(i.d))+' tax & fees':''):'',
+      // A count only tells you something when there is more than one; "1 item" is noise
+      // beside a row that is plainly one thing. The fees stand on their own either way.
+      s:[tot?money(tot):'',ls.length>1?ls.length+' items':'',
+         wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
          esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
