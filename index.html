@@ -262,6 +262,11 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ordRow input[type=text]:focus,.ordRow input[type=number]:focus{outline:none;border-color:var(--acc)}
   .ordRow input.pz{width:104px;flex:none;text-align:right}
   .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px;flex:none}
+  .ordRow select{background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);
+    padding:8px 9px;font-family:"IBM Plex Mono";font-size:12.5px;flex:none;width:112px;-webkit-appearance:none}
+  .ordRow select:focus{outline:none;border-color:var(--acc)}
+  .ordRow .oSec{flex:none;width:112px;text-align:right;font-family:"IBM Plex Mono";font-size:11px;
+    color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ordRow .rm:hover{color:var(--bad)}
   .ordSum{margin-top:16px;border-top:1px solid var(--line2);padding-top:10px}
   .ordSum .l{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;
@@ -279,6 +284,8 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     display:inline-flex;align-items:center;justify-content:center;transition:.12s}
   .oTick:hover{border-color:var(--ok);color:var(--ok)}
   .oItem .oN{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+  .oItem .oN em{font-style:normal;font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint);
+    margin-left:8px;letter-spacing:.04em;text-transform:uppercase}
   .oItem .oP{font-family:"IBM Plex Mono";font-size:12.5px;white-space:nowrap;text-align:right}
   .oItem .oP b{font-weight:600}
   .oItem .oP i{font-style:normal;color:var(--faint);font-size:11px;margin-left:7px}
@@ -1422,13 +1429,13 @@ function receiveOne(id,n){
   const ls=wantLines(it.d); if(!ls[n])return;
   const share=splitTax(wantFees(it.d),ls.length);
   const paidFor=Math.round((ls[n].price+share[n])*100)/100;
-  put('wants',{name:ls[n].name,grp:it.d.grp||'',price:paidFor,
+  put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),price:paidFor,
     done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today(),
     notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
       +`${money(ls[n].price)} plus ${money(share[n])} tax and fees.`},id+':'+uid());
   const rest=ls.filter((_,k)=>k!==n);
   if(!rest.length){kill(id)}                       // nothing left to wait for
-  else put('wants',{lines:rest.map(l=>l.name+' | '+l.price).join('\n'),
+  else put('wants',{lines:rest.map(lineText).join('\n'),
     paid:String(it.d.paid??'')===''?'':Math.round((+it.d.paid-paidFor)*100)/100},id);
   renderActive();
 }
@@ -1440,11 +1447,16 @@ function receiveOne(id,n){
 // things already on the list, or things never listed — and what the bill actually came
 // to. The gap between the items and the bill is the tax and the delivery, and it is
 // worked out rather than typed, because the receipt only ever shows the total.
-let ordSeed=null;
+let ordSeed=null, ordGrps=[], ordSeedGrp='';
 function openOrderBuilder(it){
   ordSeed=it;
   const others=list('wants').filter(o=>o.id!==it.id&&wOpen(o)&&!wantLines(o.d).length);
   const px=v=>String(v??'')===''?'':(+v||0);
+  // Every section already in use, plus the standard ones, so a new item can be filed
+  // where it belongs rather than being swept into the section of whatever was ticked.
+  ordGrps=[...new Set([...MODS.wants.fields.find(f=>f.k==='grp').opt,
+    ...list('wants').map(o=>String(o.d.grp||'').trim())].filter(Boolean))].sort();
+  ordSeedGrp=it.d.grp||'';
   // The order is not the first thing on it: naming it after that shoe hides the other two
   // and reads wrong the moment a second item is added. So it starts empty and is asked for.
   const hint=(it.d.name||'').split(/[:—–]/)[0].trim().split(/\s+/).slice(0,2).join(' ');
@@ -1453,12 +1465,14 @@ function openOrderBuilder(it){
     +`<div class="ordSec"><h4>On this order</h4><div class="ordRow">`
     +`<label><input type="checkbox" checked disabled><span>${esc(it.d.name||'')}</span></label>`
     +`<input class="pz ordP" type="number" step="0.01" data-id="${it.id}" `
-    +`value="${px(it.d.price)}" placeholder="price"></div></div>`;
+    +`value="${px(it.d.price)}" placeholder="price">`
+    +`<span class="oSec">${esc(it.d.grp||'—')}</span></div></div>`;
   if(others.length){
     h+=`<div class="ordSec"><h4>Also on it — already on your list</h4>`
       +others.map(o=>`<div class="ordRow"><label><input type="checkbox" class="ordPick" data-id="${o.id}">`
         +`<span>${esc(o.d.name||'')}</span></label>`
-        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${px(o.d.price)}" placeholder="price"></div>`).join('')
+        +`<input class="pz ordP" type="number" step="0.01" data-id="${o.id}" value="${px(o.d.price)}" placeholder="price">`
+        +`<span class="oSec">${esc(o.d.grp||'—')}</span></div>`).join('')
       +`</div>`;
   }
   h+=`<div class="ordSec"><h4>Also on it — not on your list yet</h4><div id="ordNew"></div>`
@@ -1478,6 +1492,8 @@ function ordAddRow(){
   d.className='ordRow';
   d.innerHTML='<input type="text" class="ordNewName" placeholder="what it is">'
     +'<input class="pz ordNewP" type="number" step="0.01" placeholder="price">'
+    +'<select class="ordNewG">'+ordGrps.map(g=>
+        `<option${g===ordSeedGrp?' selected':''}>${esc(g)}</option>`).join('')+'</select>'
     +'<button class="rm" title="Remove">×</button>';
   d.querySelector('.rm').onclick=e=>{e.preventDefault();d.remove();ordRecalc()};
   $('#ordNew').appendChild(d);
@@ -1488,15 +1504,16 @@ function ordAddRow(){
 function ordChosen(){
   const out=[];
   const seedP=$('#ordBody').querySelector('.ordP[data-id="'+ordSeed.id+'"]');
-  out.push({id:ordSeed.id,name:ordSeed.d.name||'',price:+seedP.value||0});
+  out.push({id:ordSeed.id,name:ordSeed.d.name||'',price:+seedP.value||0,grp:ordSeed.d.grp||''});
   $('#ordBody').querySelectorAll('.ordPick:checked').forEach(c=>{
     const o=one(c.dataset.id); if(!o)return;
     const pe=$('#ordBody').querySelector('.ordP[data-id="'+c.dataset.id+'"]');
-    out.push({id:o.id,name:o.d.name||'',price:+pe.value||0});
+    out.push({id:o.id,name:o.d.name||'',price:+pe.value||0,grp:o.d.grp||''});
   });
   $('#ordBody').querySelectorAll('#ordNew .ordRow').forEach(r=>{
     const n=r.querySelector('.ordNewName').value.trim();
-    if(n)out.push({id:null,name:n,price:+r.querySelector('.ordNewP').value||0});
+    if(n)out.push({id:null,name:n,price:+r.querySelector('.ordNewP').value||0,
+      grp:(r.querySelector('.ordNewG')||{}).value||''});
   });
   return out;
 }
@@ -1525,7 +1542,7 @@ $('#ordGo').onclick=()=>{
   const name=$('#ordName').value.trim();
   if(!name){const e=$('#ordName');e.style.borderColor='var(--bad)';e.focus();return}
   const d={name,grp:ordSeed.d.grp||'',link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
-    lines:picked.map(x=>x.name+' | '+x.price).join('\n'),
+    lines:picked.map(lineText).join('\n'),
     paid:String(paidRaw).trim()===''?'':+paidRaw||0,
     price:'',done:1,doneAt:today()};
   put('wants',d,ordSeed.id);                       // the tapped row becomes the order itself
@@ -1539,15 +1556,25 @@ $('#ordGo').onclick=()=>{
 // item the moment it arrives. "Name | 49.99" per line; a trailing $ or a figure with cents
 // is read too, so a name ending in a number is not mistaken for a price.
 function wantLines(d){
+  const num=x=>+String(x).replace(/[^0-9.\-]/g,'')||0;
   return String(d&&d.lines||'').split('\n').map(t=>t.trim()).filter(Boolean).map(t=>{
-    const bar=t.lastIndexOf('|');
-    if(bar>-1)return{name:t.slice(0,bar).trim()||t,price:+t.slice(bar+1).replace(/[^0-9.\-]/g,'')||0};
+    const parts=t.split('|').map(x=>x.trim());
+    // "Name | 900 | Shoes" — the section is the item's own, not the order's. Two parts is
+    // the older shape and simply has no section of its own to keep.
+    if(parts.length>=3)return{name:parts.slice(0,-2).join(' | ')||t,
+      price:num(parts[parts.length-2]),grp:parts[parts.length-1]};
+    if(parts.length===2)return{name:parts[0]||t,price:num(parts[1]),grp:''};
     const m=t.match(/^(.*?)[\s]*\$?\s*(\d[\d,]*\.\d{2}|\$\d[\d,]*)\s*$/);
-    if(!m)return{name:t,price:0};
+    if(!m)return{name:t,price:0,grp:''};
     return{name:m[1].trim().replace(/[—–|,-]+$/,'').trim()||t,
-           price:+m[2].replace(/[$,]/g,'')||0};
+           price:+m[2].replace(/[$,]/g,'')||0,grp:''};
   });
 }
+// An item keeps the section it was filed under before the order swept it up; only one
+// that never had one falls back to the order's.
+const lineGrp=(l,d)=>String(l.grp||'').trim()||d.grp||'';
+// Written back in the same shape, so a section survives a round trip through the field.
+const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'');
 // What the items on an order came to, before anything was added on top.
 function wantSub(d){return wantLines(d).reduce((t,l)=>t+l.price,0)}
 // Tax is not typed in, it is what is left over: the difference between the sum of the
@@ -1579,7 +1606,7 @@ function receiveOrder(it){
   const share=splitTax(wantFees(it.d),ls.length), when=today();
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
-    put('wants',{name:l.name,grp:it.d.grp||'',price:paid,link:it.d.link||'',
+    put('wants',{name:l.name,grp:lineGrp(l,it.d),price:paid,link:it.d.link||'',
       done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when,
       notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
         +`${money(l.price)} plus ${money(share[n])} tax.`},it.id+':'+(n+1));
@@ -1879,7 +1906,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'ta',full:1,showIf:d=>!!d.done,noDetail:1,
-           ph:'One per line, name then price:\nLoro Piana Summer Walk | 900\nBelt | 400'},
+           ph:'One per line — name, price, section:\nLoro Piana Summer Walk | 900 | Shoes\nSantal 33 | 340 | Perfume'},
           {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   // The + button adds into whichever half you are looking at: open stays a plain want,
@@ -1907,9 +1934,10 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     const share=splitTax(wantFees(i.d),ls.length);
     return'<div class="rDetL">Items in this order — tick one as it arrives</div><div class="oItems">'
       +ls.map((l,n)=>{const real=Math.round((l.price+share[n])*100)/100;
+        const g=lineGrp(l,i.d);
         return`<div class="oItem"><button class="oTick" title="Mark this one arrived" `
           +`onclick="event.stopPropagation();receiveOne('${i.id}',${n})">✓</button>`
-          +`<span class="oN">${esc(l.name)}</span>`
+          +`<span class="oN">${esc(l.name)}${g?`<em>${esc(g)}</em>`:''}</span>`
           +`<span class="oP"><b>${money(real)}</b>${share[n]?`<i>${money(l.price)} + ${money(share[n])}</i>`:''}</span></div>`
       }).join('')+'</div>'},
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
