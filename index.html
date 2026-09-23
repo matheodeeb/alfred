@@ -838,6 +838,7 @@ function toggleLineSpec(btn){
   btn.classList.toggle('on',open);
 }
 function addLineRow(btn){
+  wantGoGroup();
   const box=btn.previousElementSibling;
   box.insertAdjacentHTML('beforeend',lineRowHtml({},wantGrpOpts()));
   const r=box.lastElementChild; r.querySelector('.lnN').focus();
@@ -981,6 +982,29 @@ function syncWhenField(){
   show('start',v==='Specific period'); show('end',v==='Specific period');
   show('wk',v==='Week'); show('mon',v==='Week'||v==='Month');
 }
+/* One order, one size — until the order is three pairs of trousers in three sizes. A
+   group order therefore has no order-level size at all: each item carries its own behind
+   the pencil, and leaving the box on screen would only invite one wrong answer standing
+   for several right ones.
+
+   The items list is what a group order needs in its place, so it appears as soon as the
+   order is a group one rather than waiting for the order to have been placed. Both are
+   hidden rather than left out, so switching back and forth does not lose what was typed;
+   the save keeps the stored value of whichever is hidden. */
+function syncWantFields(){
+  const t=document.getElementById('f_otype');if(!t)return;
+  const group=t.value==='Group order';
+  const done=!!(editCtx?.id?one(editCtx.id)?.d?.done:editCtx?.defs?.done);
+  const show=(k,on)=>{const e=document.getElementById('fw_'+k);if(e)e.style.display=on?'':'none'};
+  show('spec',!group);
+  show('lines',group||done);
+}
+// Adding a second item is the moment an order stops being one thing, so it says so rather
+// than making you set the menu yourself to explain what you have just done.
+function wantGoGroup(){
+  const t=document.getElementById('f_otype');
+  if(t&&t.value!=='Group order'){t.value='Group order';syncWantFields()}
+}
 function syncRecurFields(){
   const ev=document.getElementById('f_every'), an=document.getElementById('f_anchor');
   if(!ev||!an)return;
@@ -1025,6 +1049,11 @@ function openForm(sec,id,defs){
       if(e)['change','input'].forEach(ev=>e.addEventListener(ev,syncRecurFields))});
     syncRecurFields();
   }
+  if(sec==='wants'){                      // a group order keeps its sizes on the items
+    const t=document.getElementById('f_otype');
+    if(t)['change','input'].forEach(ev=>t.addEventListener(ev,syncWantFields));
+    syncWantFields();
+  }
   if(sec==='todo'){                       // order options follow the date / section as you pick them
     ['f_due','f_grp','f_grp__new'].forEach(id=>{const e=document.getElementById(id);
       if(e){['change','input'].forEach(ev=>{e.addEventListener(ev,syncOrdField);e.addEventListener(ev,syncGordField)})}});
@@ -1041,6 +1070,10 @@ $('#mSave').onclick=()=>{
     let v;
     if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
     if((f.t==='ord'||f.t==='gord')&&document.getElementById('fw_'+f.k)?.style.display==='none'){d[f.k]='';continue}
+    // A field on screen but hidden is not a field left blank: read it and an individual
+    // order would lose the items it was carrying a moment ago.
+    if(f.t==='lines'&&document.getElementById('fw_'+f.k)?.style.display==='none'){
+      d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}
     if(f.t==='lines')v=[...$('#f_'+f.k).querySelectorAll('.lnRow')]
       .map(r=>({name:r.querySelector('.lnN').value.trim().replace(/::/g,':'),
                 price:+r.querySelector('.lnP').value||0,
@@ -1693,6 +1726,13 @@ function wantLines(d){
            price:+m[2].replace(/[$,]/g,'')||0,grp:'',spec};
   });
 }
+/* An order written before this menu existed says nothing about which kind it is. One
+   carrying several items plainly was a group order and is still read as one, so no
+   existing order loses its drawer or its count the day the menu arrives. Anything else
+   is the individual order it has always behaved like. */
+function wantIsGroup(d){
+  return d&&d.otype?d.otype==='Group order':wantLines(d).length>1;
+}
 // Every section in play: the standard ones plus any already in use.
 function wantGrpOpts(){
   return [...new Set([...(MODS.wants.fields.find(f=>f.k==='grp').opt||[]),
@@ -2034,9 +2074,10 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // stay out of the way on an open want and appear the moment a row is an order.
   fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
+          {k:'otype',l:'Individual or group order',t:'sel',opt:['Individual order','Group order'],def:'Individual order'},
           {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
-          {k:'lines',l:'Items in this order',t:'lines',full:1,showIf:d=>!!d.done},
+          {k:'lines',l:'Items in this order',t:'lines',full:1},
           {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   // The + button adds into whichever half you are looking at: open stays a plain want,
@@ -2044,6 +2085,8 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   fabDefs:()=>{const c=chipState.wants??0;
     return c===1?{done:1,doneAt:today()}
       :c===2?{done:1,doneAt:today(),got:1,gotAt:today()}:{}},
+  // Opening an older order must not quietly relabel it: the menu shows what it already is.
+  formIn:(it,k,v)=>k==='otype'?(v||(wantIsGroup(it.d)?'Group order':'Individual order')):v,
   group:i=>String(i.d.grp||'').trim()||'Other',
   groupOrder:(a,b)=>(a==='Other'?1:0)-(b==='Other'?1:0)||a.localeCompare(b),
   groupNote:arr=>money(arr.reduce((t,i)=>t+wantTotal(i.d),0)),
@@ -2062,7 +2105,11 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // what it truly cost once its share of the tax and delivery is counted in. A one-item
   // order gets no list: ticking the order and ticking its only item are the same act, and
   // offering both just asks the question twice.
-  detail:i=>{const ls=wantLines(i.d); if(ls.length<2||i.d.got)return'';
+  /* The drawer is the group order's, and a group order of one still has it: that is the
+     whole point of calling an order a group one before the rest of it is typed in. An
+     individual order is already the item, so a drawer under it would only repeat the row. */
+  detail:i=>{const ls=wantLines(i.d);
+    if(!wantIsGroup(i.d)||!ls.length||i.d.got)return'';
     const share=splitTax(wantFees(i.d),ls.length);
     return'<div class="rDetL">Items in this order — tick one as it arrives</div><div class="oItems">'
       +ls.map((l,n)=>{const real=Math.round((l.price+share[n])*100)/100;
@@ -2079,9 +2126,9 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     return{t:esc(i.d.name),
       // A count only tells you something when there is more than one; "1 item" is noise
       // beside a row that is plainly one thing. The fees stand on their own either way.
-      s:[tot?money(tot):'',ls.length>1?ls.length+' items':'',
+      s:[tot?money(tot):'',wantIsGroup(i.d)&&ls.length?ls.length+(ls.length===1?' item':' items'):'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
-         esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+         wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
