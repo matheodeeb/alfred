@@ -185,15 +185,26 @@ Deno.serve(async (req: Request) => {
          * anything listed under products filters the institution picker down to banks
          * offering it, which would hide a plain checking account for want of a credit line.
          * This way a card brings its APR along and a bank simply does not. */
-        const out = await plaid("/link/token/create", {
+        const base = {
           user: { client_user_id: user },
           client_name: "Alfred CFO",
           products: ["transactions"],
-          required_if_supported_products: ["liabilities", "investments"],
           country_codes: ["US"],
           language: "en",
           ...(access_token ? { access_token } : {}),
-        });
+        };
+        /* If the plan does not carry liabilities or investments, Plaid rejects the whole
+         * request rather than dropping the part it cannot honour -- which would leave no
+         * way to connect anything at all. Asking for them first and falling back to plain
+         * transactions means a narrower plan costs the extra fields, not the feature. */
+        let out;
+        try {
+          out = await plaid("/link/token/create", {
+            ...base, required_if_supported_products: ["liabilities", "investments"],
+          });
+        } catch (e) {
+          out = await plaid("/link/token/create", base);
+        }
         return json({ link_token: out.link_token, expiration: out.expiration, env: mode });
       }
 
