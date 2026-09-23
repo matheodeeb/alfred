@@ -840,9 +840,10 @@ function lineRowHtml(l,grps){
     +`</select>`
     +`<input type="text" class="lnS" placeholder="size, colour" value="${esc(String(l&&l.spec||'').trim())}">`
     +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
-    +`<button type="button" class="rm" title="Remove" onclick="this.closest('.lnRow').remove()">×</button>`
+    +`<button type="button" class="rm" title="Remove" onclick="removeLineRow(this)">×</button>`
     +`</div>`;
 }
+function removeLineRow(btn){btn.closest('.lnRow').remove();syncWantFields()}
 function addLineRow(btn){
   wantGoGroup();
   const box=btn.previousElementSibling;
@@ -997,8 +998,20 @@ function syncWhenField(){
    order is a group one rather than waiting for the order to have been placed. Both are
    hidden rather than left out, so switching back and forth does not lose what was typed;
    the save keeps the stored value of whichever is hidden. */
+// Items typed into the form, not the ones last saved — the menu has to answer to what is
+// on screen right now.
+function liveLineCount(){
+  const box=document.getElementById('f_lines');if(!box)return 0;
+  return [...box.querySelectorAll('.lnRow .lnN')].filter(i=>i.value.trim()).length;
+}
 function syncWantFields(){
   const t=document.getElementById('f_otype');if(!t)return;
+  // Two items on an order settle the question. Individual is taken off the menu rather
+  // than silently overridden, so it is clear why it cannot be chosen — an order left
+  // labelled individual would hide the very list holding its other items.
+  const many=liveLineCount()>1;
+  if(many&&t.value!=='Group order')t.value='Group order';
+  [...t.options].forEach(o=>{if(o.value==='Individual order')o.disabled=many});
   const group=t.value==='Group order';
   const show=(k,on)=>{const e=document.getElementById('fw_'+k);if(e)e.style.display=on?'':'none'};
   show('spec',!group);
@@ -1063,6 +1076,8 @@ function openForm(sec,id,defs){
   if(sec==='wants'){                      // a group order keeps its sizes on the items
     const t=document.getElementById('f_otype');
     if(t)['change','input'].forEach(ev=>t.addEventListener(ev,syncWantFields));
+    const box=document.getElementById('f_lines');
+    if(box)box.addEventListener('input',syncWantFields);   // naming a second item settles it
     syncWantFields();
   }
   if(sec==='todo'){                       // order options follow the date / section as you pick them
@@ -1754,9 +1769,10 @@ const lineGrp=(l,d)=>String(l.grp||'').trim()||d.grp||'';
    one does not. */
 function wantIsGroup(d){
   if(!d)return false;
-  if(d.multi)return true;
-  if(d.otype)return d.otype==='Group order';
-  return wantLines(d).length>1;
+  if(d.multi)return true;                    // a part-received order is the remnant of one
+  if(wantLines(d).length>1)return true;      // several items is a group order, label or not
+  if(d.otype)return d.otype==='Group order'; // one item can still be declared an order
+  return false;
 }
 // Written back in the same shape, so a section survives a round trip through the field.
 const lineText=l=>l.name+' | '+l.price+(String(l.grp||'').trim()?' | '+l.grp:'')
@@ -2104,6 +2120,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // Once the figure is answering as `paid`, it stops also being `price`: two places for one
   // number is how they drift apart.
   formOut:d=>{const was=editCtx?.id?one(editCtx.id)?.d:null;
+    if(wantLines(d).length>1)d.otype='Group order';   // the items outrank the label
     if((d.done||was?.done)&&String(d.paid??'')!=='')d.price='';
     return d},
   // The + button adds into whichever half you are looking at: open stays a plain want,
