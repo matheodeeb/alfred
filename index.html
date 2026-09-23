@@ -1095,7 +1095,7 @@ function genList(sec){
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
     order.forEach((g,gi)=>{
       const shut=m.collapse&&!GRPOPEN.has(sec+'|'+g);
-      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead${m.collapse?' clk':''}${shut?' shut':''}"${m.collapse?` data-sec="${sec}" data-g="${esc(g)}" onclick="toggleGrp(this)"`:''}>${m.collapse?'<span class="gchev">▾</span>':''}${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
+      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead${m.collapse?' clk':''}${shut?' shut':''}" data-g="${esc(g)}"${m.collapse?` data-sec="${sec}" onclick="toggleGrp(this)"`:''}>${m.collapse?'<span class="gchev">▾</span>':''}${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
       if(m.collapse)html+=`<div class="gbody${shut?' hide':''}">`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
         Object.keys(sg).forEach(k=>{
@@ -1133,6 +1133,34 @@ function detailHtml(sec,i){
   tas.forEach(f=>{const v=String(i.d[f.k]||'').trim();
     if(v)parts.push((tas.length>1?`<div class="rDetL">${esc(f.l)}</div>`:'<div class="rDetL"></div>')+`<div class="rDetB">${esc(v)}</div>`)});
   return parts.join('');
+}
+// A heading carries its group's count and running total, and the stat cards at the top
+// count the whole page. Both go stale when a single row changes, and both can be redrawn
+// on their own — which is the difference between a page that updates and a page that
+// appears to reload under your finger.
+const domq=v=>String(v).replace(/["\\]/g,'\\$&');
+function patchGroupHead(sec,g){
+  const m=MODS[sec]; if(!m||!m.group)return;
+  const head=document.querySelector('#pg-'+sec+' .ghead[data-g="'+domq(g)+'"]');
+  if(!head)return;
+  let items=list(secData(sec));
+  if(m.only)items=items.filter(m.only);
+  if(m.chips)items=items.filter(m.chips[chipState[sec]??0].f);
+  const mine=items.filter(i=>m.group(i)===g);
+  if(!mine.length){                              // the last row under it has gone
+    const sep=head.previousElementSibling;
+    if(sep&&sep.classList.contains('gsep'))sep.remove();
+    head.remove();return;
+  }
+  const sub=head.querySelector('.gsub'); if(sub)sub.textContent=mine.length;
+  const tot=head.querySelector('.gtot'); if(tot&&m.groupNote)tot.innerHTML=m.groupNote(mine);
+}
+function patchStats(sec){
+  const m=MODS[sec]; if(!m||!m.stats)return;
+  const el=document.querySelector('#pg-'+sec+' .grid.stats'); if(!el)return;
+  let items=list(secData(sec));
+  if(m.only)items=items.filter(m.only);
+  el.innerHTML=statsHtml(m,items);
 }
 // Which groups are open. A collapsing page starts every group shut, so the page is a list
 // of projects until you ask one to show its work. Toggled in place — re-rendering would
@@ -1228,6 +1256,9 @@ function patchRow(sec,id){
     if(c.s){if(!s){s=document.createElement('div');s.className='s';info.appendChild(s)}s.innerHTML=c.s}
     else if(s)s.remove();
   }
+  const det=box.querySelector('.rDet'), dh=detailHtml(sec,i);
+  if(det&&dh)det.innerHTML=dh;                   // an open drawer follows the row it belongs to
+  else if(det&&!dh){det.remove();box.querySelector('.row')?.classList.add('nodet')}
   const right=box.querySelector('.rright');
   if(right){
     let p=right.querySelector('.pill');
@@ -1463,11 +1494,17 @@ function receiveOne(id,n){
     done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today(),
     notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
       +`${money(ls[n].price)} plus ${money(share[n])} tax and fees.`},id+':'+uid());
+  const gKey=MODS.wants.group(it);                  // read before the row can change under us
   const rest=ls.filter((_,k)=>k!==n);
   if(!rest.length){kill(id)}                       // nothing left to wait for
   else put('wants',{lines:rest.map(lineText).join('\n'),
     paid:String(it.d.paid??'')===''?'':Math.round((+it.d.paid-paidFor)*100)/100},id);
-  renderActive();
+  // Only three things on screen can have changed: this row and its drawer, the heading
+  // above it, and the totals at the top. Redrawing the page for that threw away the
+  // scroll position and flashed the row out from under the finger that tapped it.
+  if(!patchRow('wants',id)){renderActive();return}
+  patchGroupHead('wants',gKey);
+  patchStats('wants');
 }
 
 /* ---------------- building an order out of open wants ---------------- */
