@@ -1807,9 +1807,12 @@ function wantFees(d){
 // The order's real cost: what was charged, or the items plus fees when nothing was.
 // A row with no lines is an ordinary want and keeps answering with its own price.
 function wantTotal(d){
-  // What was actually charged wins whenever it is known, items or not: an order without a
-  // list still has a figure, and reading `price` first left such a row answering with an
-  // empty estimate once the money had moved onto `paid`.
+  // An open want answers with its estimate, even if it once was an order and still carries
+  // that order's items: nothing has been bought, so nothing has been charged.
+  if(!d.done&&String(d.price??'')!=='')return +d.price||0;
+  // Otherwise what was actually charged wins whenever it is known, items or not: an order
+  // without a list still has a figure, and reading `price` first left such a row answering
+  // with an empty estimate once the money had moved onto `paid`.
   if(String(d.paid??'')!=='')return +d.paid||0;
   const ls=wantLines(d);
   if(!ls.length)return +d.price||0;                  // an open want answers with its estimate
@@ -2138,7 +2141,9 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   // number is how they drift apart.
   formOut:d=>{const was=editCtx?.id?one(editCtx.id)?.d:null;
     if(wantLines(d).length>1)d.otype='Group order';   // the items outrank the label
-    if((d.done||was?.done)&&String(d.paid??'')!=='')d.price='';
+    const done=d.done||was?.done;
+    if(done&&String(d.paid??'')!=='')d.price='';
+    if(!done&&String(d.price??'')!=='')d.paid='';
     return d},
   // The + button adds into whichever half you are looking at: open stays a plain want,
   // ordered starts life already ordered so it can carry its items and its total.
@@ -2151,6 +2156,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   formIn:(it,k,v)=>{
     if(k==='otype')return v||(wantIsGroup(it.d)?'Group order':'Individual order');
     if(k==='paid'&&String(v??'')===''&&it?.d?.done)return it.d.price??'';
+    if(k==='price'&&String(v??'')===''&&!it?.d?.done)return it.d.paid??'';
     return v;
   },
   group:i=>String(i.d.grp||'').trim()||'Other',
@@ -2165,7 +2171,8 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
     if(wOpen(i))openOrderBuilder(i);                                  // open  → ask what it was bought with
     else if(!d.got){if(!receiveOrder(i))                              // ordered → received…
       put('wants',{got:1,gotAt:today()},i.id)}                        // …or, for a lot, into its items
-    else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
+    else put('wants',{done:'',got:'',doneAt:'',gotAt:'',            // received → back to open
+      price:String(d.paid??'')!==''?d.paid:(d.price??''),paid:''},i.id)},  // …and the money follows
   toggle:'done',
   // Open an order and its items are listed one per line, each with its own tick, showing
   // what it truly cost once its share of the tax and delivery is counted in. The list
