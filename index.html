@@ -1058,7 +1058,17 @@ $('#modalOv').addEventListener('click',e=>{
   ovDown=null;});
 
 /* ---------------- generic list page ---------------- */
-const chipState={}, FROZEN={};
+// Which filter each page is on. Remembered across reloads, the way the active page already
+// is — coming back to Wants on Received and being dropped on Open is the app forgetting
+// where you were standing.
+const chipState=(()=>{try{const j=JSON.parse(localStorage.alfred_chips||'{}');
+  return (j&&typeof j==='object')?j:{}}catch(e){return{}}})();
+const FROZEN={};
+function setChip(sec,n){
+  chipState[sec]=n;
+  try{localStorage.alfred_chips=JSON.stringify(chipState)}catch(e){}
+  renderActive();
+}
 function unfreeze(sec){Object.keys(FROZEN).forEach(k=>{if(k.split('|')[0]===sec)delete FROZEN[k]})}
 function statsHtml(m,items){
   return m.stats(items).map(s=>`<div class="stat" style="--accent:${s.c||'var(--acc)'}"><div class="k">${s.k}</div><div class="v">${s.v}</div>${s.u?`<div class="u">${s.u}</div>`:''}</div>`).join('');
@@ -1077,8 +1087,8 @@ function genList(sec){
   html+=`<div class="panel"><h2><span class="sw" style="background:${m.color||'var(--acc)'}"></span>${m.title}</h2><div class="hint">${m.hint||''}</div>`;
   const totalAll=items.length;
   if(chips){
-    const cur=chipState[sec]??0;
-    html+='<div class="segbar">'+chips.map((c,i)=>`<button class="${i===cur?'active':''}" onclick="chipState['${sec}']=${i};renderActive()">${c.l}</button>`).join('')+'</div>';
+    const cur=Math.min(Math.max(0,chipState[sec]??0),chips.length-1);
+    html+='<div class="segbar">'+chips.map((c,i)=>`<button class="${i===cur?'active':''}" onclick="setChip('${sec}',${i})">${c.l}</button>`).join('')+'</div>';
     items=items.filter(chips[cur].f);
   }
   if(m.sort)items.sort(m.sort);
@@ -1091,7 +1101,7 @@ function genList(sec){
   if(!items.length){
     if(totalAll>0&&chips){                       // items exist — the filter is hiding them
       const ai=chips.findIndex(c=>c.l==='All'), aix=ai>=0?ai:0;
-      html+=`<div class="empty">${totalAll} item${totalAll>1?'s':''} here, hidden by this filter.<br><button class="btn sm" style="margin-top:12px" onclick="chipState['${sec}']=${aix};renderActive()">Show all ${totalAll}</button></div>`;
+      html+=`<div class="empty">${totalAll} item${totalAll>1?'s':''} here, hidden by this filter.<br><button class="btn sm" style="margin-top:12px" onclick="setChip('${sec}',${aix})">Show all ${totalAll}</button></div>`;
     } else html+=`<div class="empty">${m.empty||'Nothing here yet — hit the + button.'}</div>`;
   }
   else if(m.group){
@@ -1150,7 +1160,7 @@ function patchGroupHead(sec,g){
   if(!head)return;
   let items=list(secData(sec));
   if(m.only)items=items.filter(m.only);
-  if(m.chips)items=items.filter(m.chips[chipState[sec]??0].f);
+  if(m.chips)items=items.filter((m.chips[chipState[sec]??0]||m.chips[0]).f);
   const mine=items.filter(i=>m.group(i)===g);
   if(!mine.length){                              // the last row under it has gone
     const sep=head.previousElementSibling;
