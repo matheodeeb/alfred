@@ -245,23 +245,43 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .mnSides{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
   .mnNote{color:var(--txt);font-size:12px}
   .mnNote.empty{color:var(--faint)}
-  /* building an order out of open wants */
-  .ordSec{margin-top:14px}
-  .ordSec h4{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--muted);font-weight:400;margin-bottom:6px}
-  .ordRow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
+  /* building an order out of open wants — same tokens as the rest of the app:
+     .rDetL for a section label, .field input for anything typed into */
+  .ordSec{margin-top:16px}
+  .ordSec h4{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);font-weight:400;margin:0 0 4px}
+  .ordRow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
   .ordRow:first-of-type{border-top:0}
+  .ordRow label{flex:1;display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0}
+  .ordRow label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+  .ordRow input[type=checkbox]{flex:none;width:17px;height:17px;accent-color:var(--acc);cursor:pointer}
+  .ordRow input[type=text],.ordRow input[type=number]{background:var(--bg2);border:1px solid var(--line2);
+    border-radius:8px;color:var(--txt);padding:8px 10px;font-family:"IBM Plex Mono";font-size:13.5px;
+    -webkit-appearance:none}
   .ordRow input[type=text]{flex:1;min-width:0}
-  .ordRow input.pz{width:96px;flex:none;text-align:right}
-  .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px}
+  .ordRow input[type=text]:focus,.ordRow input[type=number]:focus{outline:none;border-color:var(--acc)}
+  .ordRow input.pz{width:104px;flex:none;text-align:right}
+  .ordRow .rm{background:none;border:0;color:var(--faint);font-size:17px;cursor:pointer;padding:0 2px;flex:none}
   .ordRow .rm:hover{color:var(--bad)}
-  .ordRow label{flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
-  .ordRow label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ordSum{margin-top:14px;border-top:2px solid var(--line2);padding-top:10px;font-family:"IBM Plex Mono";font-size:12.5px}
-  .ordSum div{display:flex;justify-content:space-between;padding:3px 0}
-  .ordSum .big{font-size:14px;font-weight:600;color:var(--txt)}
-  .ordSum .mut{color:var(--muted)}
-  .ordSum .warn{color:var(--bad)}
+  .ordSum{margin-top:16px;border-top:1px solid var(--line2);padding-top:10px}
+  .ordSum .l{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;
+    font-family:"IBM Plex Mono";font-size:13px}
+  .ordSum .l.big{font-size:14px;font-weight:600}
+  .ordSum .k{color:var(--muted)}
+  .ordSum .say{font-size:12.5px;line-height:1.55;color:var(--muted);padding-top:7px}
+  .ordSum .say.bad{color:var(--bad)}
+  /* the items on an order, each tickable on its own */
+  .oItems{margin-top:2px}
+  .oItem{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+  .oItem:first-child{border-top:0}
+  .oTick{flex:none;width:24px;height:24px;border-radius:7px;border:1px solid var(--line2);
+    background:var(--bg2);color:var(--muted);font-size:12px;line-height:1;cursor:pointer;padding:0;
+    display:inline-flex;align-items:center;justify-content:center;transition:.12s}
+  .oTick:hover{border-color:var(--ok);color:var(--ok)}
+  .oItem .oN{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+  .oItem .oP{font-family:"IBM Plex Mono";font-size:12.5px;white-space:nowrap;text-align:right}
+  .oItem .oP b{font-weight:600}
+  .oItem .oP i{font-style:normal;color:var(--faint);font-size:11px;margin-left:7px}
   .neg{color:var(--bad)} .pos{color:#2e7247}
   .finRow{display:flex;align-items:baseline;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .finRow:hover{background:var(--panel2)}
@@ -1070,8 +1090,9 @@ function genList(sec){
 }
 function detailHtml(sec,i){
   const m=MODS[sec];if(!m||!m.fields)return'';
-  const tas=m.fields.filter(f=>f.t==='ta');
+  const tas=m.fields.filter(f=>f.t==='ta'&&!f.noDetail);
   const parts=[];
+  if(m.detail){const x=m.detail(i);if(x)parts.push(x)}   // a module that draws its own drawer
   tas.forEach(f=>{const v=String(i.d[f.k]||'').trim();
     if(v)parts.push((tas.length>1?`<div class="rDetL">${esc(f.l)}</div>`:'<div class="rDetL"></div>')+`<div class="rDetB">${esc(v)}</div>`)});
   return parts.join('');
@@ -1392,6 +1413,26 @@ function whenLabel(d){
   return spanLabel(d.start,d.end);
 }
 const projStart=i=>whenStart(i.d);
+// Things on one order do not always turn up on one day, so each item on an order ticks
+// off by itself. The item leaves as its own received row carrying its share of the fees,
+// and the order keeps the rest — its total dropping by exactly what that row took with
+// it, so what is left still adds up. The last one out takes the order row with it.
+function receiveOne(id,n){
+  const it=one(id); if(!it)return;
+  const ls=wantLines(it.d); if(!ls[n])return;
+  const share=splitTax(wantFees(it.d),ls.length);
+  const paidFor=Math.round((ls[n].price+share[n])*100)/100;
+  put('wants',{name:ls[n].name,grp:it.d.grp||'',price:paidFor,
+    done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today(),
+    notes:`From the ${it.d.name||'order'} order${it.d.doneAt?', '+it.d.doneAt:''}. `
+      +`${money(ls[n].price)} plus ${money(share[n])} tax and fees.`},id+':'+uid());
+  const rest=ls.filter((_,k)=>k!==n);
+  if(!rest.length){kill(id)}                       // nothing left to wait for
+  else put('wants',{lines:rest.map(l=>l.name+' | '+l.price).join('\n'),
+    paid:String(it.d.paid??'')===''?'':Math.round((+it.d.paid-paidFor)*100)/100},id);
+  renderActive();
+}
+
 /* ---------------- building an order out of open wants ---------------- */
 // Ticking an open want used to move it straight to ordered on its own, which is only
 // right when it was bought alone. Usually it arrived in a basket with other things and
@@ -1404,8 +1445,11 @@ function openOrderBuilder(it){
   ordSeed=it;
   const others=list('wants').filter(o=>o.id!==it.id&&wOpen(o)&&!wantLines(o.d).length);
   const px=v=>String(v??'')===''?'':(+v||0);
-  let h=`<div class="frow one"><div class="field full"><label>What to call this order</label>`
-    +`<input id="ordName" type="text" value="${esc(it.d.name||'')}"></div></div>`
+  // The order is not the first thing on it: naming it after that shoe hides the other two
+  // and reads wrong the moment a second item is added. So it starts empty and is asked for.
+  const hint=(it.d.name||'').split(/[:—–]/)[0].trim().split(/\s+/).slice(0,2).join(' ');
+  let h=`<div class="frow one"><div class="field full"><label>Name this order</label>`
+    +`<input id="ordName" type="text" placeholder="${esc(hint?hint+' order':'what to call it')}"></div></div>`
     +`<div class="ordSec"><h4>On this order</h4><div class="ordRow">`
     +`<label><input type="checkbox" checked disabled><span>${esc(it.d.name||'')}</span></label>`
     +`<input class="pz ordP" type="number" step="0.01" data-id="${it.id}" `
@@ -1462,23 +1506,24 @@ function ordRecalc(){
   const fees=Math.round((paid-sub)*100)/100;
   const share=splitTax(fees,picked.length);
   const noPrice=picked.filter(x=>!x.price).length;
-  let h=`<div><span class="mut">${picked.length} item${picked.length===1?'':'s'}</span><span>${money(sub)}</span></div>`;
+  let h=`<div class="l"><span class="k">${picked.length} item${picked.length===1?'':'s'}</span><span>${money(sub)}</span></div>`;
   if(has){
-    h+=`<div><span class="mut">Tax, delivery and the rest</span><span class="${fees<0?'warn':''}">${money(fees)}</span></div>`
-      +`<div class="big"><span>Paid</span><span>${money(paid)}</span></div>`;
-    if(fees<0)h+=`<div class="warn" style="display:block;padding-top:6px">The bill is less than the items add up to — a discount, or a price needs correcting.</div>`;
-    else h+=`<div class="mut" style="display:block;padding-top:6px">Each item carries ${money(share[0])} of that, so they cost `
+    h+=`<div class="l"><span class="k">Tax, delivery and the rest</span><span>${money(fees)}</span></div>`
+      +`<div class="l big"><span>Paid</span><span>${money(paid)}</span></div>`;
+    if(fees<0)h+=`<div class="say bad">The bill is less than the items add up to — a discount, or a price that needs correcting.</div>`;
+    else h+=`<div class="say">Each item carries ${money(share[0])} of that, so they cost `
       +picked.map((x,n)=>money(Math.round((x.price+share[n])*100)/100)).join(' · ')+'.</div>';
   }else{
-    h+=`<div class="mut" style="display:block;padding-top:6px">Put in what you actually paid and the difference becomes the tax and fees, split across the items.</div>`;
+    h+=`<div class="say">Put in what you actually paid and the difference becomes the tax and fees, split across the items.</div>`;
   }
-  if(noPrice)h+=`<div class="warn" style="display:block;padding-top:6px">${noPrice} item${noPrice===1?' has':'s have'} no price yet.</div>`;
+  if(noPrice)h+=`<div class="say bad">${noPrice} item${noPrice===1?' has':'s have'} no price yet.</div>`;
   $('#ordSum').innerHTML=h;
 }
 $('#ordGo').onclick=()=>{
   if(!ordSeed)return;
   const picked=ordChosen(), paidRaw=$('#ordPaid').value;
-  const name=$('#ordName').value.trim()||ordSeed.d.name||'Order';
+  const name=$('#ordName').value.trim();
+  if(!name){const e=$('#ordName');e.style.borderColor='var(--bad)';e.focus();return}
   const d={name,grp:ordSeed.d.grp||'',link:ordSeed.d.link||'',notes:ordSeed.d.notes||'',
     lines:picked.map(x=>x.name+' | '+x.price).join('\n'),
     paid:String(paidRaw).trim()===''?'':+paidRaw||0,
@@ -1833,7 +1878,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
-          {k:'lines',l:'Items in this order',t:'ta',full:1,showIf:d=>!!d.done,
+          {k:'lines',l:'Items in this order',t:'ta',full:1,showIf:d=>!!d.done,noDetail:1,
            ph:'One per line, name then price:\nLoro Piana Summer Walk | 900\nBelt | 400'},
           {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -1856,6 +1901,17 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
       put('wants',{got:1,gotAt:today()},i.id)}                        // …or, for a lot, into its items
     else put('wants',{done:'',got:'',doneAt:'',gotAt:''},i.id)},      // received → back to open
   toggle:'done',
+  // Open an order and its items are listed one per line, each with its own tick, showing
+  // what it truly cost once its share of the tax and delivery is counted in.
+  detail:i=>{const ls=wantLines(i.d); if(!ls.length||i.d.got)return'';
+    const share=splitTax(wantFees(i.d),ls.length);
+    return'<div class="rDetL">Items in this order — tick one as it arrives</div><div class="oItems">'
+      +ls.map((l,n)=>{const real=Math.round((l.price+share[n])*100)/100;
+        return`<div class="oItem"><button class="oTick" title="Mark this one arrived" `
+          +`onclick="event.stopPropagation();receiveOne('${i.id}',${n})">✓</button>`
+          +`<span class="oN">${esc(l.name)}</span>`
+          +`<span class="oP"><b>${money(real)}</b>${share[n]?`<i>${money(l.price)} + ${money(share[n])}</i>`:''}</span></div>`
+      }).join('')+'</div>'},
   card:i=>{const ls=wantLines(i.d), tot=wantTotal(i.d);
     return{t:esc(i.d.name),
       s:[tot?money(tot):'',ls.length?ls.length+' items'+(wantFees(i.d)?' · +'+money(wantFees(i.d))+' tax & fees':''):'',
