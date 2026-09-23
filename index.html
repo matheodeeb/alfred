@@ -267,6 +267,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ordRow select:focus{outline:none;border-color:var(--acc)}
   .ordRow .oSec{flex:none;width:112px;text-align:right;font-family:"IBM Plex Mono";font-size:11px;
     color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lineEd{display:block}
+  .lineEd .lnRow:first-child{border-top:0}
+  .lineEd .lnN{flex:1;min-width:0}
+  .btn.lineAdd{margin-top:9px}
   .ordRow .rm:hover{color:var(--bad)}
   .ordSum{margin-top:16px;border-top:1px solid var(--line2);padding-top:10px}
   .ordSum .l{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;
@@ -781,12 +785,33 @@ function fieldHtml(f,v,sec,ctx){
     return`<select ${base} onchange="dynSel(this)"><option value="">—</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}<option value="__new">+ Add new…</option></select>`+
       `<input id="f_${f.k}__new" class="dynNew" placeholder="New ${esc((f.l||'').toLowerCase())}…" style="display:none">`;
   }
+  if(f.t==='lines'){
+    const ls=wantLines({lines:v}), grps=wantGrpOpts();
+    return`<div class="lineEd" ${base}>`+(ls.length?ls:[{}]).map(l=>lineRowHtml(l,grps)).join('')+`</div>`
+      +`<button type="button" class="btn sm ghost lineAdd" onclick="addLineRow(this)">+ Add an item</button>`;
+  }
   if(f.t==='check')return`<select ${base}><option value="">No</option><option value="1" ${v?'selected':''}>Yes</option></select>`;
   if(f.t==='days'){const sel=String(v||'').split(',').map(s=>s.trim());
     return`<div class="dayPick" ${base}>`+DOW.map(d=>`<button type="button" class="dayBtn ${sel.includes(d)?'on':''}" data-d="${d}">${d}</button>`).join('')+`</div>`}
   const type=f.t==='num'||f.t==='money'?'number':f.t==='date'?'date':f.t==='time'?'time':'text';
   const step=f.t==='money'?'step="any" inputmode="decimal"':f.t==='num'?'inputmode="numeric"':'';
   return`<input ${base} type="${type}" ${step} value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
+}
+// A list of things is not a paragraph. Typing "Name | 900 | Shoes" into a textarea asks
+// someone to be a parser; three boxes and a + button ask them to fill in three boxes.
+function lineRowHtml(l,grps){
+  const p=(l&&(l.price||l.price===0))?l.price:'';
+  return`<div class="ordRow lnRow">`
+    +`<input type="text" class="lnN" placeholder="what it is" value="${esc(l&&l.name||'')}">`
+    +`<input type="number" step="any" inputmode="decimal" class="pz lnP" placeholder="price" value="${esc(p)}">`
+    +`<select class="lnG">`+['',...grps].map(g=>
+       `<option value="${esc(g)}"${g===String(l&&l.grp||'')?' selected':''}>${g?esc(g):'—'}</option>`).join('')
+    +`</select><button type="button" class="rm" title="Remove" onclick="this.parentNode.remove()">×</button></div>`;
+}
+function addLineRow(btn){
+  const box=btn.previousElementSibling;
+  box.insertAdjacentHTML('beforeend',lineRowHtml({},wantGrpOpts()));
+  const r=box.lastElementChild; r.querySelector('.lnN').focus();
 }
 function dynSel(el){const inp=document.getElementById(el.id+'__new');if(!inp)return;
   const on=el.value==='__new';inp.style.display=on?'':'block';inp.style.marginTop='6px';if(on)inp.focus()}
@@ -982,7 +1007,12 @@ $('#mSave').onclick=()=>{
     let v;
     if(!$('#f_'+f.k)){d[f.k]=(editCtx.id?one(editCtx.id)?.d?.[f.k]:'')??'';continue}   // field wasn't shown
     if((f.t==='ord'||f.t==='gord')&&document.getElementById('fw_'+f.k)?.style.display==='none'){d[f.k]='';continue}
-    if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
+    if(f.t==='lines')v=[...$('#f_'+f.k).querySelectorAll('.lnRow')]
+      .map(r=>({name:r.querySelector('.lnN').value.trim(),
+                price:+r.querySelector('.lnP').value||0,
+                grp:r.querySelector('.lnG').value}))
+      .filter(x=>x.name).map(lineText).join('\n');
+    else if(f.t==='days')v=[...$('#f_'+f.k).querySelectorAll('.dayBtn.on')].map(b=>b.dataset.d).join(',');
     else if(f.t==='dyn'){v=$('#f_'+f.k).value;if(v==='__new')v=($('#f_'+f.k+'__new').value||'').trim()}
     else{v=$('#f_'+f.k).value.trim();
       if(f.t==='num'||f.t==='money')v=v===''?'':+v;
@@ -1454,8 +1484,7 @@ function openOrderBuilder(it){
   const px=v=>String(v??'')===''?'':(+v||0);
   // Every section already in use, plus the standard ones, so a new item can be filed
   // where it belongs rather than being swept into the section of whatever was ticked.
-  ordGrps=[...new Set([...MODS.wants.fields.find(f=>f.k==='grp').opt,
-    ...list('wants').map(o=>String(o.d.grp||'').trim())].filter(Boolean))].sort();
+  ordGrps=wantGrpOpts();
   ordSeedGrp=it.d.grp||'';
   // The order is not the first thing on it: naming it after that shoe hides the other two
   // and reads wrong the moment a second item is added. So it starts empty and is asked for.
@@ -1569,6 +1598,11 @@ function wantLines(d){
     return{name:m[1].trim().replace(/[—–|,-]+$/,'').trim()||t,
            price:+m[2].replace(/[$,]/g,'')||0,grp:''};
   });
+}
+// Every section in play: the standard ones plus any already in use.
+function wantGrpOpts(){
+  return [...new Set([...(MODS.wants.fields.find(f=>f.k==='grp').opt||[]),
+    ...list('wants').map(o=>String(o.d.grp||'').trim())].filter(Boolean))].sort();
 }
 // An item keeps the section it was filed under before the order swept it up; only one
 // that never had one falls back to the order's.
@@ -1905,8 +1939,7 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
   fields:[{k:'name',l:'Item — or what to call the order',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
-          {k:'lines',l:'Items in this order',t:'ta',full:1,showIf:d=>!!d.done,noDetail:1,
-           ph:'One per line — name, price, section:\nLoro Piana Summer Walk | 900 | Shoes\nSantal 33 | 340 | Perfume'},
+          {k:'lines',l:'Items in this order',t:'lines',full:1,showIf:d=>!!d.done},
           {k:'paid',l:'Total actually paid — the gap over the items is the tax and fees',t:'money',showIf:d=>!!d.done},
           {k:'link',l:'Link',t:'text',ph:'https://…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   // The + button adds into whichever half you are looking at: open stays a plain want,
