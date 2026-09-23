@@ -136,6 +136,9 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .btn.danger:hover{border-color:var(--bad);color:var(--bad)}
   .segbar{display:inline-flex;background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:3px;gap:3px;margin:2px 0 10px;max-width:100%;overflow-x:auto;scrollbar-width:none}
   .segbar::-webkit-scrollbar{display:none}
+  /* The card row is the one segbar that can hold a dozen options. It wraps instead of
+     scrolling sideways, because an account you have to swipe to find is one you forget. */
+  .segbar.wrap{flex-wrap:wrap;overflow:visible;border-radius:14px}
   .segbar button{background:none;border:none;color:var(--muted);font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:12px;padding:6px 14px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
   .segbar button:hover{color:var(--txt)}
   .segbar button.active{background:var(--acc);color:#faf6ec}
@@ -2078,6 +2081,7 @@ async function plaidPull(){
         accts:it.accounts||[],last:it.updated_at||''},'plaid:'+it.item_id);
     });
     list('plaid').forEach(x=>{if(!seen.has(x.id))kill(x.id)});   // removed elsewhere
+    plaidRelabel();                                              // old names caught up here
   }catch(e){}                                                    // offline is not an error here
 }
 // Plaid's primary category cannot tell groceries from a restaurant, so the detailed one
@@ -2097,10 +2101,73 @@ function plaidCat(t){
   if(/ATM|CASH_ADVANCE|WITHDRAWAL/.test(d))return 'Cash withdrawal';
   return PFC[t.cat]||'Other';
 }
+/* A bank's own name for an account is written for a statement, not for a row of chips:
+   "WELLS FARGO ACTIVE CASH VISA CARD ...5181" says almost nothing the four digits do not,
+   and three of them fill the screen. What actually tells two accounts apart is the bank,
+   what kind of account it is, and the last four -- so that is the name, and every account
+   fits on one line.
+
+   The bank's text is also not always clean. Names arrive carrying legal suffixes nobody
+   says out loud, and occasionally a character that lost its encoding somewhere upstream
+   and renders as a lozenge. Both are dropped rather than shown. */
+const INST_SHORT={'american express':'Amex','amex':'Amex','wells fargo':'Wells Fargo',
+  'bankunited':'BankUnited','bank of america':'BofA','chase':'Chase','jpmorgan':'Chase',
+  'citibank':'Citi','citi':'Citi','capital one':'Capital One','discover':'Discover',
+  'usaa':'USAA','td bank':'TD','pnc':'PNC','truist':'Truist','regions':'Regions',
+  'fifth third':'Fifth Third','schwab':'Schwab','fidelity':'Fidelity','ally':'Ally',
+  'apple':'Apple','robinhood':'Robinhood','sofi':'SoFi','synchrony':'Synchrony'};
+function plaidInstShort(name){
+  const raw=String(name||'').replace(/[\uFFFD\u25C6\u2666\u25CF]/g,'').trim();
+  const base=raw.replace(/,.*$/,'')
+    .replace(/\b(N\.?\s?A\.?|National Association|Bank\s?N\.?A\.?|Inc\.?|Corp\.?|Company)\b/gi,'')
+    .replace(/\s{2,}/g,' ').trim();
+  const k=base.toLowerCase();
+  // Matched as a whole word, wherever it sits: "Charles Schwab" is Schwab, and "Rally Bank"
+  // is not Ally. Longest key first, so Citibank is not read as Citi and then stopped there.
+  for(const key of Object.keys(INST_SHORT).sort((a,b)=>b.length-a.length))
+    if(k===key||new RegExp('\\b'+key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b').test(k))
+      return INST_SHORT[key];
+  return base||raw||'Bank';
+}
+// Plaid's subtype is the honest answer; the type is the fallback when it has none.
+const ACCT_KIND={'credit card':'CC',paypal:'PayPal',checking:'Checking',savings:'Savings',
+  'money market':'Money market',cd:'CD','cash management':'Cash',hsa:'HSA',prepaid:'Prepaid',
+  brokerage:'Brokerage',ira:'IRA','roth':'Roth',401:'401k','401k':'401k',mortgage:'Mortgage',
+  student:'Student loan',auto:'Auto loan','line of credit':'Credit line'};
+function plaidAcctKind(a){
+  const sub=String(a&&a.subtype||'').toLowerCase().replace(/_/g,' ');
+  if(ACCT_KIND[sub])return ACCT_KIND[sub];
+  const typ=String(a&&a.type||'').toLowerCase();
+  return typ==='credit'?'CC':typ==='depository'?'Checking'
+    :typ==='investment'?'Brokerage':typ==='loan'?'Loan':'Account';
+}
+function plaidAcctLabel(inst,a){
+  return [plaidInstShort(inst),plaidAcctKind(a),a&&a.mask?'\u2022\u2022'+a.mask:''].filter(Boolean).join(' ');
+}
+// What an account was called before this existed, so rows written then can be found again.
+const plaidLegacyLabel=a=>(a&&a.name||'Account')+(a&&a.mask?' \u2022\u2022'+a.mask:'');
+/* Transactions carry the name they were filed under, so renaming an account has to go and
+   correct them -- otherwise the old name lingers as a chip of its own with the history
+   behind it. Matching on Plaid's account id where a row has one, and on the old name where
+   it does not, which is every row written before today. */
+function plaidRelabel(){
+  let n=0;
+  plaidItems().forEach(it=>{
+    (it.d.accts||[]).forEach(a=>{
+      const now=plaidAcctLabel(it.d.inst,a), was=plaidLegacyLabel(a);
+      list('tx').forEach(x=>{
+        if(x.d.acct!==a.id&&x.d.card!==was&&x.d.card!==now)return;
+        if(x.d.card===now&&x.d.acct===a.id)return;          // already right, leave it alone
+        put('tx',{card:now,acct:a.id},x.id);n++;
+      });
+    });
+  });
+  return n;
+}
 // Plaid reports money leaving as a positive amount, which is this register's convention too.
 function plaidRow(t,card,item){
   return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,item:item||'',
-    cat:plaidCat(t),cur:t.cur||'USD',notes:t.pending?'pending':''};
+    acct:t.account||'',cat:plaidCat(t),cur:t.cur||'USD',notes:t.pending?'pending':''};
 }
 /* The three fields the payoff comparison cannot work without -- APR, minimum payment and
    due day -- are printed on a statement four times a year and typed in by hand roughly
@@ -2140,7 +2207,7 @@ async function plaidSyncAll(){
   for(const it of items){
     const accts=it.d.accts||[];
     const nameOf=id=>{const a=accts.find(x=>x.id===id);
-      return a?(a.name||'Account')+(a.mask?' ••'+a.mask:''):(it.d.inst||'Bank')};
+      return a?plaidAcctLabel(it.d.inst,a):plaidInstShort(it.d.inst)};
     const out=await plaidFn('sync',{item_id:it.d.item});
     // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
     (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++});
@@ -2148,6 +2215,7 @@ async function plaidSyncAll(){
     (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
     put('plaid',{last:new Date().toISOString()},it.id);   // the cursor is the server's now
   }
+  plaidRelabel();
   const liab=await plaidLiabSync();
   return{added,updated,removed,items:items.length,debts:liab.filled};
 }
@@ -2194,8 +2262,10 @@ async function plaidSyncNow(){
 // Rows carry the connection they came from; older ones predate that, so fall back to
 // matching the account names this connection actually reported.
 function plaidRowsOf(it){
-  const names=new Set((it.d.accts||[]).map(a=>(a.name||'Account')+(a.mask?' \u2022\u2022'+a.mask:'')));
-  return list('tx').filter(x=>x.d.item===it.id||(!x.d.item&&x.id.startsWith('tx:plaid:')&&names.has(x.d.card)));
+  const ids=new Set((it.d.accts||[]).map(a=>a.id).filter(Boolean));
+  const names=new Set((it.d.accts||[]).flatMap(a=>[plaidAcctLabel(it.d.inst,a),plaidLegacyLabel(a)]));
+  return list('tx').filter(x=>x.d.item===it.id||(x.d.acct&&ids.has(x.d.acct))||
+    (!x.d.item&&x.id.startsWith('tx:plaid:')&&names.has(x.d.card)));
 }
 async function plaidDisconnect(id){
   const it=one(id);if(!it)return;
@@ -2264,7 +2334,15 @@ function txCycleLabel(d){
   TXKEY[l]=c.y*10000+c.mo*100+c.day; return l;
 }
 function txCycleKey(label){return TXKEY[label]||0}
-function txCards(){return[...new Set(list('tx').map(i=>i.d.card).filter(Boolean))].sort()}
+/* Every account you have connected deserves a chip whether or not anything has been spent
+   on it yet -- an empty one answers "nothing on this card this cycle", which is a real
+   answer and used to be indistinguishable from the card not existing. Cards named only on
+   an imported statement come along too, since nothing else knows about them. */
+function txCards(){
+  const s=new Set(list('tx').map(i=>i.d.card).filter(Boolean));
+  plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>s.add(plaidAcctLabel(it.d.inst,a))));
+  return[...s].sort();
+}
 // Selected by index, never by interpolating the name into an onclick attribute:
 // esc() escapes for HTML, but the parser decodes the entity before the JS is parsed, so an
 // apostrophe in a freely-typed card name would break out of the call.
@@ -2343,7 +2421,7 @@ function txPreview(){
 }
 function txPage(){
   const all=list('tx'),cards=txCards(),shown=txShown();
-  let h=`<div class="segbar" style="margin:12px 0 2px">`+
+  let h=`<div class="segbar wrap" style="margin:12px 0 2px">`+
     [['','All cards'],...cards.map(c=>[c,c])].map(([k,l],i)=>
       `<button class="${TXCARD===k?'active':''}" onclick="txSetCardIdx(${i-1})">${esc(l)}</button>`).join('')+`</div>`;
 
