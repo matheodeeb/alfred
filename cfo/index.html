@@ -2278,6 +2278,21 @@ async function plaidDisconnect(id){
   }
   kill(id);renderActive();
 }
+/* The connection list lives on the server. Both pages want it -- Service draws it, and
+   Transactions needs it to know which accounts should have a chip even when nothing has
+   been spent on them -- so it is asked for once a visit and shared between them. */
+function plaidPullOnce(){
+  if(plaidPullOnce._done)return;
+  plaidPullOnce._done=1;
+  plaidPull().then(renderActive);
+}
+/* Connecting a bank is something you do a handful of times and then never think about
+   again, so it had no business sitting at the top of the page you open every day. On its
+   own tab it has room, and Transactions is left to the transactions. */
+function servicePage(){
+  plaidPullOnce();
+  return plaidPanel();
+}
 function plaidPanel(){
   const items=plaidItems();
   let h='<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Bank connections</h2>';
@@ -2425,8 +2440,7 @@ function txPage(){
     [['','All cards'],...cards.map(c=>[c,c])].map(([k,l],i)=>
       `<button class="${TXCARD===k?'active':''}" onclick="txSetCardIdx(${i-1})">${esc(l)}</button>`).join('')+`</div>`;
 
-  if(!plaidPanel._pulled){plaidPanel._pulled=1;plaidPull().then(renderActive)}
-  h+=plaidPanel();
+  plaidPullOnce();                    // the chips need every account, panel or no panel
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Import a statement</h2>`;
   if(!TXIMP)h+=`<div class="hint">Download the CSV from Citi, Amex or Wells Fargo and paste it here \u2014 it reads all three without being told which is which. Nothing is written until you have seen the preview.</div>
     <button class="btn sm" onclick="TXIMP=1;renderActive()">Paste a statement</button></div>`;
@@ -3061,6 +3075,7 @@ const NAV=[
   {t:'Transactions',p:'tx'},
   {t:'Accounts',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
   {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
+  {t:'Service',p:'service'},
 ];
 const SPECIAL={
   fincash:{render:fincashPage,fab:'fincash'},
@@ -3068,6 +3083,7 @@ const SPECIAL={
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
   tx:{render:txPage,fab:'tx'},
+  service:{render:servicePage},        // nothing here is added with +, so no button
   cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV}};
 let activePage=localStorage.cfo_page||'cfo';
 function initNav(){
