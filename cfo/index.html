@@ -1666,7 +1666,8 @@ assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anythi
       linked?`<span class="lnk">↳ from the investment log${l?' · '+fdate(l.d.date).replace(/^\w+, /,''):' · nothing logged yet'}</span>`:'',
       esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
     return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
-invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month — the balance, and anything you put in. The chart above draws itself from these.',
+invest:{title:'Investment log',color:'var(--green)',hint:'The balance, and anything you put in. Shown at whichever resolution the chart above is set to, so the two always agree.',
+  only:i=>!INVKEEP||INVKEEP.has(i.id),
   fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
           {k:'acct',l:'Account',t:'dyn',opt:['Citi','Other'],def:'Citi'},
           {k:'val',l:'Total value',t:'money',req:1},
@@ -1968,21 +1969,57 @@ function bindInvest(el){
   svg.addEventListener('touchmove',e=>{at(e);e.preventDefault()},{passive:false});
   svg.addEventListener('touchend',off);
 }
+/* The balance is logged every day now, which is the right thing to record and the wrong
+   thing to read: a year of it is three hundred points and no shape. So the page is read at
+   a granularity, and a week or a month is represented the way it always was -- by its last
+   balance, the one standing at the close of it. Daily is simply every entry.
+
+   The same set feeds the chart and the log beneath it, so what you are looking at and what
+   you can scroll through are the same thing at the same resolution. */
+let INVGRAIN='Monthly', INVKEEP=null;
+function invSetGrain(v){INVGRAIN=v;renderActive()}
+const INV_GRAINS=['Daily','Weekly','Monthly'];
+const INV_NOUN={Daily:'day',Weekly:'week',Monthly:'month'};
+function invBucket(date){
+  const d=String(date||'');
+  if(INVGRAIN==='Daily')return d;
+  if(INVGRAIN==='Monthly')return d.slice(0,7);
+  const t=new Date(d+'T00:00:00');            // a week is its Monday, whatever month it straddles
+  if(isNaN(t))return d;
+  t.setDate(t.getDate()-((t.getDay()+6)%7));
+  return 'w'+t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+function invKeep(){
+  const best=new Map();
+  list('invest').filter(i=>i.d.date).forEach(i=>{
+    const k=invBucket(i.d.date), cur=best.get(k);
+    if(!cur||String(i.d.date)>String(cur.d.date)||(i.d.date===cur.d.date&&i.up>cur.up))best.set(k,i);
+  });
+  return new Set([...best.values()].map(i=>i.id));
+}
 function investPage(){
-  const rows=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
-  const cur=rows.length?(+rows[rows.length-1].d.val||0):0;
-  const put_in=rows.reduce((t,i)=>t+(+i.d.added||0),0);
+  INVKEEP=invKeep();
+  const all=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+  const rows=all.filter(i=>INVKEEP.has(i.id));
+  const cur=all.length?(+all[all.length-1].d.val||0):0;
+  // What you put in is what you put in, at any resolution -- summed over every entry, not
+  // just the ones this view happens to draw.
+  const put_in=all.reduce((t,i)=>t+(+i.d.added||0),0);
   const gain=cur-put_in, pct=put_in>0?gain/put_in*100:0;
   const prev=rows.length>1?(+rows[rows.length-2].d.val||0):0;
   const mom=prev?cur-prev:0;
   let h=`<div class="grid stats">
     <div class="stat" style="--accent:var(--acc)"><div class="k">Value now</div><div class="v">${money2(cur)}</div>${rows.length?`<div class="u">as of ${fdate(rows[rows.length-1].d.date).replace(/^\w+, /,'')}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Put in</div><div class="v">${money2(put_in)}</div><div class="u">across ${rows.length} entr${rows.length===1?'y':'ies'}</div></div>
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Put in</div><div class="v">${money2(put_in)}</div><div class="u">across ${all.length} entr${all.length===1?'y':'ies'}</div></div>
     <div class="stat" style="--accent:${gain>=0?'var(--ok)':'var(--bad)'}"><div class="k">Gain</div><div class="v ${signCls(gain)}">${gain>0?'+':''}${money2(gain)}</div>${put_in>0?`<div class="u">${pct>0?'+':''}${pct.toFixed(1)}% on what you put in</div>`:''}</div>
-    <div class="stat" style="--accent:var(--gold)"><div class="k">Since last entry</div><div class="v ${signCls(mom)}">${mom>0?'+':''}${money2(mom)}</div></div>
+    <div class="stat" style="--accent:var(--gold)"><div class="k">Since last ${INV_NOUN[INVGRAIN]}</div><div class="v ${signCls(mom)}">${mom>0?'+':''}${money2(mom)}</div></div>
   </div>`;
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Growth</h2>
-    <div class="hint">Every logged balance, oldest to newest.</div>${investChart(rows)}</div>`;
+    <div class="hint">${INVGRAIN==='Daily'?'Every logged balance, oldest to newest.'
+      :'The balance standing at the close of each '+INV_NOUN[INVGRAIN]+', oldest to newest.'}</div>
+    <div style="margin:2px 0 10px"><select class="cfoIn" style="max-width:200px" onchange="invSetGrain(this.value)">
+      ${INV_GRAINS.map(g=>`<option${g===INVGRAIN?' selected':''}>${g}</option>`).join('')}
+    </select></div>${investChart(rows)}</div>`;
   h+=genList('invest');
   return h;
 }
