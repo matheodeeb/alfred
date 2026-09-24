@@ -2176,7 +2176,8 @@ async function plaidPull(){
     });
     list('plaid').forEach(x=>{if(!seen.has(x.id))kill(x.id)});   // removed elsewhere
     plaidRelabel();                                              // old names caught up here
-  }catch(e){}                                                    // offline is not an error here
+    return true;
+  }catch(e){return false}                                        // offline is not an error here
 }
 // Plaid's primary category cannot tell groceries from a restaurant, so the detailed one
 // decides first where it actually matters to a budget.
@@ -2559,9 +2560,15 @@ async function plaidDisconnect(id){
    Transactions needs it to know which accounts should have a chip even when nothing has
    been spent on them -- so it is asked for once a visit and shared between them. */
 function plaidPullOnce(){
-  if(plaidPullOnce._done)return;
+  /* Not before you are signed in. The app opens on the Brief, which asks for this, and the
+     sign-in screen is still up at that moment -- so the one attempt would be spent on a
+     request that could only be refused, and the connections would stay missing all session. */
+  if(plaidPullOnce._done||!authed())return;
   plaidPullOnce._done=1;
-  plaidPull().then(()=>{renderActive();plaidAutoSync()});
+  plaidPull().then(ok=>{
+    if(!ok)plaidPullOnce._done=0;                // a refused ask is not an ask; try again
+    renderActive();plaidAutoSync();
+  });
 }
 /* Connecting a bank is something you do a handful of times and then never think about
    again, so it had no business sitting at the top of the page you open every day. On its
@@ -3410,9 +3417,13 @@ function briefPage(){
 
 /* ---------------- nav / pages ---------------- */
 const NAV=[
+  // What you actually came to check: what is in the accounts and what is owed on the
+  // cards. It leads, and it is where the app opens. CFO is the thinking; this is the
+  // looking. Cash has left the Accounts menu rather than appearing in two places at once.
+  {t:'Brief',p:'fincash'},
   {t:'CFO',p:'cfo'},
   {t:'Transactions',p:'tx'},
-  {t:'Accounts',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
+  {t:'Accounts',g:[['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
   {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
   {t:'Service',p:'service'},
 ];
@@ -3424,7 +3435,9 @@ const SPECIAL={
   tx:{render:txPage,fab:'tx'},
   service:{render:servicePage},        // nothing here is added with +, so no button
   cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV}};
-let activePage=localStorage.cfo_page||'cfo';
+// Opens on the Brief every time rather than wherever you were last: the question the app
+// exists to answer is the same question every morning.
+let activePage='fincash';
 function initNav(){
   const nav=$('#nav');nav.innerHTML='';
   NAV.forEach(n=>{
