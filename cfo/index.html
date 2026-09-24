@@ -1603,17 +1603,24 @@ tx:{title:'Transactions',color:'var(--purple)',hint:'Every purchase, one row eac
   groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
   stats:it=>{
+    const acc=txAcctRow();
+    /* A current account is not a spending account. What you bought is on the cards; what
+       passes through here is mostly the payments settling them and money moving between
+       your own accounts. A spending total and a biggest category built from that say
+       nothing true, so only the balance is stated and the rest is left for you to decide. */
+    if(acc&&!txIsOwed(acc))return[txBalanceTile(acc),TXBLANK,TXBLANK,TXBLANK];
     const rows=it.filter(txIsSpend);
     const spent=rows.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
     const byC={};rows.forEach(i=>{const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
     const top=Object.entries(byC).sort((a,b)=>b[1]-a[1])[0];
-    const acc=txAcctRow();
-    return[txBalanceTile(acc),
-           {k:'Spent',v:money2(spent),u:rows.length+' purchase'+(rows.length===1?'':'s')
-             +(it.length>rows.length?' \u00b7 '+(it.length-rows.length)+' payments and transfers set aside':''),
-            c:'var(--purple)'},
-           {k:'Biggest category',v:top?esc(top[0]):'\u2014',u:top?money2(top[1]):'',c:'var(--orange)'},
-           txFourthTile(acc)]},
+    const spentTile={k:'Spent',v:money2(spent),u:rows.length+' purchase'+(rows.length===1?'':'s')
+        +(it.length>rows.length?' \u00b7 '+(it.length-rows.length)+' payments and transfers set aside':''),
+      c:'var(--purple)'};
+    const topTile={k:'Biggest category',v:top?esc(top[0]):'\u2014',u:top?money2(top[1]):'',c:'var(--orange)'};
+    // A card leads with what it costs you and when: owed, then the statement about to close
+    // and the date that statement has to be paid by.
+    return acc?[txBalanceTile(acc),txCycleTile(acc),spentTile,topTile]
+              :[txBalanceTile(acc),spentTile,topTile,txFourthTile(acc)];},
   card:i=>{const v=cfoUsd(i.d.amt,i.d.cur);
     return{t:esc(i.d.desc||'Transaction'),
       s:[i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',esc(i.d.card||''),esc(i.d.cat||'uncategorised')].filter(Boolean).join(' \u00b7 '),
@@ -1852,7 +1859,16 @@ function finstmtPage(){
 }
 /* Which account a transfer moved through. Ones logged by hand before the connections
    existed never said, and saying "Unassigned" is more use than pretending or hiding them. */
-const fintxCardOf=i=>String(i.d.card||'').trim()||'Unassigned';
+const fintxCardOf=i=>{
+  const c=String(i.d.card||'').trim(); if(c)return c;
+  /* A transfer Plaid found is the same event as a transaction, written twice. Rows made
+     before the account was recorded on them can still be asked: the ledger row they came
+     from carries it, and the two share an id. This is why the filter works on transfers
+     already saved rather than only on ones pulled from here on. */
+  const m=/^fintx:plaid:(.+)$/.exec(i.id);
+  if(m){const t=one('tx:plaid:'+m[1]); if(t&&t.d.card)return String(t.d.card)}
+  return 'Unassigned';
+};
 function fintxCards(view){
   return [...new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxCardOf))].sort();
 }
@@ -2176,6 +2192,7 @@ async function plaidPull(){
     });
     list('plaid').forEach(x=>{if(!seen.has(x.id))kill(x.id)});   // removed elsewhere
     plaidRelabel();                                              // old names caught up here
+    plaidSeatAccounts();
     return true;
   }catch(e){return false}                                        // offline is not an error here
 }
@@ -2339,13 +2356,38 @@ function plaidInvLog(accts){
     src:'Plaid'},'inv:plaid:'+d);
   return accts.length;
 }
+/* Every account a connection reports gets a row on the Accounts page, whether or not its
+   balance ever arrives. A bank can hand over transactions and still refuse a balance, and
+   when that happened the account was simply absent -- which reads as an account you do not
+   have, rather than one whose number is missing. It also left the account with nowhere to
+   attach: selecting it on Transactions found no row, so the page fell back to showing
+   totals for every card at once.
+
+   The row is created empty and never overwritten here. Balances fill it when they come. */
+function plaidSeatAccounts(){
+  let made=0;
+  plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>{
+    const grp=plaidFinGrp(a); if(!grp||!a.id)return;
+    const id='fin:plaid:'+a.id; if(one(id))return;
+    const name=plaidAcctLabel(it.d.inst,a);
+    put('fincash',{grp,cur:'USD',src:'Plaid',acct:a.id,amt:'',name,
+      card:grp==='Credit'?(PLAID_SRC[plaidInstShort(it.d.inst)]||guessSrc(name)):''},id);
+    made++;
+  }));
+  return made;
+}
 async function plaidBalSync(){
   let filled=0,failed=0;
   const inv=[];
   for(const it of plaidItems()){
     let out;
+    /* A bank that will hand over transactions can still refuse a balance, and when that
+       happened the account simply was not there -- no row, no reason, nothing to tell it
+       apart from an account that does not exist. The reason is kept on the connection now
+       and shown on the Service page beside it. */
     try{ out=await plaidFn('balances',{item_id:it.d.item}) }
-    catch(e){ failed++; continue }
+    catch(e){ put('plaid',{balErr:String(e.message||e)},it.id); failed++; continue }
+    put('plaid',{balErr:''},it.id);
     (out.balances||[]).forEach(a=>{
       // A brokerage is not cash and not a card. It is the Investment log's, collected here
       // and written once at the end so the log holds one figure rather than several.
@@ -2354,10 +2396,21 @@ async function plaidBalSync(){
         return;
       }
       const grp=plaidFinGrp(a);
-      if(!grp||a.current==null)return;
+      if(!grp)return;
+      /* Some banks report only what is available and leave the ledger balance out. For a
+         checking account the available figure is the answer to "how much have I got", so
+         it is used rather than treating the account as having no balance at all. */
+      const val=a.current!=null?a.current:(a.available!=null?a.available:null);
       const id='fin:plaid:'+a.id, fresh=!one(id);
+      if(val==null){
+        // Neither figure given. The account still belongs on the page -- it exists and you
+        // can type its balance -- but nothing is invented, and a figure already there stands.
+        if(fresh)put('fincash',{grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,amt:'',
+          name:plaidAcctLabel(it.d.inst,a)},id);
+        return;
+      }
       const row={grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,
-        amt:grp==='Credit'?-Math.abs(+a.current||0):(+a.current||0)};
+        amt:grp==='Credit'?-Math.abs(+val||0):(+val||0)};
       if(a.limit!=null)row.limit=+a.limit||0;   // room left on the card, where it is offered
       if(fresh){
         row.name=plaidAcctLabel(it.d.inst,a);
@@ -2480,6 +2533,7 @@ async function plaidSyncAll(){
       rows:plaidRowsOf(it).length,got:n},it.id);
   }
   plaidRelabel();
+  plaidSeatAccounts();                          // a row for every account, balance or not
   const bal=await plaidBalSync();               // balances first: the rest hang off those rows
   const liab=await plaidLiabSync();
   const stmts=plaidStmtSync(), zelle=plaidZelleSync();
@@ -2516,6 +2570,39 @@ async function plaidConnect(){
           done();
         },
         onExit:(err)=>{if(err)PLAIDMSG='';done()},
+      });
+      h.open();
+    });
+  }catch(e){alert(e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+/* Re-opening a connection you already have. Plaid calls it update mode: the token we hold
+   stays valid, so nothing is exchanged and no slot is spent -- the bank is simply asked to
+   re-authorise what it is willing to hand over.
+
+   It is the answer to a connection that authenticates but returns nothing, and it is also
+   how an older connection picks up the two years of history the link now asks for, since
+   that window is fixed when a bank is linked and cannot be widened from outside. */
+async function plaidReconnect(id){
+  const it=one(id); if(!it)return;
+  PLAIDBUSY=1;PLAIDMSG='opening Plaid\u2026';renderActive();
+  try{
+    await plaidLoad();
+    const {link_token}=await plaidFn('link_token',{item_id:it.d.item});
+    PLAIDMSG='waiting for you to finish in Plaid\u2026';renderActive();
+    await new Promise(done=>{
+      const h=Plaid.create({
+        token:link_token,
+        onSuccess:async()=>{
+          try{
+            PLAIDBUSY=1;PLAIDMSG='fetching\u2026';renderActive();
+            const r=await plaidSyncAll();
+            alert('Reconnected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in'
+              +(r.accts?', '+r.accts+' balance'+(r.accts===1?'':'s')+' refreshed':'')+'.');
+          }catch(e){alert('Reconnected, but the refresh failed: '+e.message)}
+          done();
+        },
+        onExit:()=>done(),
       });
       h.open();
     });
@@ -2589,10 +2676,14 @@ function plaidPanel(){
     const n=(i.d.accts||[]).length;
     const last=i.d.last?new Date(i.d.last).toLocaleString():'never';
     const note=i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
+      :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
       :(i.d.last&&!i.d.rows?' · <b style="color:var(--orange)">no transactions yet — a bank can take a while to hand over its history</b>':'');
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
       '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span></span>'+
-      '<button class="btn sm ghost" style="margin-left:auto" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></div>';
+      '<span style="margin-left:auto;display:inline-flex;gap:8px">'+
+      '<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
+        'title="Re-authorise this bank without using another connection">Reconnect</button>'+
+      '<button class="btn sm ghost" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></span></div>';
   }).join('');
   h+='<div style="display:flex;gap:8px;margin-top:12px">'+
      '<button class="btn sm" onclick="plaidSyncNow()">Sync now</button>'+
@@ -2664,11 +2755,28 @@ function txAcctRow(){
   return TXCARD?(list('fincash').find(f=>String(f.d.name||'')===TXCARD)||null):null;
 }
 const txIsOwed=a=>a&&(a.d.grp==='Credit'||a.d.grp==='Haiti credit');
+const shortDate=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+/* The statement about to close and the date it must be paid by. Read from the same rule the
+   Accounts page uses, so the two never disagree about which cycle a card is on. */
+function txCycleTile(a){
+  const c=cardCycle(a);
+  if(!c||(!c.st&&!c.du))return TXBLANK;
+  return{k:'Next statement',v:c.st?shortDate(c.st):'\u2014',
+    u:c.du?'due '+shortDate(c.du):'no due date known',c:'var(--blue)'};
+}
 function txBalanceTile(a){
   if(a){
+    // No figure is not the same as zero, and saying $0.00 would be a claim about the money.
+    if(a.d.amt===''||a.d.amt==null)
+      return{k:txIsOwed(a)?'Owed now':'Balance now',v:'\u2014',
+        u:'the bank has not reported one \u2014 tap the row on Brief to set it',c:'var(--line2)'};
     const v=Math.abs(cfoUsd(a.d.amt,a.d.cur));
-    return txIsOwed(a)?{k:'Owed now',v:money2(v),u:'on this card',c:'var(--red)'}
-                      :{k:'Balance now',v:money2(v),u:'in this account',c:'var(--green)'};
+    if(txIsOwed(a)){
+      const lim=+a.d.limit||0;
+      return{k:'Owed now',v:money2(v),
+        u:lim?money2(lim-v)+' left of '+money2(lim):'on this card',c:'var(--red)'};
+    }
+    return{k:'Balance now',v:money2(v),u:'in this account',c:'var(--green)'};
   }
   // Every account at once: the cash gets its own figure and the cards get theirs, because
   // netting them hides both. A card carried alone shows only what belongs to a card.
@@ -2676,11 +2784,13 @@ function txBalanceTile(a){
   return{k:'Cash on hand',v:money2(finUsd('Banking','Haiti cash')),
     u:n+' account'+(n===1?'':'s'),c:'var(--green)'};
 }
+// One placeholder, so an empty tile looks the same wherever it appears.
+const TXBLANK={k:'\u2014',v:'',u:'',c:'var(--line2)'};
 /* Room left on the card if the bank says what the limit is, the next payment if it does
    not, and nothing at all rather than something invented. An empty tile is honest and
    leaves the space for whatever you decide belongs there. */
 function txFourthTile(a){
-  const blank={k:'\u2014',v:'',u:'',c:'var(--line2)'};
+  const blank=TXBLANK;
   if(!a){
     const cards=list('fincash').filter(f=>f.d.grp==='Credit'||f.d.grp==='Haiti credit');
     const owed=Math.abs(finUsd('Credit','Haiti credit'));
