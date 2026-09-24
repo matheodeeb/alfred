@@ -2286,21 +2286,47 @@ function plaidIsCardPayment(x){
   if(x.d.det==='LOAN_PAYMENTS_CREDIT_CARD_PAYMENT')return true;
   return (+x.d.amt||0)<0&&/\b(payment|autopay|thank you|pymt|epay)\b/i.test(String(x.d.desc||''));
 }
+/* Which statement a payment settles, which is not the month it left the account. A card
+   closing on the 24th bills you in July and takes the money in August: the money belongs
+   to July's statement, and filing it under August would show a month you paid twice and a
+   month you paid nothing.
+
+   So a payment is filed under the last statement to close on or before it. A card whose
+   closing day we do not know falls back to the month of the payment, which is right often
+   enough and wrong quietly rather than confidently. */
+function plaidStmtMonth(date,stmtDay){
+  const d=new Date(String(date)+'T00:00:00');
+  if(isNaN(d))return null;
+  let y=d.getFullYear(), m=d.getMonth();
+  if(stmtDay){
+    const closes=Math.min(stmtDay,new Date(y,m+1,0).getDate());
+    if(d.getDate()<closes){ m--; if(m<0){m=11;y--} }
+  }
+  return {y,month:MONTHS[m]};
+}
+/* The number on this page is what you PAID, not what the statement said you owed. They
+   are rarely the same -- a balance carried, a part payment, an overpayment -- and the
+   amount that left your account is the one that answers "where did the money go". */
 function plaidStmtSync(){
   const col=new Map();
-  list('fincash').forEach(f=>{if(f.d.grp==='Credit'&&f.d.acct&&f.d.card)col.set(f.d.acct,f.d.card)});
+  list('fincash').forEach(f=>{
+    if(f.d.grp==='Credit'&&f.d.acct&&f.d.card)col.set(f.d.acct,{src:f.d.card,day:stmtDayOf(f.d)});
+  });
   if(!col.size)return 0;
-  const yr=String(new Date().getFullYear()), tot=new Map();
+  const yr=new Date().getFullYear(), tot=new Map();
   list('tx').forEach(x=>{
-    const src=col.get(x.d.acct); if(!src||!plaidIsCardPayment(x))return;
-    const d=String(x.d.date||''); if(d.slice(0,4)!==yr)return;
-    const k=src+'|'+MONTHS[+d.slice(5,7)-1];
+    const c=col.get(x.d.acct); if(!c||!plaidIsCardPayment(x))return;
+    const when=plaidStmtMonth(x.d.date,c.day);
+    if(!when||when.y!==yr)return;          // one row per month per card, with no year on it
+    const k=c.src+'|'+when.month;
     tot.set(k,(tot.get(k)||0)+Math.abs(+x.d.amt||0));
   });
   let n=0;
   tot.forEach((amt,k)=>{
     const [src,month]=k.split('|'); if(!month)return;
-    put('finstmt',{src,month,amt:Math.round(amt*100)/100,src2:'Plaid'},'finstmt:plaid:'+src+':'+month);n++;
+    // One canonical row per card per month, whoever filled it in: a figure carried over
+    // from the old site and a figure Plaid works out are the same cell, not two.
+    put('finstmt',{src,month,amt:Math.round(amt*100)/100,src2:'Plaid'},'finstmt:'+src+':'+month);n++;
   });
   return n;
 }
