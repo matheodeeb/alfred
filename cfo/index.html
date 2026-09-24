@@ -1113,6 +1113,10 @@ function genList(sec){
     const defDays=m.subCollapse&&m.subOpen?m.subOpen(items):null;
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
+    /* Shut by default, except the one you came for: the first in the order, which on a
+       ledger sorted newest-first is the cycle you are standing in. Seeded once per section
+       rather than every render, so shutting it by hand stays shut. */
+    if(m.collapse&&!GRPSEED.has(sec)){GRPSEED.add(sec);if(order.length)GRPOPEN.add(sec+'|'+order[0])}
     order.forEach((g,gi)=>{
       const shut=m.collapse&&!GRPOPEN.has(sec+'|'+g);
       html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead${m.collapse?' clk':''}${shut?' shut':''}"${m.collapse?` data-sec="${sec}" data-g="${esc(g)}" onclick="toggleGrp(this)"`:''}>${m.collapse?'<span class="gchev">▾</span>':''}${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
@@ -1157,6 +1161,8 @@ function detailHtml(sec,i){
 // of projects until you ask one to show its work. Toggled in place — re-rendering would
 // throw away where you were on the page for what is a show/hide.
 const GRPOPEN=new Set();
+// Which sections have had their opening group chosen for them already.
+const GRPSEED=new Set();
 function toggleGrp(el){
   const k=el.dataset.sec+'|'+el.dataset.g;
   GRPOPEN.has(k)?GRPOPEN.delete(k):GRPOPEN.add(k);
@@ -1360,6 +1366,21 @@ function anchorIn(d,y,m){
 }
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+/* Paying a card is not spending. The purchases that payment settles are already in this
+   ledger, one row each, so counting the payment as well says the money went twice -- and
+   it went somewhere it never went, since a card payment buys nothing. Moving money between
+   your own accounts is the same story: the money has not left, it has moved.
+
+   Both are worth keeping as rows. A statement is built from the payments and the Transfers
+   page from the Zelles. They are just not answers to "what did I buy". */
+function txIsSpend(i){
+  const det=String(i.d.det||''), d=String(i.d.desc||'');
+  if(/LOAN_PAYMENTS_CREDIT_CARD_PAYMENT/.test(det))return false;
+  if(/^TRANSFER_(IN|OUT)/.test(det))return false;
+  if(/\bzelle\b/i.test(d))return false;
+  if(/\b(card\s+(online\s+)?payment|cc\s*pymt|ccpymt|ach\s+pmt|autopay|e-?pay|payment\s+thank\s+you|online\s+payment)\b/i.test(d))return false;
+  return cfoUsd(i.d.amt,i.d.cur)>0;
+}
 const CARD_SRC=['Citibank CC','Amex CC','Wells Fargo CC'];
 // Evaluated at load because MODS field definitions are, so these must stay above MODS.
 const TX_ACCTS=['Citibank CC','Amex CC','Wells Fargo CC','Citi Bank','Wells Fargo','PayPal','BUH USD','BUH HTG','Cash'];
@@ -1576,19 +1597,23 @@ tx:{title:'Transactions',color:'var(--purple)',hint:'Every purchase, one row eac
           {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
           {k:'notes',l:'Notes',t:'ta',full:1}],
   only:i=>!TXCARD||i.d.card===TXCARD,
+  collapse:1,                          // a statement at a time, newest already open
   group:i=>txCycleLabel(i.d),
   groupOrder:(a,b)=>txCycleKey(b)-txCycleKey(a),
   groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
-  stats:it=>{const spent=it.filter(i=>cfoUsd(i.d.amt,i.d.cur)>0).reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
-    const back=it.filter(i=>cfoUsd(i.d.amt,i.d.cur)<0).reduce((s,i)=>s-cfoUsd(i.d.amt,i.d.cur),0);
-    const byC={};it.forEach(i=>{const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
+  stats:it=>{
+    const rows=it.filter(txIsSpend);
+    const spent=rows.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const byC={};rows.forEach(i=>{const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
     const top=Object.entries(byC).sort((a,b)=>b[1]-a[1])[0];
-    const un=it.filter(i=>!i.d.cat).length;
-    return[{k:'Spent',v:money2(spent),u:it.length+' transaction'+(it.length===1?'':'s'),c:'var(--purple)'},
-           {k:'Refunded',v:money2(back),c:'var(--green)'},
+    const acc=txAcctRow();
+    return[txBalanceTile(acc),
+           {k:'Spent',v:money2(spent),u:rows.length+' purchase'+(rows.length===1?'':'s')
+             +(it.length>rows.length?' \u00b7 '+(it.length-rows.length)+' payments and transfers set aside':''),
+            c:'var(--purple)'},
            {k:'Biggest category',v:top?esc(top[0]):'\u2014',u:top?money2(top[1]):'',c:'var(--orange)'},
-           {k:'Uncategorised',v:un,u:un?'they land in Other until you set them':'all filed',c:un?'var(--gold)':'var(--muted)'}]},
+           txFourthTile(acc)]},
   card:i=>{const v=cfoUsd(i.d.amt,i.d.cur);
     return{t:esc(i.d.desc||'Transaction'),
       s:[i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',esc(i.d.card||''),esc(i.d.cat||'uncategorised')].filter(Boolean).join(' \u00b7 '),
@@ -2332,6 +2357,7 @@ async function plaidBalSync(){
       const id='fin:plaid:'+a.id, fresh=!one(id);
       const row={grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,
         amt:grp==='Credit'?-Math.abs(+a.current||0):(+a.current||0)};
+      if(a.limit!=null)row.limit=+a.limit||0;   // room left on the card, where it is offered
       if(fresh){
         row.name=plaidAcctLabel(it.d.inst,a);
         row.card=grp==='Credit'?(PLAID_SRC[plaidInstShort(it.d.inst)]||guessSrc(row.name)):'';
@@ -2625,6 +2651,51 @@ let TXWHERE=0;
 function txToggleWhere(){TXWHERE=!TXWHERE;renderActive()}
 function txSetCardIdx(n){const cs=txCards();TXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
 function txShown(){return list('tx').filter(i=>!TXCARD||i.d.card===TXCARD)}
+// The Accounts row for whichever card is selected. It carries the live balance, so the
+// question "what is on this card right now" is answered where you are already looking.
+function txAcctRow(){
+  return TXCARD?(list('fincash').find(f=>String(f.d.name||'')===TXCARD)||null):null;
+}
+const txIsOwed=a=>a&&(a.d.grp==='Credit'||a.d.grp==='Haiti credit');
+function txBalanceTile(a){
+  if(a){
+    const v=Math.abs(cfoUsd(a.d.amt,a.d.cur));
+    return txIsOwed(a)?{k:'Owed now',v:money2(v),u:'on this card',c:'var(--red)'}
+                      :{k:'Balance now',v:money2(v),u:'in this account',c:'var(--green)'};
+  }
+  // Every account at once: the cash gets its own figure and the cards get theirs, because
+  // netting them hides both. A card carried alone shows only what belongs to a card.
+  const n=list('fincash').filter(f=>f.d.grp==='Banking'||f.d.grp==='Haiti cash').length;
+  return{k:'Cash on hand',v:money2(finUsd('Banking','Haiti cash')),
+    u:n+' account'+(n===1?'':'s'),c:'var(--green)'};
+}
+/* Room left on the card if the bank says what the limit is, the next payment if it does
+   not, and nothing at all rather than something invented. An empty tile is honest and
+   leaves the space for whatever you decide belongs there. */
+function txFourthTile(a){
+  const blank={k:'\u2014',v:'',u:'',c:'var(--line2)'};
+  if(!a){
+    const cards=list('fincash').filter(f=>f.d.grp==='Credit'||f.d.grp==='Haiti credit');
+    const owed=Math.abs(finUsd('Credit','Haiti credit'));
+    return{k:'Owed on cards',v:money2(owed),
+      u:cards.length+' card'+(cards.length===1?'':'s'),c:owed?'var(--red)':'var(--muted)'};
+  }
+  const owed=Math.abs(cfoUsd(a.d.amt,a.d.cur));
+  if(txIsOwed(a)&&+a.d.limit>0){
+    const left=(+a.d.limit)-owed;
+    return{k:'Credit left',v:money2(left),
+      u:Math.round(owed/(+a.d.limit)*100)+'% of '+money2(+a.d.limit)+' used',
+      c:left<(+a.d.limit)*0.2?'var(--gold)':'var(--blue)'};
+  }
+  if(txIsOwed(a)){
+    const debt=list('debt').find(x=>x.d.acct&&x.d.acct===a.d.acct);
+    const day=dueDayOf(a.d)||(debt?+debt.d.day||0:0);
+    const min=debt?cfoUsd(debt.d.min,debt.d.cur):0;
+    if(day||min)return{k:'Next payment',v:min?money2(min):'\u2014',
+      u:[min?'minimum':'',day?'due the '+ord(day):''].filter(Boolean).join(' \u00b7 '),c:'var(--gold)'};
+  }
+  return blank;
+}
 // Average monthly spend from real transactions, over the months actually covered.
 // Subscriptions are counted from the subscriptions page, and they also land on the card
 // as transactions. Counting both bills him twice for Netflix, so that one category is
@@ -2718,8 +2789,9 @@ function txPage(){
   }
 
   if(all.length){
-    const spent=shown.filter(i=>cfoUsd(i.d.amt,i.d.cur)>0).reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
-    const byC={};shown.forEach(i=>{const v=cfoUsd(i.d.amt,i.d.cur);if(v<=0)return;
+    const spendRows=shown.filter(txIsSpend);
+    const spent=spendRows.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const byC={};spendRows.forEach(i=>{const v=cfoUsd(i.d.amt,i.d.cur);
       const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+v});
     const cats=Object.entries(byC).sort((a,b)=>b[1]-a[1]);
     if(cats.length){
@@ -2730,7 +2802,7 @@ function txPage(){
           <span><span class="sw" style="background:var(--orange)"></span>Where it went</span>
           <span style="font-family:'IBM Plex Mono';font-size:11px;font-weight:400;color:var(--muted)">${
             TXWHERE?'hide \u25be':cats.length+' categor'+(cats.length===1?'y':'ies')+' \u25b8'}</span></h2>
-        <div class="hint">${TXCARD?esc(TXCARD):'Every card'} \u00b7 ${shown.length} transaction${shown.length===1?'':'s'} \u00b7 ${money2(spent)} spent.${TXWHERE?' This is the list to cut from.':''}</div>`;
+        <div class="hint">${TXCARD?esc(TXCARD):'Every card'} \u00b7 ${spendRows.length} purchase${spendRows.length===1?'':'s'} \u00b7 ${money2(spent)} spent.${TXWHERE?' This is the list to cut from.':''}</div>`;
       if(TXWHERE)h+=cats.map(([c,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(c)}</span><span class="v">${money2(v)}</span></div>
         <div class="cfoBar"><i style="width:${(v/spent*100).toFixed(1)}%"></i></div>
         <div class="cfoGoalSub">${(v/spent*100).toFixed(0)}% of what you spent</div></div>`).join('');
