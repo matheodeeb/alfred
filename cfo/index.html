@@ -2226,13 +2226,39 @@ const PLAID_SRC={'Citi':'Citibank CC','Amex':'Amex CC','Wells Fargo':'Wells Farg
    Keyed on Plaid's account id, so a refresh corrects the row it made before instead of
    adding a second. The name is set once and left alone after, so a rename sticks. A
    balance the bank declined to give is skipped rather than written down as zero. */
+/* The Investment log is a running record of what the brokerage is worth. The value comes
+   from the same balance call as everything else, so it costs no extra request and leans on
+   no product the plan might not carry.
+
+   One row a day covering every connected investment account together, not one row each:
+   net liquid reads the newest entry, so a row per account would have it counting a single
+   brokerage and calling that the lot. The per-account figures ride along in the note.
+
+   What was added is deliberately left blank. A value that moved is not money paid in, and
+   telling the two apart is the difference between a contribution and a good week. */
+function plaidInvLog(accts){
+  if(!accts.length)return 0;
+  const tot=accts.reduce((s,a)=>s+a.current,0), d=today();
+  put('invest',{date:d,val:Math.round(tot*100)/100,
+    acct:accts.length===1?accts[0].label:'Brokerage',
+    notes:accts.map(a=>a.label+' '+money2(a.current)).join(' \u00b7 '),
+    src:'Plaid'},'inv:plaid:'+d);
+  return accts.length;
+}
 async function plaidBalSync(){
   let filled=0,failed=0;
+  const inv=[];
   for(const it of plaidItems()){
     let out;
     try{ out=await plaidFn('balances',{item_id:it.d.item}) }
     catch(e){ failed++; continue }
     (out.balances||[]).forEach(a=>{
+      // A brokerage is not cash and not a card. It is the Investment log's, collected here
+      // and written once at the end so the log holds one figure rather than several.
+      if(String(a.type||'').toLowerCase()==='investment'){
+        if(a.current!=null)inv.push({label:plaidAcctLabel(it.d.inst,a),current:+a.current||0});
+        return;
+      }
       const grp=plaidFinGrp(a);
       if(!grp||a.current==null)return;
       const id='fin:plaid:'+a.id, fresh=!one(id);
@@ -2245,7 +2271,7 @@ async function plaidBalSync(){
       put('fincash',row,id);filled++;
     });
   }
-  return{filled,failed};
+  return{filled,failed,inv:plaidInvLog(inv)};
 }
 
 /* Plaid reports a card payment as money arriving on the card, so it is the negative rows
@@ -2337,7 +2363,7 @@ async function plaidSyncAll(){
   const liab=await plaidLiabSync();
   const stmts=plaidStmtSync(), zelle=plaidZelleSync();
   return{added,updated,removed,items:items.length,failed,
-    debts:liab.filled,accts:bal.filled,stmts,zelle};
+    debts:liab.filled,accts:bal.filled,inv:bal.inv,stmts,zelle};
 }
 async function plaidConnect(){
   PLAIDBUSY=1;PLAIDMSG='opening Plaid…';renderActive();
@@ -2361,6 +2387,7 @@ async function plaidConnect(){
             alert(['Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.',
               r.accts?r.accts+' account'+(r.accts===1?'':'s')+' now keep their balance current.':'',
               r.debts?r.debts+' card'+(r.debts===1?'':'s')+' carry their real APR, minimum and due date.':'',
+              r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
               r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
               r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':''
             ].filter(Boolean).join('\n'));
@@ -2381,6 +2408,7 @@ async function plaidSyncNow(){
     alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
       r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
       r.debts?r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':'',
+      r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
       r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
       r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':'',
       r.failed?r.failed+' connection'+(r.failed===1?'':'s')+' could not be reached — see Service.':''
