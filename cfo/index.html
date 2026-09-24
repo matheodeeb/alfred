@@ -2620,6 +2620,9 @@ function txCards(){
 // esc() escapes for HTML, but the parser decodes the entity before the JS is parsed, so an
 // apostrophe in a freely-typed card name would break out of the call.
 function txSetCard(c){TXCARD=c;renderActive()}
+// Shut unless you ask. Kept in memory rather than saved: it is a glance, not a setting.
+let TXWHERE=0;
+function txToggleWhere(){TXWHERE=!TXWHERE;renderActive()}
 function txSetCardIdx(n){const cs=txCards();TXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
 function txShown(){return list('tx').filter(i=>!TXCARD||i.d.card===TXCARD)}
 // Average monthly spend from real transactions, over the months actually covered.
@@ -2720,9 +2723,15 @@ function txPage(){
       const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+v});
     const cats=Object.entries(byC).sort((a,b)=>b[1]-a[1]);
     if(cats.length){
-      h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Where it went</h2>
-        <div class="hint">${TXCARD?esc(TXCARD):'Every card'} \u00b7 ${shown.length} transaction${shown.length===1?'':'s'} \u00b7 ${money2(spent)} spent. This is the list to cut from.</div>`;
-      h+=cats.map(([c,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(c)}</span><span class="v">${money2(v)}</span></div>
+      /* Fourteen bars is a page of its own between you and the ledger, and most visits do
+         not ask the question. The total stays on show, since that is the answer you want at
+         a glance; the breakdown opens when you want to know where it went. */
+      h+=`<div class="panel"><h2 style="cursor:pointer;justify-content:space-between" onclick="txToggleWhere()">
+          <span><span class="sw" style="background:var(--orange)"></span>Where it went</span>
+          <span style="font-family:'IBM Plex Mono';font-size:11px;font-weight:400;color:var(--muted)">${
+            TXWHERE?'hide \u25be':cats.length+' categor'+(cats.length===1?'y':'ies')+' \u25b8'}</span></h2>
+        <div class="hint">${TXCARD?esc(TXCARD):'Every card'} \u00b7 ${shown.length} transaction${shown.length===1?'':'s'} \u00b7 ${money2(spent)} spent.${TXWHERE?' This is the list to cut from.':''}</div>`;
+      if(TXWHERE)h+=cats.map(([c,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(c)}</span><span class="v">${money2(v)}</span></div>
         <div class="cfoBar"><i style="width:${(v/spent*100).toFixed(1)}%"></i></div>
         <div class="cfoGoalSub">${(v/spent*100).toFixed(0)}% of what you spent</div></div>`).join('');
       h+=`</div>`;
