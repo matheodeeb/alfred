@@ -1781,7 +1781,11 @@ function fincashPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
   const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const row=i=>{const cyc=cycTxt(i);
-    return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cyc?`<span class="sub${cyc.late?' late':''}"> · ${esc(cyc.t)}</span>`:''}</span><span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span></div>`};
+    /* An account whose bank has not given a figure says so. $0.00 is a claim -- that the
+       account is empty, or the card clear -- and a connection that has fallen out of
+       authorisation would be making it silently on every account it holds. */
+    const none=i.d.amt===''||i.d.amt==null;
+    return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cyc?`<span class="sub${cyc.late?' late':''}"> · ${esc(cyc.t)}</span>`:''}</span><span class="v ${none?'mut':signCls(i.d.amt)}"${none?' style="opacity:.55"':''}>${none?'not reported':money2(i.d.amt)}</span></div>`};
   const hrow=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usd(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}">${money2(usd(i))}</span>`}</div>`;
   let h=finSeg();
   if(finView==='American'){
