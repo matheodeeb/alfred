@@ -2544,8 +2544,8 @@ function plaidBalRefresh(){
   if(plaidBalRefresh._going||plaidAutoSync._going||!plaidItems().length)return;
   if(Date.now()-(+localStorage.cfo_plaidBal||0)<PLAID_BAL_MS)return;
   plaidBalRefresh._going=1;
-  plaidBalSync().then(()=>{plaidBalRefresh._going=0;renderActive()})
-                .catch(()=>{plaidBalRefresh._going=0});
+  plaidLive().then(()=>{plaidBalRefresh._going=0;renderActive()})
+             .catch(()=>{plaidBalRefresh._going=0});
 }
 const PLAID_AUTO_MS=6*60*60*1000;
 /* A page missing the figures it exists to show is not waiting for a schedule. When a
@@ -2563,9 +2563,13 @@ function plaidAutoSync(){
   plaidSyncAll().then(()=>{plaidAutoSync._going=0;renderActive()})
                 .catch(()=>{plaidAutoSync._going=0});
 }
-async function plaidSyncAll(){
+/* Pulling transactions, on its own, so the quick refresh and the full sync can both use
+   it without one of them dragging the other's work along.
+
+   It is cheap to repeat: the cursor lives on the server, so a bank with nothing new
+   answers with an empty delta rather than resending its history. */
+async function plaidTxSync(){
   const items=plaidItems();
-  if(!items.length)return{added:0,updated:0,removed:0,items:0};
   let added=0,updated=0,removed=0,failed=0;
   for(const it of items){
     const accts=it.d.accts||[];
@@ -2590,11 +2594,29 @@ async function plaidSyncAll(){
   }
   plaidRelabel();
   plaidSeatAccounts();                          // a row for every account, balance or not
+  return{added,updated,removed,failed,items:items.length};
+}
+/* Everything that moves between one visit and the next: what you spent, what you paid,
+   what is left. Statements and Transfers are then worked out from those rows without
+   touching the network at all -- so a card payment that has posted lands on the Statements
+   page in the same pass that notices the balance drop.
+
+   Liabilities are deliberately not here. An APR, a minimum payment and a due day change
+   once a month at most, and asking every quarter of an hour would be asking for nothing. */
+async function plaidLive(){
+  const tx=await plaidTxSync();
+  const bal=await plaidBalSync();
+  const stmts=plaidStmtSync(), zelle=plaidZelleSync();
+  return{...tx,accts:bal.filled,inv:bal.inv,stmts,zelle};
+}
+async function plaidSyncAll(){
+  const items=plaidItems();
+  if(!items.length)return{added:0,updated:0,removed:0,items:0};
+  const tx=await plaidTxSync();
   const bal=await plaidBalSync();               // balances first: the rest hang off those rows
   const liab=await plaidLiabSync();
   const stmts=plaidStmtSync(), zelle=plaidZelleSync();
-  return{added,updated,removed,items:items.length,failed,
-    debts:liab.filled,accts:bal.filled,inv:bal.inv,stmts,zelle};
+  return{...tx,debts:liab.filled,accts:bal.filled,inv:bal.inv,stmts,zelle};
 }
 async function plaidConnect(){
   PLAIDBUSY=1;PLAIDMSG='opening Plaid…';renderActive();
