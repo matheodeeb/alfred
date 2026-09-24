@@ -190,6 +190,11 @@ Deno.serve(async (req: Request) => {
           user: { client_user_id: user },
           client_name: "Alfred CFO",
           products: ["transactions"],
+          /* Plaid hands back 90 days unless asked otherwise, which is why a page built
+           * around a calendar year came up empty until July. Two years is the most it
+           * will give, and it is requested at the moment a bank is linked -- an Item
+           * already created keeps the window it was created with. */
+          transactions: { days_requested: 730 },
           country_codes: ["US"],
           language: "en",
           ...(access_token ? { access_token } : {}),
