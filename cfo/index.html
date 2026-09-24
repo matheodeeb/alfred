@@ -2503,9 +2503,16 @@ function plaidZelleSync(){
    Banks and Plaid both dislike being asked every few seconds, so a visit refreshes at
    most once every six hours; the button is there for the times you want it now. */
 const PLAID_AUTO_MS=6*60*60*1000;
+/* A page missing the figures it exists to show is not waiting for a schedule. When a
+   connected account has no balance against it -- cleared by hand, or never reported -- the
+   clock is skipped entirely and the refresh happens on sight.
+
+   Nothing runs away: this is called once per page load, so the worst case is one round of
+   calls per visit, and only while something is actually missing. */
 function plaidAutoSync(){
   if(plaidAutoSync._going||!plaidItems().length)return;
-  if(Date.now()-(+localStorage.cfo_plaidAuto||0)<PLAID_AUTO_MS)return;
+  const missing=list('fincash').some(f=>f.d.src==='Plaid'&&(f.d.amt===''||f.d.amt==null));
+  if(!missing&&Date.now()-(+localStorage.cfo_plaidAuto||0)<PLAID_AUTO_MS)return;
   plaidAutoSync._going=1;
   try{localStorage.cfo_plaidAuto=String(Date.now())}catch(e){}
   plaidSyncAll().then(()=>{plaidAutoSync._going=0;renderActive()})
