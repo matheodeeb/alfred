@@ -2310,23 +2310,33 @@ function plaidAutoSync(){
 async function plaidSyncAll(){
   const items=plaidItems();
   if(!items.length)return{added:0,updated:0,removed:0,items:0};
-  let added=0,updated=0,removed=0;
+  let added=0,updated=0,removed=0,failed=0;
   for(const it of items){
     const accts=it.d.accts||[];
     const nameOf=id=>{const a=accts.find(x=>x.id===id);
       return a?plaidAcctLabel(it.d.inst,a):plaidInstShort(it.d.inst)};
-    const out=await plaidFn('sync',{item_id:it.d.item});
+    /* Each bank on its own. One connection refusing -- a login gone stale, a bank having
+       a bad morning -- used to throw out of the loop and silently strip every bank after
+       it of its sync, which looks exactly like a bank with no transactions. */
+    let out;
+    try{ out=await plaidFn('sync',{item_id:it.d.item}) }
+    catch(e){ put('plaid',{err:String(e.message||e),last:new Date().toISOString()},it.id);
+              failed++; continue }
     // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
-    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++});
+    let n=0;
+    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++;n++});
     (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);updated++});
     (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
-    put('plaid',{last:new Date().toISOString()},it.id);   // the cursor is the server's now
+    // What this bank gave, so a connection that keeps arriving empty can say so rather
+    // than looking identical to one nobody has spent on.
+    put('plaid',{last:new Date().toISOString(),err:'',
+      rows:plaidRowsOf(it).length,got:n},it.id);
   }
   plaidRelabel();
   const bal=await plaidBalSync();               // balances first: the rest hang off those rows
   const liab=await plaidLiabSync();
   const stmts=plaidStmtSync(), zelle=plaidZelleSync();
-  return{added,updated,removed,items:items.length,
+  return{added,updated,removed,items:items.length,failed,
     debts:liab.filled,accts:bal.filled,stmts,zelle};
 }
 async function plaidConnect(){
@@ -2372,7 +2382,8 @@ async function plaidSyncNow(){
       r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
       r.debts?r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':'',
       r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
-      r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':''
+      r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':'',
+      r.failed?r.failed+' connection'+(r.failed===1?'':'s')+' could not be reached — see Service.':''
     ].filter(Boolean).join('\n'));
   }catch(e){alert('Sync failed: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
@@ -2422,8 +2433,10 @@ function plaidPanel(){
   h+=items.map(i=>{
     const n=(i.d.accts||[]).length;
     const last=i.d.last?new Date(i.d.last).toLocaleString():'never';
+    const note=i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
+      :(i.d.last&&!i.d.rows?' · <b style="color:var(--orange)">no transactions yet — a bank can take a while to hand over its history</b>':'');
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
-      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+'</span></span>'+
+      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span></span>'+
       '<button class="btn sm ghost" style="margin-left:auto" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></div>';
   }).join('');
   h+='<div style="display:flex;gap:8px;margin-top:12px">'+
@@ -2473,7 +2486,12 @@ function txCycleKey(label){return TXKEY[label]||0}
    an imported statement come along too, since nothing else knows about them. */
 function txCards(){
   const s=new Set(list('tx').map(i=>i.d.card).filter(Boolean));
-  plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>s.add(plaidAcctLabel(it.d.inst,a))));
+  // A brokerage has holdings, not purchases: /transactions/sync never returns a row for
+  // one, so a chip for it could only ever say "nothing here". It belongs to the
+  // Investment log instead, and is left off rather than left permanently empty.
+  plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>{
+    if(String(a.type||'').toLowerCase()!=='investment')s.add(plaidAcctLabel(it.d.inst,a));
+  }));
   return[...s].sort();
 }
 // Selected by index, never by interpolating the name into an onclick attribute:
