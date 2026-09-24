@@ -1114,12 +1114,24 @@ function genList(sec){
     const gs={};items.forEach(i=>{(gs[m.group(i)]=gs[m.group(i)]||[]).push(i)});
     const order=Object.keys(gs).sort(m.groupOrder?((a,b)=>m.groupOrder(a,b,gs)):undefined);
     /* Shut by default, except the one you came for: the first in the order, which on a
-       ledger sorted newest-first is the cycle you are standing in. Seeded once per section
-       rather than every render, so shutting it by hand stays shut. */
-    if(m.collapse&&!GRPSEED.has(sec)){GRPSEED.add(sec);if(order.length)GRPOPEN.add(sec+'|'+order[0])}
+       ledger sorted newest-first is the cycle you are standing in.
+
+       Seeded once per view rather than once per section. Switching card gives you a
+       different set of statements, and seeding by section alone meant only the first card
+       you looked at ever opened on its latest one -- every other card came up entirely
+       shut. The key includes whatever the page is filtered by, so each card opens on its
+       own newest cycle the first time you see it, and what you shut by hand stays shut. */
+    /* Keyed by view as well as by group. Two cards both have a "September 2026", and
+       keying on the name alone meant opening one card's September opened every card's --
+       and that only the first card looked at ever seeded its newest cycle open. */
+    const view=sec+'\u241f'+(m.collapseKey?m.collapseKey():'');
+    const gkey=g=>view+'\u241f'+g;
+    if(m.collapse&&!GRPSEED.has(view)){
+      GRPSEED.add(view); if(order.length)GRPOPEN.add(gkey(order[0]));
+    }
     order.forEach((g,gi)=>{
-      const shut=m.collapse&&!GRPOPEN.has(sec+'|'+g);
-      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead${m.collapse?' clk':''}${shut?' shut':''}"${m.collapse?` data-sec="${sec}" data-g="${esc(g)}" onclick="toggleGrp(this)"`:''}>${m.collapse?'<span class="gchev">▾</span>':''}${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
+      const shut=m.collapse&&!GRPOPEN.has(gkey(g));
+      html+=(gi?'<div class="gsep"></div>':'')+`<div class="ghead${m.collapse?' clk':''}${shut?' shut':''}"${m.collapse?` data-k="${esc(gkey(g))}" onclick="toggleGrp(this)"`:''}>${m.collapse?'<span class="gchev">▾</span>':''}${esc(g)}<span class="gsub">${gs[g].length}</span>${m.groupNote?`<span class="gtot">${m.groupNote(gs[g])}</span>`:''}</div>`;
       if(m.collapse)html+=`<div class="gbody${shut?' hide':''}">`;
       if(m.subgroup){const sg={};gs[g].forEach(i=>{const k=m.subgroup(i);(sg[k]=sg[k]||[]).push(i)});
         Object.keys(sg).forEach(k=>{
@@ -1164,7 +1176,7 @@ const GRPOPEN=new Set();
 // Which sections have had their opening group chosen for them already.
 const GRPSEED=new Set();
 function toggleGrp(el){
-  const k=el.dataset.sec+'|'+el.dataset.g;
+  const k=el.dataset.k;
   GRPOPEN.has(k)?GRPOPEN.delete(k):GRPOPEN.add(k);
   el.classList.toggle('shut');
   const body=el.nextElementSibling;
@@ -1598,6 +1610,7 @@ tx:{title:'Transactions',color:'var(--purple)',hint:'Every purchase, one row eac
           {k:'notes',l:'Notes',t:'ta',full:1}],
   only:i=>!TXCARD||i.d.card===TXCARD,
   collapse:1,                          // a statement at a time, newest already open
+  collapseKey:()=>TXCARD,              // each card opens on its own latest statement
   group:i=>txCycleLabel(i.d),
   groupOrder:(a,b)=>txCycleKey(b)-txCycleKey(a),
   groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
