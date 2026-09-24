@@ -1824,19 +1824,50 @@ function finstmtPage(){
   }
   return h;
 }
+/* Which account a transfer moved through. Ones logged by hand before the connections
+   existed never said, and saying "Unassigned" is more use than pretending or hiding them. */
+const fintxCardOf=i=>String(i.d.card||'').trim()||'Unassigned';
+function fintxCards(view){
+  return [...new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxCardOf))].sort();
+}
+// Chosen by index rather than by name: a name goes through esc() for HTML, but the parser
+// decodes the entity before the JS is parsed, so an apostrophe would break out of the call.
+let FINTXCARD='';
+function fintxSetCard(n){const cs=fintxCards(finView);FINTXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
 function fintxPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
-  const its=list('fintx').filter(i=>(i.d.acct||'American')===finView);
+  const cards=fintxCards(finView);
+  if(FINTXCARD&&!cards.includes(FINTXCARD))FINTXCARD='';   // the view changed under the filter
+  const its=list('fintx').filter(i=>(i.d.acct||'American')===finView)
+    .filter(i=>!FINTXCARD||fintxCardOf(i)===FINTXCARD);
   const usdVal=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const by={};its.forEach(i=>{(by[i.d.month]=by[i.d.month]||[]).push(i)});
   const months=MONTHS.filter(m=>by[m]);
   const txdate=i=>i.d.date?fdate(i.d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,''):'';
   const txrow=i=>{const dt=txdate(i);
     return `<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span>${dt?`<span class="v2" style="margin-left:auto">${dt}</span>`:''}${i.d.cur==='HTG'?`<span class="v2" style="margin-left:${dt?'12px':'auto'}">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}" style="margin-left:${dt?'12px':'auto'}">${money2(i.d.amt)}</span>`}</div>`};
+  // The year at a glance, before the months. Money between your own accounts shows up on
+  // both sides and nets to nothing, which is the honest answer and worth being able to see.
+  const yIn =its.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
+  const yOut=its.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
+  const scope=FINTXCARD||'all accounts';
   let h=finSeg();
+  h+=`<div class="grid stats">
+    <div class="stat" style="--accent:var(--green)"><div class="k">Transfers in</div>
+      <div class="v pos">${money2(yIn)}</div><div class="u">${esc(scope)}</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="k">Transfers out</div>
+      <div class="v neg">${money2(yOut)}</div><div class="u">${its.filter(i=>usdVal(i)<0).length} out of ${its.length}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Net transfers</div>
+      <div class="v ${signCls(yIn+yOut)}">${money2(yIn+yOut)}</div>
+      <div class="u">${yIn+yOut>=0?'more in than out':'more out than in'}</div></div>
+  </div>`;
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
   <div class="hint">${finView==='American'?'Your US banks together (Citi, Wells Fargo, Amex).':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.</div>
-  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' transfers logged yet.</div>'}</div>`;
+  ${cards.length>1?`<div style="margin-top:10px"><select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
+    <option${FINTXCARD?'':' selected'}>All cards</option>
+    ${cards.map(c=>`<option${c===FINTXCARD?' selected':''}>${esc(c)}</option>`).join('')}
+  </select></div>`:''}
+  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' transfers'+(FINTXCARD?' on '+esc(FINTXCARD):' logged yet')+'.</div>'}</div>`;
   [...months].reverse().forEach(mn=>{
     const rows=by[mn].slice().sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up));
     const inn=rows.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
@@ -2341,7 +2372,7 @@ function plaidZelleSync(){
     if(!/zelle/i.test(String(x.d.desc||'')))return;
     const d=String(x.d.date||''); if(!d)return;
     put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',desc:x.d.desc||'Zelle',
-      acct:'American',cur:x.d.cur||'USD',amt:-(+x.d.amt||0),src2:'Plaid'},
+      acct:'American',card:x.d.card||'',cur:x.d.cur||'USD',amt:-(+x.d.amt||0),src2:'Plaid'},
       'fintx:plaid:'+x.id.replace(/^tx:plaid:/,''));n++;
   });
   return n;
