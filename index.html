@@ -51,6 +51,40 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .dot.off{background:var(--bad);box-shadow:0 0 8px var(--bad)}
   .dot.pend{background:var(--warn);box-shadow:0 0 8px var(--warn)}
   .dot.gray{background:var(--faint);box-shadow:none}
+  /* The site switcher. Built from the same parts as the rest of the header — the pill
+     outline of the sync badge, the panel-and-shadow of the nav flyout, Fraunces for names
+     and Plex Mono in small caps for what each one is — so it reads as furniture rather
+     than something bolted on. */
+  .siteSw{position:relative;align-self:center;flex:none}
+  .siteBtn{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);
+    border-radius:999px;padding:5px 11px 5px 10px;cursor:pointer;color:var(--txt);
+    font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:12.5px;line-height:1;transition:.14s}
+  .siteBtn:hover{border-color:var(--acc)}
+  .siteDot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none}
+  .siteCaret{font-size:9px;color:var(--faint);transition:transform .18s}
+  .siteSw.open .siteBtn{border-color:var(--acc);background:var(--panel2)}
+  .siteSw.open .siteCaret{transform:rotate(180deg)}
+  .siteMenu{position:absolute;top:calc(100% + 8px);left:0;z-index:320;min-width:238px;
+    background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:6px;
+    box-shadow:0 14px 34px rgba(46,40,28,.16);display:none;flex-direction:column;gap:2px}
+  .siteSw.open .siteMenu{display:flex;animation:fade .16s ease}
+  .siteMenu button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;
+    text-align:left;background:none;border:0;border-radius:8px;padding:8px 11px 8px 15px;
+    cursor:pointer;position:relative;transition:.12s}
+  .siteMenu button:hover:not(:disabled){background:var(--panel2)}
+  .siteMenu .sN{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:13px;color:var(--txt)}
+  .siteMenu .sD{font-family:"IBM Plex Mono";font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+  .siteMenu button.active{background:var(--panel2)}
+  .siteMenu button.active::before{content:"";position:absolute;left:4px;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--acc)}
+  .siteMenu button.soon{padding-right:60px}
+  .siteMenu button:disabled{cursor:default}
+  .siteMenu button:disabled .sN{color:var(--muted)}
+  /* On a phone the button sits mid-width, and a menu hung off its left edge runs off the
+     screen. Hanging it off the right edge instead keeps all of it on the page. */
+  @media(max-width:560px){.siteMenu{left:auto;right:0}}
+  .sTag{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:"IBM Plex Mono";
+    font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
+    background:var(--bg2);border:1px solid var(--line2);border-radius:999px;padding:2px 7px}
   .gear{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .gear:hover{color:var(--txt);border-color:var(--acc)}
   nav{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -441,6 +475,23 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
         <div class="logo">ALFRED<b>.</b></div>
         <div class="tag">Personal life console</div>
       </div>
+      <!-- Which of the three Alfreds you are in. It belongs beside the wordmark rather than
+           in the nav because it answers "which site", where the nav answers "where in it".
+           CFO and Geo are listed but inert until they exist — shown rather than hidden, so
+           the shape of the thing is visible and they are one click away the day they land. -->
+      <div class="siteSw" id="siteSw">
+        <button class="siteBtn" id="siteBtn" title="Switch site" aria-haspopup="true" aria-expanded="false">
+          <span class="siteDot"></span><span class="siteNow">Main</span><span class="siteCaret">▾</span>
+        </button>
+        <div class="siteMenu" id="siteMenu" role="menu">
+          <button class="active" role="menuitem" aria-current="true">
+            <span class="sN">Main</span><span class="sD">Personal life console</span></button>
+          <button class="soon" role="menuitem" disabled>
+            <span class="sN">CFO</span><span class="sD">Money and cards</span><span class="sTag">soon</span></button>
+          <button class="soon" role="menuitem" disabled>
+            <span class="sN">Geo</span><span class="sD">Geopolitics</span><span class="sTag">soon</span></button>
+        </div>
+      </div>
       <button class="statuspill" id="pill" title="Sync status"><span class="dot gray" id="pillDot"></span><span id="pillTxt">local</span></button>
       <button class="gear" id="gearBtn" title="Settings">⚙</button>
     </div>
@@ -507,7 +558,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · finances out';
+const BUILD='2026-09-25 · site switcher';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2856,7 +2907,7 @@ function initNav(){
       nav.appendChild(g)}
   });
   document.addEventListener('click',closeMenus);
-  document.addEventListener('touchstart',e=>{if(!e.target.closest('.navGroup,#navFly'))closeMenus()},{passive:true});
+  document.addEventListener('touchstart',e=>{if(!e.target.closest('.navGroup,#navFly,.siteSw'))closeMenus()},{passive:true});
   nav.addEventListener('scroll',closeMenus);
   const pages=$('#pages');
   const allPages=[...NAV.flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1]))];
@@ -2874,7 +2925,20 @@ function openFly(items,groupEl,btn){
   fly.style.left=Math.max(8,Math.min(r.left,innerWidth-210))+'px';
   fly.classList.add('show');groupEl.classList.add('open');
 }
-function closeMenus(){const f=$('#navFly');if(f)f.classList.remove('show');$$('.navGroup').forEach(g=>g.classList.remove('open'))}
+function closeMenus(){const f=$('#navFly');if(f)f.classList.remove('show');$$('.navGroup').forEach(g=>g.classList.remove('open'));closeSite()}
+// The switcher opens and shuts like the nav groups do, and shares their dismissal — a tap
+// anywhere else, or on a nav menu, closes it. Choosing a site does nothing yet: CFO and Geo
+// are listed so the shape is right, and they get their links when there is something to
+// link to. Only the opening is wired, because that is the part there is to look at.
+function closeSite(){const s=$('#siteSw');if(!s)return;
+  s.classList.remove('open');$('#siteBtn')?.setAttribute('aria-expanded','false')}
+$('#siteBtn').onclick=e=>{
+  e.stopPropagation();
+  const s=$('#siteSw'), was=s.classList.contains('open');
+  closeMenus();
+  if(!was){s.classList.add('open');$('#siteBtn').setAttribute('aria-expanded','true')}
+};
+$('#siteMenu').onclick=e=>e.stopPropagation();   // clicking inside it is not clicking away
 function markNav(){
   $$('#nav > button').forEach(b=>b.classList.toggle('active',b.dataset.p===activePage));
   $$('.navGroup').forEach(g=>{
