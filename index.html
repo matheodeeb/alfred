@@ -31,6 +31,29 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     --acc:#3f6f4f; --gold:#b98b2e; --blue:#4a7d9b; --green:#4f8a5f; --orange:#c07a4a;
     --purple:#8d6ba8; --red:#b8543f;
     --ok:#3f8f5f; --bad:#b8543f; --warn:#b98b2e;
+    --glow:rgba(63,111,79,.06);
+  }
+  /* One house, three rooms. The stylesheet is entirely token-driven, so a room's whole skin
+     is the block of variables below it — nothing further down knows which room it is in,
+     and crossing between them is a repaint rather than a different page. The tokens sit on
+     the root rather than the body so the page background changes with them. */
+  :root[data-site="cfo"]{
+    --bg:#080a10; --bg2:#0b0e16; --panel:#11151f; --panel2:#171d2a;
+    --line:#1a2130; --line2:#2b3446;
+    --txt:#e8ebf2; --muted:#8f9ab2; --faint:#5a647c;
+    --acc:#7b6cf6; --gold:#d4a94e; --blue:#4ea8e0; --green:#2fd6a3; --orange:#e0873f;
+    --purple:#a67cf0; --red:#f2606a;
+    --ok:#2fd6a3; --bad:#f2606a; --warn:#d4a94e;
+    --glow:rgba(123,108,246,.10);
+  }
+  :root[data-site="geo"]{
+    --bg:#0d1014; --bg2:#12161c; --panel:#171c24; --panel2:#1e242e;
+    --line:#212832; --line2:#333d4a;
+    --txt:#e6e9ee; --muted:#93a0b0; --faint:#5f6b7a;
+    --acc:#c2703c; --gold:#d8b24a; --blue:#5b93c4; --green:#5aa87a; --orange:#d2884a;
+    --purple:#9b7bb8; --red:#cf5d52;
+    --ok:#5aa87a; --bad:#cf5d52; --warn:#d8b24a;
+    --glow:rgba(194,112,60,.09);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -39,8 +62,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     background-size:42px 42px;background-color:var(--bg);
     padding-top:env(safe-area-inset-top);
   }
-  body::before{content:"";position:fixed;inset:0;background:radial-gradient(120% 90% at 50% -10%,rgba(63,111,79,.06),transparent 60%);pointer-events:none;z-index:0}
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(120% 90% at 50% -10%,var(--glow),transparent 60%);pointer-events:none;z-index:0}
   .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 14px 90px}
+  /* Crossing into a room. The whole inside of the house dips and lifts while the palette
+     swaps underneath, so the change of light lands during the dip rather than snapping in
+     front of you. The header is deliberately included — it is the room that changed, not a
+     panel within it. */
+  html,body,.wrap{transition:background-color .34s ease,color .34s ease}
+  .wrap.crossing{opacity:0;transform:translateY(6px) scale(.994);transition:opacity .2s ease,transform .2s ease}
+  .wrap{transition:opacity .28s ease,transform .28s ease,background-color .34s ease}
   header{padding:18px 0 6px}
   .brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .logo{font-family:"Fraunces",Georgia,serif;font-weight:800;letter-spacing:-.02em;font-size:22px;line-height:1}
@@ -61,7 +91,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
      decoration on the mark rather than a control. */
   .siteBtn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
     background:var(--panel);border:1px solid var(--line);border-radius:13px;
-    padding:9px 15px 10px;cursor:pointer;text-align:left;transition:.15s}
+    padding:9px 15px 10px;cursor:pointer;text-align:left;transition:.15s;color:var(--txt)}
   .siteBtn:hover{border-color:var(--line2);background:var(--panel2)}
   .siteBtn .logo,.siteBtn .tag{display:block;transition:.15s}
   .siteSw.open .siteBtn{border-color:var(--acc);background:var(--panel2);
@@ -86,6 +116,20 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .sTag{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:"IBM Plex Mono";
     font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
     background:var(--bg2);border:1px solid var(--line2);border-radius:999px;padding:2px 7px}
+  .sTag.lit{color:var(--acc);border-color:var(--acc);background:none}
+  /* The door you meet on stepping into a locked room. It is a panel in the room rather than
+     an overlay over the house, because the point is that you are already inside. */
+  .roomGate{max-width:390px;margin:6vh auto 0;text-align:center}
+  .rgMark{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:34px;letter-spacing:.04em;color:var(--acc);line-height:1}
+  .roomGate h2{font-family:"Fraunces",Georgia,serif;font-size:19px;margin:14px 0 8px}
+  .roomGate p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+  .rgForm{display:flex;flex-direction:column;gap:9px}
+  .rgForm input{background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--txt);
+    padding:11px 13px;font-family:"IBM Plex Mono";font-size:14px;width:100%;-webkit-appearance:none}
+  .rgForm input:focus{outline:none;border-color:var(--acc)}
+  .rgForm .btn{margin-top:3px;justify-content:center}
+  .cfoMsg{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);min-height:16px;letter-spacing:.03em}
+  .cfoMsg.bad{color:var(--bad)}
   .gear{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .gear:hover{color:var(--txt);border-color:var(--acc)}
   nav{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -480,15 +524,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
       <div class="siteSw" id="siteSw">
         <button class="siteBtn" id="siteBtn" title="Switch site" aria-haspopup="true" aria-expanded="false">
           <span class="logo">ALFRED<b>.</b></span>
-          <span class="tag">Personal life console</span>
+          <span class="tag" id="siteTag">Personal life console</span>
         </button>
         <div class="siteMenu" id="siteMenu" role="menu">
-          <button class="active" role="menuitem" aria-current="true">
+          <button data-s="main" role="menuitem">
             <span class="sN">Main</span><span class="sD">Personal life console</span></button>
-          <button class="soon" role="menuitem" disabled>
-            <span class="sN">CFO</span><span class="sD">Money and cards</span><span class="sTag">soon</span></button>
-          <button class="soon" role="menuitem" disabled>
-            <span class="sN">Geo</span><span class="sD">Geopolitics</span><span class="sTag">soon</span></button>
+          <button data-s="cfo" role="menuitem">
+            <span class="sN">CFO</span><span class="sD">Money and cards</span><span class="sTag">locked</span></button>
+          <button data-s="geo" role="menuitem">
+            <span class="sN">Geo</span><span class="sD">Geopolitics</span></button>
         </div>
       </div>
       <button class="statuspill" id="pill" title="Sync status"><span class="dot gray" id="pillDot"></span><span id="pillTxt">local</span></button>
@@ -557,7 +601,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · logo switcher';
+const BUILD='2026-09-25 · rooms';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2316,6 +2360,84 @@ const DOW_TODAY=()=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDa
 function byStart(a,b){const dn=DOW_TODAY(), t=x=>{const m=toMin(actStart(x,dn));return m==null?99999:m};
   return t(a)-t(b)||(a.d.name||'').localeCompare(b.d.name||'')}
 function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);return isNaN(p)?null:p*60+(q||0)}
+/* ---------------- the CFO room and its door ----------------
+   The house has one front door, the PIN, and that is deliberate — but this room holds bank
+   balances and card statements, so it has a lock of its own. It is an account rather than
+   another code: the session can be revoked from one device, it expires by itself, and the
+   row policy on the ledger checks who you are rather than what you know. Signing in here
+   is the same account as the standalone CFO page and shares its session, so crossing over
+   from one to the other does not ask twice.
+
+   The project address and the publishable key sit in the page on purpose, exactly as they
+   do on the CFO page: the address is an address, and the key identifies the project while
+   carrying no rights of its own — it is revoked on the ledger's table outright. The sync
+   secret is NOT here and never can be; it is the whole lock on the monitor's own table and
+   stays typed in per device under the gear. */
+const CFO_URL='https://lceferergfrjklqhzokf.supabase.co';
+const CFO_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjZWZlcmVyZ2ZyamtscWh6b2tmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NzEyOTAsImV4cCI6MjEwMDE0NzI5MH0.ZHjqUsMd1uQgi_o2OnGmUwEQ3iVWzU5ectoc6vRCbak';
+let CFOAUTH=null; try{CFOAUTH=JSON.parse(localStorage.cfo_auth||'null')}catch(e){}
+function cfoAuthed(){return !!(CFOAUTH&&CFOAUTH.refresh_token)}
+function cfoAuthSave(j){
+  CFOAUTH={access_token:j.access_token,refresh_token:j.refresh_token,
+    exp:Date.now()+((+j.expires_in||3600)*1000),email:j.user?.email||CFOAUTH?.email||''};
+  try{localStorage.cfo_auth=JSON.stringify(CFOAUTH)}catch(e){}
+}
+async function cfoAuthPost(path,body){
+  const r=await fetch(CFO_URL+'/auth/v1/'+path,{method:'POST',
+    headers:{apikey:CFO_KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+  const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch(e){}
+  if(!r.ok)throw new Error(j.error_description||j.msg||j.error||('sign-in failed ('+r.status+')'));
+  return j;
+}
+async function cfoSignIn(){
+  const em=$('#cfoEmail'),pw=$('#cfoPass'),msg=$('#cfoMsg'),go=$('#cfoGo');
+  const e=(em.value||'').trim(), p=pw.value||'';
+  if(!e||!p){msg.textContent='Email and password.';msg.className='cfoMsg bad';return}
+  go.disabled=true;msg.textContent='Checking…';msg.className='cfoMsg';
+  try{
+    cfoAuthSave(await cfoAuthPost('token?grant_type=password',{email:e,password:p}));
+    markSite();renderActive();                 // the door swings and the room is just there
+  }catch(err){
+    msg.textContent=err.message||'That did not work.';msg.className='cfoMsg bad';
+    go.disabled=false;pw.value='';pw.focus();
+  }
+}
+function cfoSignOut(){
+  CFOAUTH=null;try{delete localStorage.cfo_auth}catch(e){}
+  markSite();renderActive();
+}
+function cfoRoomPage(){
+  if(!cfoAuthed())return`<div class="roomGate">
+    <div class="rgMark">CFO</div>
+    <h2>This room is locked</h2>
+    <p>The ledger keeps account balances and card statements, so it asks for the account
+       rather than riding in on the PIN.</p>
+    <form class="rgForm" onsubmit="event.preventDefault();cfoSignIn()">
+      <input id="cfoEmail" type="email" autocomplete="username" inputmode="email" placeholder="email"
+        value="${esc(CFOAUTH?.email||'')}">
+      <input id="cfoPass" type="password" autocomplete="current-password" placeholder="password">
+      <button class="btn primary" id="cfoGo" type="submit">Open the room</button>
+      <div class="cfoMsg" id="cfoMsg"></div>
+    </form>
+  </div>`;
+  return`<div class="panel">
+    <h2><span class="sw" style="background:var(--acc)"></span>The ledger is moving in</h2>
+    <div class="hint">Signed in as ${esc(CFOAUTH.email||'your account')}. The room is open and
+      the door works; the furniture — cash, statements, transfers, investments, net worth and
+      the CFO dashboard — is being carried across from the standalone page next.</div>
+    <div class="foot" style="margin-top:14px">
+      <button class="btn sm ghost" onclick="cfoSignOut()">Lock this room</button>
+    </div>
+  </div>`;
+}
+function geoRoomPage(){
+  return`<div class="panel">
+    <h2><span class="sw" style="background:var(--acc)"></span>Nothing here yet</h2>
+    <div class="hint">The room exists and it is yours to fill. Tell me what belongs on a
+      geopolitics desk — what you want to track, and what you want it to tell you — and it
+      gets built in here rather than anywhere else.</div>
+  </div>`;
+}
 function schedulePage(){
   const acts=list('acts');
   const todayIdx=(new Date().getDay()+6)%7;
@@ -2865,7 +2987,22 @@ function overviewPage(){
 }
 
 /* ---------------- nav / pages ---------------- */
-const NAV=[
+/* ---------------- the house and its rooms ----------------
+   One address, one front door. The PIN is the door into the house; the wordmark opens a
+   room inside it. A room brings its own nav, its own palette and its own gate if it has
+   one — everything around it, the shell and the store and the sync, is the same house.
+   That is the whole difference between this and three sites: nothing is reloaded, so
+   crossing reads as walking through a doorway rather than leaving and arriving. */
+const SITES={
+  main:{n:'Main',tag:'Personal life console',home:'overview'},
+  cfo :{n:'CFO', tag:'Money and cards',      home:'cfoRoom',gate:1},
+  geo :{n:'Geo', tag:'Geopolitics',          home:'geoRoom'},
+};
+let SITE=SITES[localStorage.alfred_site]?localStorage.alfred_site:'main';
+const NAVS={
+ cfo:[{t:'Ledger',p:'cfoRoom'}],
+ geo:[{t:'Desk',p:'geoRoom'}],
+ main:[
   {t:'Overview',p:'overview'},
   {t:'Brief',p:'brief'},
   {t:'To-do',p:'todo',cls:'todo'},
@@ -2880,19 +3017,25 @@ const NAV=[
   {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
   {t:'Learnings',g:[['Books','books'],['To learn','courses']]},
   {t:'Projects',p:'projects'},
-];
+ ],
+};
 const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
-  schedule:{render:schedulePage,fab:'acts'}};
-// The last tab you were on is remembered, and it may be one of the money pages that are
-// gone. renderActive quietly does nothing when a page has no section to draw into, so
-// without this the app would open to a blank screen with no hint as to why.
-const PAGE_IDS=new Set(NAV.flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1])));
-let activePage=PAGE_IDS.has(localStorage.alfred_page)?localStorage.alfred_page:'overview';
+  schedule:{render:schedulePage,fab:'acts'},
+  cfoRoom:{render:cfoRoomPage,fab:null},
+  geoRoom:{render:geoRoomPage,fab:null}};
+// Each room remembers its own last tab, so coming back lands where you left rather than at
+// the front of it. A remembered tab that no longer exists — a money page from before they
+// moved out, say — falls back to the room's own front page, because renderActive quietly
+// does nothing when a page has no section to draw into and the app would open blank.
+const pageIds=()=>new Set(NAVS[SITE].flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1])));
+const pageKey=()=>'alfred_page'+(SITE==='main'?'':'_'+SITE);
+const homePage=()=>{const w=localStorage[pageKey()];return pageIds().has(w)?w:SITES[SITE].home};
+let activePage=homePage();
 function initNav(){
   const nav=$('#nav');nav.innerHTML='';
-  NAV.forEach(n=>{
+  NAVS[SITE].forEach(n=>{
     if(n.p){const b=document.createElement('button');b.textContent=n.t;b.dataset.p=n.p;if(n.cls)b.className=n.cls;
       b.onclick=()=>{closeMenus();go(n.p)};nav.appendChild(b)}
     else{const g=document.createElement('div');g.className='navGroup';
@@ -2905,12 +3048,45 @@ function initNav(){
         if(!was){openFly(n.g,g,gb);flyStamp=Date.now()}};
       nav.appendChild(g)}
   });
-  document.addEventListener('click',closeMenus);
-  document.addEventListener('touchstart',e=>{if(!e.target.closest('.navGroup,#navFly,.siteSw'))closeMenus()},{passive:true});
-  nav.addEventListener('scroll',closeMenus);
   const pages=$('#pages');
-  const allPages=[...NAV.flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1]))];
-  pages.innerHTML=allPages.map(p=>`<section class="page" id="pg-${p}"></section>`).join('');
+  pages.innerHTML=[...pageIds()].map(p=>`<section class="page" id="pg-${p}"></section>`).join('');
+}
+// Bound once, not inside initNav — that runs again on every crossing, and re-binding there
+// stacked a fresh pair of document listeners on the page each time you changed room.
+document.addEventListener('click',closeMenus);
+document.addEventListener('touchstart',e=>{if(!e.target.closest('.navGroup,#navFly,.siteSw'))closeMenus()},{passive:true});
+$('#nav').addEventListener('scroll',closeMenus);
+/* Crossing into another room. Nothing is fetched and nothing is reloaded: the nav is
+   rebuilt, the palette swaps on the root, and the page you last had open in that room
+   comes back. The dip either side is there to carry the change of light — without it the
+   palette snaps and reads as a different site rather than a different room. */
+function goSite(s){
+  closeMenus();
+  if(!SITES[s]||s===SITE)return;
+  const w=$('.wrap');
+  w.classList.add('crossing');
+  setTimeout(()=>{
+    SITE=s; try{localStorage.alfred_site=s}catch(e){}
+    document.documentElement.dataset.site=s;
+    markSite();
+    initNav();
+    activePage=homePage();
+    renderActive();
+    window.scrollTo(0,0);
+    requestAnimationFrame(()=>w.classList.remove('crossing'));
+  },210);
+}
+// What the header says you are in, and which row of the menu is lit.
+function markSite(){
+  const t=$('#siteTag');if(t)t.textContent=SITES[SITE].tag;
+  $$('#siteMenu button').forEach(b=>{
+    const on=b.dataset.s===SITE;
+    b.classList.toggle('active',on);
+    if(on)b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current');
+  });
+  // The CFO row says whether its door is still shut, so you know before you walk over.
+  const c=$('#siteMenu button[data-s="cfo"] .sTag');
+  if(c){c.textContent=cfoAuthed()?'open':'locked';c.classList.toggle('lit',cfoAuthed())}
 }
 let flyStamp=0;
 function openFly(items,groupEl,btn){
@@ -2938,13 +3114,16 @@ $('#siteBtn').onclick=e=>{
   if(!was){s.classList.add('open');$('#siteBtn').setAttribute('aria-expanded','true')}
 };
 $('#siteMenu').onclick=e=>e.stopPropagation();   // clicking inside it is not clicking away
+$$('#siteMenu button').forEach(b=>b.onclick=()=>goSite(b.dataset.s));
 function markNav(){
   $$('#nav > button').forEach(b=>b.classList.toggle('active',b.dataset.p===activePage));
   $$('.navGroup').forEach(g=>{
     g.querySelector('.navGroupBtn').classList.toggle('on',(g.dataset.pages||'').split(',').includes(activePage));
   });
 }
-function go(p){if(p!==activePage)unfreeze(p);activePage=p;localStorage.alfred_page=p;renderActive()}
+function go(p){if(p!==activePage)unfreeze(p);activePage=p;
+  try{localStorage[pageKey()]=p}catch(e){}       // each room keeps its own place
+  renderActive()}
 function renderActive(){
   syncAutoOrders();syncRecurTodos();
   document.body.classList.toggle('briefReading',activePage==='brief');
@@ -3052,10 +3231,12 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();seedJerseys();initNav();initPad();
+  load();seed();seedJerseys();
+  document.documentElement.dataset.site=SITE;   // the room's palette, before anything paints
+  initNav();markSite();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
-  if(!MODS[activePage]&&!SPECIAL[activePage])activePage='overview';
-  if(!$('#pg-'+activePage))activePage='overview';
+  if(!MODS[activePage]&&!SPECIAL[activePage])activePage=SITES[SITE].home;
+  if(!$('#pg-'+activePage))activePage=SITES[SITE].home;
   renderActive();
   const GRACE=10*60*1000;                       // a reload within 10 min doesn't re-ask
   const recent=+localStorage.alfred_unlocked||0;
