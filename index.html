@@ -22,7 +22,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#f4efe4; --bg2:#ece5d4; --panel:#fbf8f0; --panel2:#f1ebdd;
@@ -46,14 +46,16 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     --ok:#2fd6a3; --bad:#f2606a; --warn:#d4a94e;
     --glow:rgba(123,108,246,.10);
   }
+  /* Geo reads as the earth seen at night: deep ocean blue for the ground, landmass green
+     for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
-    --bg:#0d1014; --bg2:#12161c; --panel:#171c24; --panel2:#1e242e;
-    --line:#212832; --line2:#333d4a;
-    --txt:#e6e9ee; --muted:#93a0b0; --faint:#5f6b7a;
-    --acc:#c2703c; --gold:#d8b24a; --blue:#5b93c4; --green:#5aa87a; --orange:#d2884a;
-    --purple:#9b7bb8; --red:#cf5d52;
-    --ok:#5aa87a; --bad:#cf5d52; --warn:#d8b24a;
-    --glow:rgba(194,112,60,.09);
+    --bg:#0a1219; --bg2:#0e1822; --panel:#12202b; --panel2:#182a37;
+    --line:#1b2e3c; --line2:#2d4658;
+    --txt:#e4e9e6; --muted:#8fa3a4; --faint:#5c7076;
+    --acc:#5f9e72; --gold:#c9a25c; --blue:#4a7fa5; --green:#5f9e72; --orange:#b5793f;
+    --purple:#7d8fb3; --red:#b4574a;
+    --ok:#5f9e72; --bad:#b4574a; --warn:#c9a25c;
+    --glow:rgba(95,158,114,.10);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -75,6 +77,9 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .logo{font-family:"Fraunces",Georgia,serif;font-weight:800;letter-spacing:-.02em;font-size:22px;line-height:1}
   .logo b{color:var(--gold)}
+  /* In a room the mark is a word, not a full stop, so it needs air around it. */
+  :root:not([data-site="main"]) .logo b{margin-left:1px}
+  :root[data-site="geo"] .logo b{color:var(--acc)}
   .tag{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
   .statuspill{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:5px 10px;cursor:pointer;background:none}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
@@ -502,6 +507,100 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     .pad{grid-template-columns:repeat(3,64px)}
     .pkey{height:64px}
   }
+
+  /* ======== the CFO room's own look ========
+     Everything here is scoped to the room. The palette above already carries most of
+     it — the stylesheet is token-driven — and what is left is what a money screen
+     wants that a notebook did not: figures that line up, tighter corners, Sora rather
+     than Fraunces, and the components its pages are built from. Scoping matters: these
+     are plain class names like .panel and .btn, and unscoped they would repaint Main.
+  */
+  :root[data-site="cfo"] .v,:root[data-site="cfo"] .v2,:root[data-site="cfo"] .sub,:root[data-site="cfo"] .stat .v,:root[data-site="cfo"] .ft td,:root[data-site="cfo"] .ft th{font-variant-numeric:tabular-nums}
+  :root[data-site="cfo"] ::selection{background:rgba(123,108,246,.32)}
+  :root[data-site="cfo"] .panel{border-radius:6px}
+  :root[data-site="cfo"] .stat{border-radius:4px}
+  :root[data-site="cfo"] .rowBox{border-radius:5px}
+  :root[data-site="cfo"] .btn{border-radius:4px}
+  :root[data-site="cfo"] #lock,:root[data-site="cfo"] #authOv,:root[data-site="cfo"] #pwOv{backdrop-filter:blur(6px)}
+  :root[data-site="cfo"] .logo{font-family:"Sora",system-ui,sans-serif;font-weight:700;letter-spacing:-.02em;font-size:22px;line-height:1}
+  :root[data-site="cfo"] .logo b{color:var(--acc);font-weight:600;letter-spacing:.02em}
+  :root[data-site="cfo"] nav button{background:none;border:none;color:var(--muted);font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:13px;padding:11px 13px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:.15s;flex:none}
+  :root[data-site="cfo"] .navGroupBtn{background:none;border:none;color:var(--muted);font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:13px;padding:11px 13px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+  :root[data-site="cfo"] .navMenu button{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:0!important;color:var(--muted);font-family:"Sora",system-ui,sans-serif;font-weight:600;font-size:13px;padding:9px 12px 9px 16px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:.12s;position:relative}
+  :root[data-site="cfo"] .panel h2{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:15px;display:flex;align-items:center;gap:9px}
+  :root[data-site="cfo"] .btn{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:13px;border-radius:10px;padding:10px 15px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px}
+  :root[data-site="cfo"] .segbar.wrap{flex-wrap:wrap;overflow:visible;border-radius:14px}
+  :root[data-site="cfo"] .segbar button{background:none;border:none;color:var(--muted);font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:12px;padding:6px 14px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
+  :root[data-site="cfo"] .rinfo .t{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
+  :root[data-site="cfo"] .shead{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:14px;letter-spacing:-.005em;color:var(--txt);margin:20px 2px 2px;padding-bottom:5px;border-bottom:1px solid var(--line2);display:flex;align-items:baseline;gap:6px}
+  :root[data-site="cfo"] .lnk{color:var(--muted);font-style:italic}
+  :root[data-site="cfo"] .ghead{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:17px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2);display:flex;align-items:baseline;gap:7px}
+  :root[data-site="cfo"] .modal h3{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:18px}
+  :root[data-site="cfo"] .field textarea{min-height:120px;resize:vertical;font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5}
+  :root[data-site="cfo"] .menuGrid .mday{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:12.5px;color:var(--txt);align-self:center}
+  :root[data-site="cfo"] .menuCell{background:var(--bg2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);padding:9px 10px;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13.5px;width:100%;min-height:44px;resize:none;line-height:1.4;overflow:hidden}
+  :root[data-site="cfo"] .ovHead{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:24px;margin:16px 2px 0}
+  :root[data-site="cfo"] .ttHead{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:12px;text-align:center;padding:3px 0}
+  :root[data-site="cfo"] .ttBlock .n{font-weight:600;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:10.5px;line-height:1.2}
+  :root[data-site="cfo"] .ttBlock .sp{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:9px;color:var(--acc);font-weight:600;margin-left:6px;white-space:nowrap}
+  :root[data-site="cfo"] .neg{color:var(--bad)} .pos{color:#2e7247}
+  :root[data-site="cfo"] .finRow{display:flex;align-items:baseline;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+  :root[data-site="cfo"] .finRow:hover{background:var(--panel2)}
+  :root[data-site="cfo"] .finRow:last-child{border-bottom:0}
+  :root[data-site="cfo"] .finRow .n{font-size:13.5px}
+  :root[data-site="cfo"] .finRow .sub{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint)}
+  :root[data-site="cfo"] .finRow .sub.late{color:var(--bad);font-weight:500}   /* a due date that has gone past */
+  :root[data-site="cfo"] .finRow .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:13.5px}
+  :root[data-site="cfo"] .finRow .v2{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted)}
+  :root[data-site="cfo"] .finTot{display:flex;gap:10px;padding:10px 2px 2px;border-top:2px solid var(--line2);margin-top:2px;font-weight:600}
+  :root[data-site="cfo"] .finTot .n{font-size:13px;font-family:"Sora",system-ui,sans-serif}
+  :root[data-site="cfo"] .finTot .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:14px}
+  :root[data-site="cfo"] .statsSplit{display:flex;gap:12px;align-items:stretch}
+  :root[data-site="cfo"] .statsSplit>.stats{flex:1;min-width:0}
+  :root[data-site="cfo"] .statsRule{flex:none;width:2px;background:var(--line2);border-radius:2px;align-self:stretch}
+  :root[data-site="cfo"] .statsSplit>.statsBills{flex:0 0 216px}
+  @media(max-width:900px){:root[data-site="cfo"] .statsSplit>.statsBills{flex:0 0 180px}}
+  @media(max-width:760px){:root[data-site="cfo"] .statsSplit{flex-direction:column}:root[data-site="cfo"] .statsRule{width:auto;height:2px}:root[data-site="cfo"] .statsSplit>.statsBills{flex:1 1 auto}}
+  :root[data-site="cfo"] .chartWrap{margin-top:10px;overflow:hidden}
+  :root[data-site="cfo"] .invSvg{width:100%;height:auto;display:block}
+  :root[data-site="cfo"] .cLab{font-family:"IBM Plex Mono";font-size:9.5px;fill:var(--faint);letter-spacing:.04em}
+  :root[data-site="cfo"] .chartRead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:8px 2px 2px;min-height:22px}
+  :root[data-site="cfo"] .chartRead .rDate{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  :root[data-site="cfo"] .chartRead .rVal{font-family:"IBM Plex Mono";font-size:17px;font-weight:600}
+  :root[data-site="cfo"] .chartRead .rMut{font-family:"IBM Plex Mono";font-size:11px;color:var(--faint)}
+  :root[data-site="cfo"] .chartRead .pos,:root[data-site="cfo"] .chartRead .neg{font-family:"IBM Plex Mono";font-size:12.5px}
+  :root[data-site="cfo"] #ivSvg{touch-action:pan-y;cursor:crosshair}
+  :root[data-site="cfo"] .panelRule{height:2px;background:var(--line2);border-radius:2px;margin:26px 2px 2px}
+  :root[data-site="cfo"] .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
+  :root[data-site="cfo"] .bkH1{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:clamp(26px,5.5vw,36px);line-height:1.15;margin-top:14px;letter-spacing:-.01em}
+  :root[data-site="cfo"] .bkH3{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:22px;line-height:1.25;margin:16px 0 0}
+  :root[data-site="cfo"] .wtTerm{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:24px;line-height:1.2;letter-spacing:-.01em;word-break:break-word}
+  :root[data-site="cfo"] .wtVrow .vw{font-family:"Sora",system-ui,sans-serif;font-weight:700;font-size:16px;flex:0 0 auto;max-width:42%;word-break:break-word}
+  :root[data-site="cfo"] #lock .llogo{font-family:"Sora",system-ui,sans-serif;font-weight:800;font-size:30px;letter-spacing:-.02em}
+  :root[data-site="cfo"] .cfoBar{height:7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin-top:8px}
+  :root[data-site="cfo"] .cfoBar>i{display:block;height:100%;background:var(--acc);border-radius:999px}
+  :root[data-site="cfo"] .cfoGoal{padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+  :root[data-site="cfo"] .cfoGoal:hover{background:var(--panel2)}
+  :root[data-site="cfo"] .cfoGoal:last-child{border-bottom:0}
+  :root[data-site="cfo"] .cfoGoalTop{display:flex;align-items:baseline;gap:10px}
+  :root[data-site="cfo"] .cfoGoalTop .n{font-size:13.5px}
+  :root[data-site="cfo"] .cfoGoalTop .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:12.5px;color:var(--muted)}
+  :root[data-site="cfo"] .cfoGoalSub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint);margin-top:6px}
+  :root[data-site="cfo"] .cfoGap{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  :root[data-site="cfo"] .cfoGap:last-child{border-bottom:0}
+  :root[data-site="cfo"] .cfoGap .n{font-size:13.5px}
+  :root[data-site="cfo"] .cfoGap .why{font-size:11px;color:var(--faint)}
+  :root[data-site="cfo"] .cfoWrap{overflow-x:auto}
+  :root[data-site="cfo"] .cfoTbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:440px}
+  :root[data-site="cfo"] .cfoTbl th{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line2);font-weight:600}
+  :root[data-site="cfo"] .cfoTbl th:first-child{text-align:left}
+  :root[data-site="cfo"] .cfoTbl td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;font-family:"IBM Plex Mono"}
+  :root[data-site="cfo"] .cfoTbl td:first-child{text-align:left;font-family:"Sora",system-ui,sans-serif}
+  :root[data-site="cfo"] .cfoTbl tr:last-child td{border-bottom:0}
+  :root[data-site="cfo"] .cfoTbl tr.win td{background:rgba(63,111,79,.09)}
+  :root[data-site="cfo"] .cfoIn{font-family:"IBM Plex Mono";font-size:13px;padding:7px 10px;border:1px solid var(--line2);border-radius:9px;background:var(--panel);color:var(--txt);width:132px}
+  :root[data-site="cfo"] .cfoDebtBal{margin-left:14px}
+  @media(max-width:560px){:root[data-site="cfo"] .cfoDebtMin{display:none}:root[data-site="cfo"] .cfoDebtBal{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -523,7 +622,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
            the shape of the thing is visible and they are one click away the day they land. -->
       <div class="siteSw" id="siteSw">
         <button class="siteBtn" id="siteBtn" title="Switch site" aria-haspopup="true" aria-expanded="false">
-          <span class="logo">ALFRED<b>.</b></span>
+          <span class="logo" id="siteLogo">ALFRED<b>.</b></span>
           <span class="tag" id="siteTag">Personal life console</span>
         </button>
         <div class="siteMenu" id="siteMenu" role="menu">
@@ -601,12 +700,14 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · rooms';
+const BUILD='2026-09-25 · cfo moved in';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2})};
+const money2=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
+const signCls=n=>(+n||0)<0?'neg':(+n||0)>0?'pos':'';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 // The cooks work a four-week rotation: A, B, C, D, then A again. The sheet they work from is
 // in French, so the page is too — renaming it into English would only mean translating it
@@ -669,14 +770,29 @@ function save(now){
 }
 addEventListener('pagehide',()=>save(1));
 addEventListener('beforeunload',()=>save(1));
+/* ---------------- the CFO room's own store ----------------
+   Two stores, because they are two tables with two locks. The house's rows live in `items`,
+   guarded by the sync secret typed in per device. The ledger's live in `cfo_items`, guarded
+   by the account — the anon key is revoked on that table outright, so a session is the only
+   way in. Keeping them apart is the whole reason the ledger is worth a second door, and it
+   is also what lets the room carry across untouched: it reads the very same rows the
+   standalone page wrote, Plaid connections and all, so nothing has to be imported or set up
+   again. The ledger is held in memory only and never written to this device. */
+let SC={items:{},lastPull:0,lastSyncAt:0};
+const CFO_SECS=new Set(['fincash','finstmt','fintx','finsub','income','debt','goal','tx',
+  'spend','prop','assets','invest','plaid']);
+const stOf=sec=>CFO_SECS.has(sec)?SC:S;
+const stIn=id=>(S.items[id]?S:(SC.items[id]?SC:null));
 function put(sec,d,id){
-  const it=S.items[id]||{id:id||uid(),sec,d:{}};
+  const B=stOf(sec);
+  const it=B.items[id]||{id:id||uid(),sec,d:{}};
   it.sec=sec; it.d=Object.assign({},it.d,d); it.up=Date.now(); it.dirty=1; delete it.del;
-  S.items[it.id]=it; save(); queueSync(); return it;
+  B.items[it.id]=it; if(B===S)save(); queueSync(); return it;
 }
-function kill(id){const it=S.items[id];if(!it)return;it.del=true;it.up=Date.now();it.dirty=1;save();queueSync()}
-function list(sec){return Object.values(S.items).filter(i=>i.sec===sec&&!i.del)}
-function one(id){const i=S.items[id];return (i&&!i.del)?i:null}
+function kill(id){const B=stIn(id);if(!B)return;const it=B.items[id];
+  it.del=true;it.up=Date.now();it.dirty=1;if(B===S)save();queueSync()}
+function list(sec){return Object.values(stOf(sec).items).filter(i=>i.sec===sec&&!i.del)}
+function one(id){const B=stIn(id);if(!B)return null;const i=B.items[id];return (i&&!i.del)?i:null}
 
 /* ---------------- sync ---------------- */
 let cfg=null; try{cfg=JSON.parse(localStorage.alfred_cfg||'null')}catch(e){}
@@ -694,7 +810,63 @@ async function sb(path,opt={}){
   const t=await r.text(); return t?JSON.parse(t):null;
 }
 let syncTimer=null,syncing=false,again=false;
-function queueSync(){setPill();clearTimeout(syncTimer);syncTimer=setTimeout(sync,900)}
+function queueSync(){setPill();clearTimeout(syncTimer);syncTimer=setTimeout(()=>{sync();cfoSync()},900)}
+/* The ledger's own channel. Same last-write-wins as the house's, against cfo_items with the
+   account's token rather than the sync secret — and it simply does nothing while the room is
+   locked, so the figures are never fetched by anyone who has not opened the door. */
+let cfoSyncing=false,cfoAgain=false;
+async function cfoAuthToken(){
+  if(!cfoAuthed())return '';
+  if(CFOAUTH.access_token&&Date.now()<CFOAUTH.exp-60000)return CFOAUTH.access_token;
+  try{cfoAuthSave(await cfoAuthPost('token?grant_type=refresh_token',{refresh_token:CFOAUTH.refresh_token}))}
+  catch(e){CFOAUTH=null;try{delete localStorage.cfo_auth}catch(x){}
+    markSite();if(SITE==='cfo')renderActive();return ''}
+  return CFOAUTH.access_token||'';
+}
+async function cfoSb(path,opt={}){
+  const tok=await cfoAuthToken(); if(!tok)throw Object.assign(new Error('room locked'),{net:1});
+  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),SB_TIMEOUT);
+  let r;
+  try{
+    r=await fetch(CFO_URL+'/rest/v1/'+path,{...opt,signal:ac.signal,
+      headers:Object.assign({apikey:CFO_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json'},opt.headers||{})});
+  }catch(e){const err=new Error(ac.signal.aborted?'cloud timed out':'cloud unreachable');err.net=1;throw err}
+  finally{clearTimeout(tm)}
+  if(!r.ok)throw new Error(r.status+' '+await r.text());
+  const t=await r.text(); return t?JSON.parse(t):null;
+}
+async function cfoSync(){
+  if(!cfoAuthed())return;
+  if(cfoSyncing){cfoAgain=true;return}
+  cfoSyncing=true;
+  let changed=false;
+  try{
+    const PAGE=500, since=Math.max(0,(SC.lastPull||0)-5*60000);
+    let maxUp=SC.lastPull||0, off=0;
+    for(;;){
+      const rows=await cfoSb(`cfo_items?select=*&up=gt.${since}&order=up.asc&limit=${PAGE}&offset=${off}`);
+      for(const r of rows){
+        const l=SC.items[r.id];
+        if(!l||+r.up>l.up){SC.items[r.id]={id:r.id,sec:r.sec,d:r.data||{},up:+r.up,...(r.del?{del:true}:{})};changed=true}
+        if(+r.up>maxUp)maxUp=+r.up;
+      }
+      if(rows.length<PAGE)break;
+      off+=PAGE;
+    }
+    SC.lastPull=maxUp;
+    const dirty=Object.values(SC.items).filter(i=>i.dirty);
+    for(let i=0;i<dirty.length;i+=40){
+      const chunk=dirty.slice(i,i+40), snap=chunk.map(x=>[x,x.up]);
+      await cfoSb('cfo_items?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},
+        body:JSON.stringify(chunk.map(x=>({id:x.id,sec:x.sec,data:x.d||{},up:x.up,del:!!x.del})))});
+      snap.forEach(([x,u])=>{if(x.up===u)delete x.dirty});
+    }
+    SC.lastSyncAt=Date.now();
+  }catch(e){if(!e.net)console.warn('ledger sync failed:',e.message)}
+  cfoSyncing=false;
+  if(changed&&SITE==='cfo')renderActive();
+  if(cfoAgain){cfoAgain=false;cfoSync()}
+}
 // Online/offline is decided by what actually happened on the wire, not by navigator.onLine:
 // that flag gets stuck false after sleep/wake or a VPN flip, and its 'online' event never fires
 // to unstick it. netOk: null = untested, true = reached the cloud, false = the wire is really down.
@@ -1866,6 +2038,67 @@ function receiveOrder(it){
   kill(it.id);
   return true;
 }
+/* ---- credit-card cycle and transaction helpers, for the CFO room ---- */
+function txIsSpend(i){
+  const det=String(i.d.det||''), d=String(i.d.desc||'');
+  if(/LOAN_PAYMENTS_CREDIT_CARD_PAYMENT/.test(det))return false;
+  if(/^TRANSFER_(IN|OUT)/.test(det))return false;
+  if(/\bzelle\b/i.test(d))return false;
+  if(/\b(card\s+(online\s+)?payment|cc\s*pymt|ccpymt|ach\s+pmt|autopay|e-?pay|payment\s+thank\s+you|online\s+payment)\b/i.test(d))return false;
+  return cfoUsd(i.d.amt,i.d.cur)>0;
+}
+const CARD_SRC=['Citibank CC','Amex CC','Wells Fargo CC'];
+// Evaluated at load because MODS field definitions are, so these must stay above MODS.
+const TX_ACCTS=['Citibank CC','Amex CC','Wells Fargo CC','Citi Bank','Wells Fargo','PayPal','BUH USD','BUH HTG','Cash'];
+const TX_CATS=['Groceries','Restaurants','Transport','Fuel','Shopping','Clothing','Tech','Subscriptions',
+  'Travel','Health','Gifts','Family support','Business','Home','Fees & interest','Cash withdrawal','Other'];
+// Which column on the Statements page a card's payments are entered under. Guessed from the
+// account name so nothing has to be linked up by hand, and overridable when the guess fails.
+const guessSrc=name=>{const n=String(name||'').toLowerCase().replace(/[^a-z]/g,'');
+  return (n&&CARD_SRC.find(x=>{const k=x.replace(' CC','').toLowerCase().replace(/[^a-z]/g,'');
+    return n.includes(k)||k.includes(n)}))||''};
+const dayOf=v=>{const m=String(v||'').match(/^\d{4}-\d{2}-(\d{2})$/);return m?+m[1]:0};
+const stmtDayOf=d=>+d.stmtDay||dayOf(d.stmt);   // fall back to the day of the old fixed date
+const dueDayOf =d=>+d.dueDay ||dayOf(d.due);
+// The 31st of a month with 30 days is the 30th.
+const onDay=(y,m,day)=>new Date(y,m,Math.min(day,new Date(y,m+1,0).getDate()));
+// A card bills on the same day every month, so the pair of dates is a rule rather than
+// something to retype. The cycle shown is the first one not yet settled: entering that
+// month's payment on the Statements page closes it and the card moves on to the next.
+// A due day earlier in the month than the statement day falls the month after.
+function cardCycle(i){
+  const sd=stmtDayOf(i.d), dd=dueDayOf(i.d);
+  if(!sd&&!dd)return null;
+  const src=i.d.card||guessSrc(i.d.name);
+  const settled=m=>{const mn=MONTHS[((m%12)+12)%12];
+    return !!src&&list('finstmt').some(x=>x.d.src===src&&x.d.month===mn&&String(x.d.amt??'').trim()!=='')};
+  const now=new Date(); const y=now.getFullYear();
+  // Where the card stands follows the Statements page, not the calendar. A month's row there
+  // is that month's statement, so the cycle showing is the one after the last month actually
+  // paid: leave August unpaid and August keeps showing through September, which is the point
+  // — the card is still on that cycle until the payment is entered.
+  // The rows carry a month but no year, so the search stays inside this one.
+  let last=-1;
+  for(let k=0;k<=now.getMonth();k++)if(settled(k))last=k;
+  // A card with nothing on the Statements page has no history to read, so it falls back to
+  // the calendar month rather than guessing at eight unpaid statements.
+  let m=last<0?now.getMonth():Math.min(last+1,11);
+  while(m<11&&settled(m))m++;                  // paid ahead? keep moving forward
+  const st=sd?onDay(y,m,sd):null;
+  const dm=(dd&&sd&&dd<sd)?m+1:m;
+  const du=dd?onDay(y+(dm>11?1:0),dm%12,dd):null;
+  return{st,du};
+}
+const cycDate=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+function cycTxt(i){
+  const c=cardCycle(i);if(!c)return null;
+  // The cycle only moves on when the payment is entered, so a due date now behind us means
+  // it went unpaid. The row says so, in the red an overdue day gets on the To-do list.
+  const t0=new Date();t0.setHours(0,0,0,0);
+  const late=!!c.du&&c.du<t0;
+  return{t:[c.st?'stmt '+cycDate(c.st):'',c.du?'due '+cycDate(c.du):'',late?'overdue':'']
+    .filter(Boolean).join(' · '),late};
+}
 const MODS={
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
@@ -2264,6 +2497,215 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
       act:{txt:i.d.paused?'▶ Resume':'❚❚ Pause',fn:`recurPause('${i.id}')`,cls:i.d.paused?'ordBtn pausedBtn':'ordBtn'},
       pill:i.d.paused?{cls:'mut',txt:'paused'}:(due?{cls:'bad',txt:'due'}:{cls:'ok',txt:days===1?'in 1 day':'in '+days+' days'})}},
   empty:'Nothing recurring yet — hit + to add one.'},
+/* ---- the CFO room's sections. They live in cfo_items, not items. ---- */
+fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
+  fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
+          {k:'stmtDay',l:'Statement day of the month',t:'num',ph:'24'},
+          {k:'dueDay',l:'Payment due day',t:'num',ph:'17'},
+          {k:'card',l:'Statements column',t:'sel',opt:['',...CARD_SRC]}],
+  // The day fields open showing what the account is already billing on, whether that was
+  // typed here or is still being read off the old fixed dates.
+  formIn:(it,k,v)=>{
+    if(k==='amt'&&(it?.d?.grp==='Credit'||it?.d?.grp==='Haiti credit')&&v!==''&&v!=null)return Math.abs(+v||0);
+    if(k==='stmtDay')return v||stmtDayOf(it?.d||{})||'';
+    if(k==='dueDay') return v||dueDayOf(it?.d||{})||'';
+    if(k==='card')   return v||guessSrc(it?.d?.name);
+    return v;
+  },
+  formOut:d=>{if((d.grp==='Credit'||d.grp==='Haiti credit')&&d.amt!==''&&d.amt!=null)d.amt=-Math.abs(+d.amt);return d}},
+finstmt:{title:'Monthly statement',color:'var(--blue)',hint:'',
+  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'year',l:'Year',t:'num',req:1,def:()=>FINYEAR},{k:'src',l:'Card / source',t:'sel',opt:['Citibank CC','Amex CC','Wells Fargo CC','BUH'],def:()=>finView==='Haitian'?'BUH':'Citibank CC'},{k:'amt',l:'Amount paid',t:'money'}]},
+fintx:{title:'Transfer',color:'var(--purple)',hint:'',
+  fields:[{k:'date',l:'Date',t:'date',def:()=>today()},{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'year',l:'Year',t:'num',req:1,def:()=>FINYEAR},{k:'desc',l:'What / who',t:'text',ph:'optional'},{k:'acct',l:'Bank side',t:'sel',opt:['American','Haitian'],def:()=>finView},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},{k:'dir',l:'Direction',t:'sel',opt:['Out','In'],def:'Out'},{k:'amt',l:'Amount',t:'money',req:1}],
+  formIn:(it,k,v)=>k==='amt'?Math.abs(+v||0):k==='dir'?((+it.d.amt||0)>=0?'In':'Out'):v,
+  formOut:d=>{d.amt=(d.dir==='In'?1:-1)*Math.abs(+d.amt||0);delete d.dir;if(d.acct!=='Haitian')d.cur='USD';
+    if(d.date){d.month=MONTHS[+d.date.slice(5,7)-1];d.year=+String(d.date).slice(0,4)}   // the date wins
+    else d.year=+d.year||FINYEAR;
+    return d}},
+finsub:{title:'Subscriptions',color:'var(--orange)',hint:'Tap a subscription to edit it — totals update themselves.',
+  fields:[{k:'name',l:'Subscription',t:'text',req:1},{k:'cycle',l:'Billing',t:'sel',opt:['Monthly','Yearly']},{k:'cost',l:'Cost',t:'money',req:1},{k:'bank',l:'Paid from',t:'text',ph:'Wells Fargo CC…'},{k:'notes',l:'Concerns / notes',t:'ta',full:1}],
+  group:i=>i.d.cycle||'Monthly',
+  groupOrder:(a,b)=>(a==='Monthly'?0:1)-(b==='Monthly'?0:1),
+  sort:(a,b)=>(+b.d.cost||0)-(+a.d.cost||0),
+  stats:it=>{const mo=it.filter(i=>i.d.cycle!=='Yearly').reduce((s,i)=>s+(+i.d.cost||0),0);
+    const yr=it.filter(i=>i.d.cycle==='Yearly').reduce((s,i)=>s+(+i.d.cost||0),0);
+    return[{k:'Monthly subs',v:money2(mo),c:'var(--orange)'},{k:'Yearly subs',v:money2(yr),u:'≈ '+money2(yr/12)+' / month',c:'var(--blue)'},{k:'All-in / month',v:money2(mo+yr/12),c:'var(--acc)'}]},
+  card:i=>({t:esc(i.d.name),s:[esc(i.d.bank||''),esc(i.d.notes||'')].filter(Boolean).join(' · '),
+    pill:{cls:'acc',txt:money2(i.d.cost)+(i.d.cycle==='Yearly'?'/yr':'/mo')}})},
+income:{title:'Income',color:'var(--green)',hint:'Everything that comes in. Whatever cadence you pick is normalised to a monthly figure — that one number drives the whole CFO dashboard.',
+  fields:[{k:'name',l:'Source',t:'text',req:1},
+          {k:'kind',l:'Type',t:'sel',opt:['Salary','Business distribution','Freelance','Rent','Interest / dividends','Gift','Other'],def:'Salary'},
+          {k:'amt',l:'Amount',t:'money',req:1},
+          {k:'cyc',l:'How often',t:'sel',opt:['Monthly','Twice a month','Every 2 weeks','Weekly','Quarterly','Yearly','One-off'],def:'Monthly'},
+          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
+          {k:'acct',l:'Lands in',t:'dyn',opt:['Wells Fargo','Citi Bank','PayPal','BUH USD','BUH HTG','Cash']},
+          {k:'start',l:'Started / next',t:'date'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.kind||'Other',
+  sort:(a,b)=>cfoMo(b.d)-cfoMo(a.d),
+  groupNote:g=>money2(g.reduce((s,i)=>s+cfoMo(i.d),0))+' /mo',
+  stats:it=>{const m=it.reduce((s,i)=>s+cfoMo(i.d),0);
+    return[{k:'Income / month',v:money2(m),c:'var(--green)'},
+           {k:'Income / year',v:money2(m*12),c:'var(--blue)'},
+           {k:'Sources',v:it.length,c:'var(--acc)'}]},
+  card:i=>({t:esc(i.d.name),
+    s:[esc(i.d.cyc||'Monthly'),i.d.cur==='HTG'?(+i.d.amt||0).toLocaleString('en-US')+' HTG':money2(i.d.amt),i.d.acct?'→ '+esc(i.d.acct):''].filter(Boolean).join(' · '),
+    pill:{cls:'acc',txt:money2(cfoMo(i.d))+'/mo'}}),
+  empty:'Nothing recorded yet. This is the biggest hole in your picture — every surplus, savings-rate and payoff number below stays blank until one source is here.'},
+debt:{title:'Debts',color:'var(--red)',hint:'Enter the balance as a positive number — this page is about what you owe. Fill in APR and the minimum and the payoff strategies run themselves. Cards you connect through Plaid fill those in on their own and say “from your bank”; if one of those duplicates a row you typed yourself, delete the typed one — otherwise the totals count the same card twice.',
+  fields:[{k:'name',l:'Debt',t:'text',req:1},
+          {k:'kind',l:'Type',t:'sel',opt:['Credit card','Line of credit','Personal loan','Auto loan','Mortgage','Student loan','Family / private','Other'],def:'Credit card'},
+          {k:'bal',l:'Balance owed',t:'money',req:1},
+          {k:'apr',l:'APR %',t:'num'},
+          {k:'min',l:'Minimum / month',t:'money'},
+          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
+          {k:'day',l:'Due day (1–31)',t:'num'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.kind||'Other',
+  sort:(a,b)=>(+b.d.apr||0)-(+a.d.apr||0)||cfoUsd(b.d.bal,b.d.cur)-cfoUsd(a.d.bal,a.d.cur),
+  groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur),0)),
+  stats:it=>{const tot=it.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur),0);
+    const int=it.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur)*((+i.d.apr||0)/100/12),0);
+    const w=tot?it.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur)*(+i.d.apr||0),0)/tot:0;
+    return[{k:'Total owed',v:money2(tot),c:'var(--red)'},
+           {k:'Weighted APR',v:w?w.toFixed(1)+'%':'—',u:w?'':'add APRs',c:'var(--orange)'},
+           {k:'Interest / month',v:money2(int),u:money2(int*12)+' a year',c:'var(--gold)'},
+           {k:'Minimums / month',v:money2(it.reduce((s,i)=>s+cfoUsd(i.d.min,i.d.cur),0)),c:'var(--blue)'}]},
+  card:i=>({t:esc(i.d.name),
+    s:[(+i.d.apr||0)?i.d.apr+'% APR':'no APR set',cfoUsd(i.d.min,i.d.cur)?money2(cfoUsd(i.d.min,i.d.cur))+'/mo min':'no minimum set',(+i.d.day||0)?'due the '+i.d.day+'th':'',i.d.src==='Plaid'?'from your bank':''].filter(Boolean).join(' · '),
+    pill:{cls:(+i.d.apr||0)>=20?'bad':(+i.d.apr||0)>=10?'warn':'mut',txt:money2(cfoUsd(i.d.bal,i.d.cur))}}),
+  empty:'No debts recorded. Add one per card or loan — the avalanche-vs-snowball comparison needs the APR and the minimum to say anything real.'},
+goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when. A target date turns a wish into a monthly number.',
+  fields:[{k:'name',l:'Goal',t:'text',req:1},
+          {k:'target',l:'Target amount',t:'money',req:1},
+          {k:'track',l:'Progress from',t:'sel',opt:['Typed in below','Net liquid — live'],def:'Typed in below'},
+          {k:'saved',l:'Put aside so far',t:'money',hintTxt:'Ignored when progress reads from net liquid.'},
+          {k:'by',l:'Target date',t:'date'},
+          {k:'pri',l:'Priority',t:'sel',opt:['1 — first','2 — next','3 — later','Someday'],def:'2 — next'},
+          {k:'notes',l:'Why it matters',t:'ta',full:1}],
+  sort:(a,b)=>String(a.d.pri||'2').localeCompare(String(b.d.pri||'2'))||(a.d.by||'9999').localeCompare(b.d.by||'9999'),
+  stats:it=>{const t=it.reduce((s,i)=>s+(+i.d.target||0),0),
+      sv=it.reduce((s,i)=>s+(i.d.track==='Net liquid — live'?cfoNetLiquid():(+i.d.saved||0)),0);
+    return[{k:'Targeted',v:money2(t),c:'var(--gold)'},
+           {k:'Put aside',v:money2(sv),u:t?(sv/t*100).toFixed(0)+'% of the way':'',c:'var(--green)'},
+           {k:'Still to find',v:money2(Math.max(0,t-sv)),c:'var(--acc)'}]},
+  card:i=>{const t=+i.d.target||0,sv=+i.d.saved||0,p=t?Math.min(100,sv/t*100):0;
+    return{t:esc(i.d.name),
+      s:[money2(sv)+' of '+money2(t),i.d.track==='Net liquid — live'?'tracking net liquid':'',i.d.by?'by '+fdate(i.d.by).replace(/^\w+, /,''):'no date set'].filter(Boolean).join(' · '),
+      pill:{cls:p>=100?'ok':p>=50?'warn':'mut',txt:p.toFixed(0)+'%'}}},
+  empty:'No goals yet. A wealth roadmap without a destination is just a budget — add what you are actually saving toward.'},
+tx:{title:'Transactions',color:'var(--purple)',hint:'Every purchase, one row each. This is the ledger the rest of the app reasons from — the Statements page tells you what you paid a card, only this tells you what you bought.',
+  fields:[{k:'date',l:'Date',t:'date',req:1},
+          {k:'desc',l:'Merchant / description',t:'text',req:1},
+          {k:'amt',l:'Amount',t:'money',req:1,ph:'positive = spent, negative = refund'},
+          {k:'card',l:'Card / account',t:'dyn',opt:TX_ACCTS,req:1},
+          {k:'cat',l:'Category',t:'dyn',opt:TX_CATS},
+          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  only:i=>!TXCARD||i.d.card===TXCARD,
+  collapse:1,                          // a month at a time, newest already open
+  collapseKey:()=>TXCARD,              // each card opens on its own latest month
+  group:i=>txMonthLabel(i.d),
+  groupOrder:(a,b)=>txMonthKey(b)-txMonthKey(a),
+  groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
+  stats:it=>{
+    const acc=txAcctRow();
+    /* A current account is not a spending account. What you bought is on the cards; what
+       passes through here is mostly the payments settling them and money moving between
+       your own accounts. A spending total and a biggest category built from that say
+       nothing true, so only the balance is stated and the rest is left for you to decide. */
+    if(acc&&!txIsOwed(acc))return[txBalanceTile(acc),TXBLANK,TXBLANK,TXBLANK];
+    const rows=it.filter(txIsSpend);
+    const spent=rows.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const byC={};rows.forEach(i=>{const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
+    const top=Object.entries(byC).sort((a,b)=>b[1]-a[1])[0];
+    const spentTile={k:'Spent',v:money2(spent),u:rows.length+' purchase'+(rows.length===1?'':'s')
+        +(it.length>rows.length?' \u00b7 '+(it.length-rows.length)+' payments and transfers set aside':''),
+      c:'var(--purple)'};
+    const topTile={k:'Biggest category',v:top?esc(top[0]):'\u2014',u:top?money2(top[1]):'',c:'var(--orange)'};
+    // A card leads with what it costs you and when: owed, then the statement about to close
+    // and the date that statement has to be paid by.
+    return acc?[txBalanceTile(acc),txCycleTile(acc),spentTile,topTile]
+              :[txBalanceTile(acc),spentTile,topTile,txFourthTile(acc)];},
+  card:i=>{const v=cfoUsd(i.d.amt,i.d.cur);
+    return{t:esc(i.d.desc||'Transaction'),
+      s:[i.d.date?fdate(i.d.date).replace(/^\w+, /,''):'',esc(i.d.card||''),esc(i.d.cat||'uncategorised')].filter(Boolean).join(' \u00b7 '),
+      pill:{cls:v<0?'ok':'mut',txt:(v<0?'+'+money2(-v):money2(v))}}},
+  empty:'No transactions yet. Import a statement with the button above, or add one with +. Until something is here the spending breakdown has nothing to read.'},
+spend:{title:'Spending',color:'var(--purple)',hint:'One row per category per month. Your cards tell you what you paid; this tells you what you bought — which is the only thing you can act on.',
+  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},
+          {k:'year',l:'Year',t:'num',def:()=>new Date().getFullYear()},
+          {k:'cat',l:'Category',t:'dyn',opt:['Housing','Groceries','Restaurants','Travel','Transport','Shopping','Health','Gifts','Family support','Business','Fees & interest','Other'],req:1},
+          {k:'amt',l:'Amount',t:'money',req:1},
+          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>(i.d.month||'—')+' '+(i.d.year||''),
+  groupOrder:(a,b)=>cfoMonKey(b)-cfoMonKey(a),
+  groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
+  sort:(a,b)=>cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
+  stats:it=>{const tot=it.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const mons=new Set(it.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
+    const byCat={};it.forEach(i=>{const c=i.d.cat||'Other';byCat[c]=(byCat[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
+    const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+    return[{k:'Average / month',v:money2(mons?tot/mons:0),u:mons?mons+' month'+(mons>1?'s':'')+' logged':'',c:'var(--purple)'},
+           {k:'Logged in total',v:money2(tot),c:'var(--blue)'},
+           {k:'Biggest category',v:top?esc(top[0]):'—',u:top?money2(top[1]):'',c:'var(--orange)'}]},
+  card:i=>({t:esc(i.d.cat||'Other'),s:esc(i.d.notes||''),
+    pill:{cls:'acc',txt:money2(cfoUsd(i.d.amt,i.d.cur))}}),
+  empty:'Nothing logged. Statements tell you what you paid the card; only this tells you what you bought — and nothing can be cut on purpose until it is broken down here.'},
+prop:{title:'Property',color:'var(--blue)',hint:'Real estate you own or are due to receive. A property feeds the cash-flow numbers only once its status is Renting — anything still Pending sits here as context, and its rent stays out of every figure on the dashboard.',
+  fields:[{k:'name',l:'Property',t:'text',req:1},
+          {k:'status',l:'Status',t:'sel',opt:['Pending transfer','Renting','Lived in','Sold'],def:'Pending transfer'},
+          {k:'addr',l:'Address',t:'text',full:1},
+          {k:'val',l:'Market value',t:'money'},
+          {k:'rent',l:'Gross rent / month',t:'money'},
+          {k:'tax',l:'Property tax / year',t:'money'},
+          {k:'ins',l:'Insurance / year',t:'money'},
+          {k:'hoa',l:'HOA / month',t:'money'},
+          {k:'maint',l:'Maintenance / year',t:'money'},
+          {k:'mgmt',l:'Management % of rent',t:'num'},
+          {k:'vac',l:'Vacancy % allowance',t:'num'},
+          {k:'from',l:'Expected from',t:'date'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.status||'Pending transfer',
+  sort:(a,b)=>propNet(b.d)-propNet(a.d),
+  groupNote:g=>money2(g.reduce((s,i)=>s+propNet(i.d),0))+' /mo net',
+  stats:it=>{const live=it.filter(propLive);
+    return[{k:'Net rent / month',v:money2(live.reduce((s,i)=>s+propNet(i.d),0)),u:live.length?'counted in cash flow':'nothing renting yet',c:'var(--green)'},
+           {k:'Gross rent / month',v:money2(live.reduce((s,i)=>s+(+i.d.rent||0),0)),c:'var(--blue)'},
+           {k:'Carrying cost / month',v:money2(live.reduce((s,i)=>s+propCost(i.d),0)),c:'var(--orange)'},
+           {k:'Value held',v:money2(it.filter(i=>i.d.status!=='Sold').reduce((s,i)=>s+(+i.d.val||0),0)),u:'net worth only, not the goal',c:'var(--acc)'}]},
+  card:i=>{const live=propLive(i),n=propNet(i.d);
+    return{t:esc(i.d.name),
+      s:[esc(i.d.addr||''),(+i.d.rent||0)?money2(i.d.rent)+'/mo gross':'',(+i.d.val||0)?'worth '+money2(i.d.val):''].filter(Boolean).join(' · '),
+      pill:live?{cls:n>0?'ok':'warn',txt:money2(n)+'/mo net'}:{cls:'mut',txt:i.d.from?'from '+fdate(i.d.from).replace(/^\w+, /,''):'paused'}}},
+  empty:'No property recorded. Add one per house — a Pending transfer sits out of the numbers until you switch it to Renting.'},
+assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value. Net worth counts what it\'s worth now.',
+  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Watch','Property','Vehicle','Investment','Other']},
+          {k:'src',l:'Value from',t:'sel',opt:['Manual','Investment log'],def:'Manual'},
+          {k:'paid',l:'Bought for',t:'money'},
+          {k:'val',l:'Worth now',t:'money',showIf:c=>c.src!=='Investment log'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.cat||'Other',
+  card:i=>{const linked=i.d.src==='Investment log', v=assetVal(i), hasVal=assetHasVal(i);
+    const hasPaid=i.d.paid!==''&&i.d.paid!=null, d=v-(+i.d.paid||0);
+    const l=linked?latestInvest():null;
+    const sub=[hasPaid?`Bought for ${money(i.d.paid)}`+(hasVal&&d!==0?` · <span class="${d>0?'pos':'neg'}">${d>0?'+':''}${money(d)}</span>`:''):'',
+      linked?`<span class="lnk">↳ from the investment log${l?' · '+fdate(l.d.date).replace(/^\w+, /,''):' · nothing logged yet'}</span>`:'',
+      esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
+    return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
+invest:{title:'Investment log',color:'var(--green)',hint:'The balance, and anything you put in. Shown at whichever resolution the chart above is set to, so the two always agree.',
+  only:i=>!INVKEEP||INVKEEP.has(i.id),
+  fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
+          {k:'acct',l:'Account',t:'dyn',opt:['Citi','Other'],def:'Citi'},
+          {k:'val',l:'Total value',t:'money',req:1},
+          {k:'added',l:'Added since last entry',t:'money'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
+  card:i=>{const v=+i.d.val||0,a=+i.d.added||0;
+    return{t:money2(v),s:[fdate(i.d.date).replace(/^\w+, /,''),esc(i.d.acct||''),a?'+'+money2(a)+' in':''].filter(Boolean).join(' · ')}},
+  empty:'Nothing logged yet — hit + and record this month\'s balance.'},
 cfg:{title:'cfg'}
 };
 const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90,Biyearly:182,Yearly:365};
@@ -2325,6 +2767,1488 @@ function actToday(i){const w=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Dat
   return false}
 
 /* ---------------- special pages ---------------- */
+/* ======== the CFO room's pages, brought over from the standalone app ======== */
+const debTimers={};
+function debSave(key,fn){clearTimeout(debTimers[key]);if(typeof fn==='function')debTimers[key]=setTimeout(fn,600)}
+function finBy(grp){return list('fincash').filter(i=>(i.d.grp||'')===grp)}
+function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
+function fxRate(){return (+finBy('Setting')[0]?.d?.amt)||131}
+// Same as finSum but in dollars — the Haiti rows can be held in HTG.
+function finUsd(...grps){const r=fxRate();
+  return grps.flatMap(finBy).reduce((s,i)=>s+(i.d.cur==='HTG'?(+i.d.amt||0)/r:(+i.d.amt||0)),0)}
+let finView='American',htTotCur='USD';
+function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
+function finStats(bt,ct,ov,u,bills){
+  const cards=`<div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v ${signCls(ov)}">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
+    <div class="stat" style="--accent:var(--green)"><div class="k">Cash &amp; checking</div><div class="v">${money2(bt)}</div>${u?`<div class="u">${u}</div>`:''}</div>
+    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div>`;
+  if(bills==null)return `<div class="grid stats">${cards}</div>`;
+  return `<div class="statsSplit"><div class="grid stats">${cards}</div><div class="statsRule"></div>
+    <div class="grid stats statsBills"><div class="stat" style="--accent:var(--gold)"><div class="k">Bills</div><div class="v">${money2(bills)}</div><div class="u">cash on hand · kept separate</div></div></div></div>`}
+function billBump(id,dir){const i=one(id);if(!i)return;const dn=+i.d.denom||0;if(!dn)return;
+  put('fincash',{amt:Math.max(0,(+i.d.amt||0)+dir*dn)},id);renderActive()}
+// When a balance was last actually fetched from the bank, so "is this current?" is a
+// question the page answers rather than one you have to ask.
+function finBalAt(){
+  return list('fincash').reduce((t,f)=>f.d.src==='Plaid'&&+f.d.at>t?+f.d.at:t,0);
+}
+function finBalNote(){
+  const t=finBalAt(); if(!t)return '';
+  const d=new Date(t), now=new Date();
+  const when=d.toDateString()===now.toDateString()
+    ?d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})
+    :d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '
+      +d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const mins=Math.round((Date.now()-t)/60000);
+  return ' Read from your banks at '+when+(mins>60?' \u00b7 '+Math.round(mins/60)+'h ago':mins>1?' \u00b7 '+mins+' min ago':'')+'.';
+}
+function fincashPage(){
+  plaidPullOnce();                    // the balances on this page are the connections' to keep
+  plaidBalRefresh();                  // and they are cheap enough to keep genuinely current
+  const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
+  const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
+  const row=i=>{const cyc=cycTxt(i);
+    /* An account whose bank has not given a figure says so. $0.00 is a claim -- that the
+       account is empty, or the card clear -- and a connection that has fallen out of
+       authorisation would be making it silently on every account it holds. */
+    const none=i.d.amt===''||i.d.amt==null;
+    return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cyc?`<span class="sub${cyc.late?' late':''}"> · ${esc(cyc.t)}</span>`:''}</span><span class="v ${none?'mut':signCls(i.d.amt)}"${none?' style="opacity:.55"':''}>${none?'not reported':money2(i.d.amt)}</span></div>`};
+  const hrow=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usd(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}">${money2(usd(i))}</span>`}</div>`;
+  let h=finSeg();
+  if(finView==='American'){
+    const bank=finBy('Banking'),cc=finBy('Credit'),bills=finBy('Bills'),fico=finBy('FICO');
+    const bkt=finSum('Banking'),blt=finSum('Bills'),ct=finSum('Credit');
+    h+=finStats(bkt,ct,bkt+ct,'',blt);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Cash &amp; checking</h2><div class="hint">Tap an account to update its balance; totals recompute themselves. + adds an account.${esc(finBalNote())}</div>${bank.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bkt)}">${money2(bkt)}</span></div></div>`;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit</h2>${finBalNote()?`<div class="hint">${esc(finBalNote().trim())}</div>`:''}${cc.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
+    const brow=i=>{const dn=+i.d.denom||0,cnt=dn?Math.round((+i.d.amt||0)/dn):null;
+      return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cnt!=null?`<span class="sub"> · ${cnt} note${cnt===1?'':'s'}</span>`:''}</span>${dn?`<span class="qtyStep" style="margin-left:auto" onclick="event.stopPropagation()"><button class="qtyBtn" onclick="billBump('${i.id}',-1)">−</button><button class="qtyBtn" onclick="billBump('${i.id}',1)">+</button></span>`:''}<span class="v ${signCls(i.d.amt)}" style="margin-left:${dn?'14px':'auto'};min-width:104px;text-align:right">${money2(i.d.amt)}</span></div>`};
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>FICO scores</h2>${fico.map(i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span><span class="v">${Math.round(+i.d.amt||0)}</span></div>`).join('')}</div>`;
+    h+=`<div class="panelRule"></div>`;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Bills</h2><div class="hint">Physical cash on hand — tracked on its own, outside Cash &amp; checking. Use − / + to remove or add a note; tap a row to set the amount.</div>${bills.map(brow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(blt)}">${money2(blt)}</span></div></div>`;
+  }else{
+    const hc=finBy('Haiti cash'),hcc=finBy('Haiti credit');
+    const bt=hc.reduce((s,i)=>s+usd(i),0),ct=hcc.reduce((s,i)=>s+usd(i),0);
+    h+=finStats(bt,ct,bt+ct,'USD equivalent');
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Cash &amp; checking — BUH</h2><div class="hint">HTG converts at ${rate} HTG / USD — tap the rate at the bottom to change it.</div>${hc.map(hrow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bt)}">${money2(bt)}</span></div></div>`;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit — BUH</h2>${hcc.map(hrow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
+    h+=rateItem?`<div class="panel"><div class="finRow" onclick="openForm('fincash','${rateItem.id}')"><span class="n">Exchange rate</span><span class="v">${rate} HTG / USD</span></div></div>`:'';
+  }
+  return h;
+}
+/* Statements and transfers were filed by month alone, under a heading that said 2026
+   because that was the only year there was. The first payment of January 2027 would have
+   landed on January 2026's cell and overwritten it.
+
+   Every row carries its year now. Rows written before this change have none, and they are
+   all 2026 -- the app has never held anything else -- so that is what they are read as,
+   rather than guessing or dropping them. */
+const FIN_LEGACY_YEAR=2026;
+const stmtYearOf=i=>+i.d.year||FIN_LEGACY_YEAR;
+const fintxYearOf=i=>+i.d.year||(/^\d{4}/.test(String(i.d.date||''))?+String(i.d.date).slice(0,4):FIN_LEGACY_YEAR);
+let FINYEAR=new Date().getFullYear();
+function finSetYear(v){FINYEAR=+v||new Date().getFullYear();renderActive()}
+/* Every year the data actually covers, plus this one -- so a year you have rows for is
+   always reachable, and the current year is offered before anything has been filed in it. */
+function finYears(){
+  const ys=new Set([new Date().getFullYear(),FINYEAR]);
+  list('finstmt').forEach(i=>ys.add(stmtYearOf(i)));
+  list('fintx').forEach(i=>ys.add(fintxYearOf(i)));
+  return[...ys].sort((a,b)=>b-a);
+}
+function finYearSel(){
+  const ys=finYears(); if(ys.length<2&&ys[0]===new Date().getFullYear())return'';
+  return`<select class="totSel" onchange="finSetYear(this.value)">`+
+    ys.map(y=>`<option${y===FINYEAR?' selected':''}>${y}</option>`).join('')+`</select>`;
+}
+function stmtCell(src,mn){
+  const it=list('finstmt').find(i=>i.d.src===src&&i.d.month===mn&&stmtYearOf(i)===FINYEAR);
+  openForm('finstmt',it?.id,{src,month:mn,year:FINYEAR});
+}
+function finstmtPage(){
+  const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
+  let h=finSeg();
+  if(finView==='American'){
+    const its=list('finstmt').filter(i=>i.d.src!=='BUH'&&stmtYearOf(i)===FINYEAR);
+    const srcs=['Citibank CC','Amex CC','Wells Fargo CC'];
+    const byKey={};its.forEach(i=>{byKey[i.d.src+'|'+i.d.month]=i});
+    const txm={},txn={};list('fintx').filter(i=>(i.d.acct||'American')==='American'&&fintxYearOf(i)===FINYEAR).forEach(i=>{txm[i.d.month]=(txm[i.d.month]||0)+(+i.d.amt||0);txn[i.d.month]=(txn[i.d.month]||0)+1});
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — ${FINYEAR} (US) ${finYearSel()}</h2>
+    <div class="hint">What each card's statement cost. Tap a cell to enter a number; the Transfers column and every total fill themselves.</div>
+    <div class="ftWrap"><table class="ft"><tr><th>Month</th>${srcs.map(s=>`<th>${esc(s.replace(' CC',''))}</th>`).join('')}<th>Transfers</th><th>Total paid</th></tr>`;
+    let grand=0;
+    MONTHS.forEach(mn=>{
+      const hasTx=!!txn[mn];
+      const tx=hasTx?-txm[mn]:0;
+      let tot=tx,any=hasTx;
+      const cells=srcs.map(s=>{const it=byKey[s+'|'+mn];const v=it?(+it.d.amt||0):null;
+        if(v!=null){tot+=v;any=true}
+        return`<td class="ed" onclick="stmtCell('${s}','${mn}')">${v!=null?money2(v):'·'}</td>`}).join('');
+      if(any)grand+=tot;
+      h+=`<tr><td>${mn.slice(0,3)}</td>${cells}<td class="${signCls(txm[mn]||0)}">${hasTx?money2(tx):'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
+    });
+    const txYear=-Object.values(txm).reduce((a,b)=>a+b,0),txAny=Object.keys(txn).length>0;
+    h+=`<tr class="tot"><td>Year</td>${srcs.map(s=>{const t=its.filter(i=>i.d.src===s).reduce((x,i)=>x+(+i.d.amt||0),0);return`<td>${t?money2(t):'·'}</td>`}).join('')}<td class="${signCls(-txYear)}">${txAny?money2(txYear):'·'}</td><td>${money2(grand)}</td></tr>`;
+    h+=`</table></div></div>`;
+  }else{
+    const its=list('finstmt').filter(i=>i.d.src==='BUH'&&stmtYearOf(i)===FINYEAR);
+    const byKey={};its.forEach(i=>{byKey[i.d.month]=i});
+    const txU={},txH={},txUn={},txHn={};
+    list('fintx').filter(i=>(i.d.acct||'American')==='Haitian'&&fintxYearOf(i)===FINYEAR).forEach(i=>{const htg=i.d.cur==='HTG';const t=htg?txH:txU,n=htg?txHn:txUn;t[i.d.month]=(t[i.d.month]||0)+(+i.d.amt||0);n[i.d.month]=(n[i.d.month]||0)+1});
+    const fmtTot=t=>htTotCur==='HTG'?(t*rate).toLocaleString('en-US',{maximumFractionDigits:0})+' HTG':money2(t);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — ${FINYEAR} (Haiti) ${finYearSel()}</h2>
+    <div class="hint">BUH card payments entered in HTG; your transfers split by currency. Total converts at ${rate} HTG / USD — pick its currency in the header.</div>
+    <div class="ftWrap"><table class="ft"><tr><th>Month</th><th>BUH card (HTG)</th><th>Transfers ($)</th><th>Transfers (HTG)</th><th>Total <select class="totSel" onchange="htTotCur=this.value;renderActive()"><option ${htTotCur==='USD'?'selected':''}>USD</option><option ${htTotCur==='HTG'?'selected':''}>HTG</option></select></th></tr>`;
+    let grand=0;
+    MONTHS.forEach(mn=>{
+      const it=byKey[mn];const buh=it?(+it.d.amt||0):null;
+      const hasU=!!txUn[mn],hasH=!!txHn[mn];
+      const tu=hasU?-txU[mn]:0, th=hasH?-txH[mn]:0;
+      const any=buh!=null||hasU||hasH;
+      const tot=(buh||0)/rate+tu+th/rate;
+      if(any)grand+=tot;
+      h+=`<tr><td>${mn.slice(0,3)}</td><td class="ed" onclick="stmtCell('BUH','${mn}')">${buh!=null?buh.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(txU[mn]||0)}">${hasU?money2(tu):'·'}</td><td class="${signCls(txH[mn]||0)}">${hasH?(th||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${any?fmtTot(tot):'·'}</td></tr>`;
+    });
+    const yb=its.reduce((s,i)=>s+(+i.d.amt||0),0);
+    const yu=-Object.values(txU).reduce((a,b)=>a+b,0), yh=-Object.values(txH).reduce((a,b)=>a+b,0);
+    const yuAny=Object.keys(txUn).length>0, yhAny=Object.keys(txHn).length>0;
+    h+=`<tr class="tot"><td>Year</td><td>${yb?yb.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(-yu)}">${yuAny?money2(yu):'·'}</td><td class="${signCls(-yh)}">${yhAny?(yh||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${fmtTot(grand)}</td></tr></table></div></div>`;
+  }
+  return h;
+}
+/* Which account a transfer moved through. Ones logged by hand before the connections
+   existed never said, and saying "Unassigned" is more use than pretending or hiding them. */
+const fintxCardOf=i=>{
+  const c=String(i.d.card||'').trim(); if(c)return c;
+  /* A transfer Plaid found is the same event as a transaction, written twice. Rows made
+     before the account was recorded on them can still be asked: the ledger row they came
+     from carries it, and the two share an id. This is why the filter works on transfers
+     already saved rather than only on ones pulled from here on. */
+  const m=/^fintx:plaid:(.+)$/.exec(i.id);
+  if(m){const t=one('tx:plaid:'+m[1]); if(t&&t.d.card)return String(t.d.card)}
+  return 'Unassigned';
+};
+const fintxIn=view=>list('fintx').filter(i=>(i.d.acct||'American')===view&&fintxYearOf(i)===FINYEAR);
+function fintxCards(view){
+  return [...new Set(fintxIn(view).map(fintxCardOf))].sort();
+}
+/* Rows pulled from here on carry their kind. Ones already saved, and ones you type in
+   yourself, are read from their description instead -- so the filter works on everything
+   on the page rather than only on what arrives after this was written. */
+const FINTX_KINDS=['Zelle','Wire'];
+const fintxKindOf=i=>{
+  const k=String(i.d.kind||'').trim(); if(k)return k;
+  return txTfrKind(i.d)||'Other';
+};
+function fintxKinds(view){
+  const seen=new Set(fintxIn(view).map(fintxKindOf));
+  return [...FINTX_KINDS.filter(k=>seen.has(k)),...[...seen].filter(k=>!FINTX_KINDS.includes(k)).sort()];
+}
+let FINTXKIND='';
+function fintxSetKind(n){const ks=fintxKinds(finView);FINTXKIND=(n<0||n>=ks.length)?'':ks[n];renderActive()}
+/* Which way the money went. The sign alone decides it, and converting to USD first would
+   change nothing -- the rate is positive, so it never flips a sign. A row of exactly zero
+   is neither, and says so rather than being quietly filed as one or the other. */
+const FINTX_DIRS=['In','Out'];
+const fintxDirOf=i=>{const v=+i.d.amt||0;return v>0?'In':v<0?'Out':''};
+function fintxDirs(view){
+  const seen=new Set(fintxIn(view).map(fintxDirOf));
+  return FINTX_DIRS.filter(d=>seen.has(d));
+}
+let FINTXDIR='';
+function fintxSetDir(n){const ds=fintxDirs(finView);FINTXDIR=(n<0||n>=ds.length)?'':ds[n];renderActive()}
+// Chosen by index rather than by name: a name goes through esc() for HTML, but the parser
+// decodes the entity before the JS is parsed, so an apostrophe would break out of the call.
+let FINTXCARD='';
+function fintxSetCard(n){const cs=fintxCards(finView);FINTXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
+function fintxPage(){
+  const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
+  const cards=fintxCards(finView), kinds=fintxKinds(finView), dirs=fintxDirs(finView);
+  if(FINTXCARD&&!cards.includes(FINTXCARD))FINTXCARD='';   // the view changed under the filter
+  if(FINTXKIND&&!kinds.includes(FINTXKIND))FINTXKIND='';
+  if(FINTXDIR&&!dirs.includes(FINTXDIR))FINTXDIR='';
+  const its=list('fintx').filter(i=>(i.d.acct||'American')===finView&&fintxYearOf(i)===FINYEAR)
+    .filter(i=>!FINTXCARD||fintxCardOf(i)===FINTXCARD)
+    .filter(i=>!FINTXKIND||fintxKindOf(i)===FINTXKIND)
+    .filter(i=>!FINTXDIR||fintxDirOf(i)===FINTXDIR);
+  const usdVal=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
+  const by={};its.forEach(i=>{(by[i.d.month]=by[i.d.month]||[]).push(i)});
+  const months=MONTHS.filter(m=>by[m]);
+  const txdate=i=>i.d.date?fdate(i.d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,''):'';
+  const txrow=i=>{const dt=txdate(i);const kd=fintxKindOf(i);
+    return `<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}${kd&&kd!=='Other'&&!FINTXKIND?`<span class="sub"> \u00b7 ${esc(kd)}</span>`:''}</span>${dt?`<span class="v2" style="margin-left:auto">${dt}</span>`:''}${i.d.cur==='HTG'?`<span class="v2" style="margin-left:${dt?'12px':'auto'}">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}" style="margin-left:${dt?'12px':'auto'}">${money2(i.d.amt)}</span>`}</div>`};
+  // The year at a glance, before the months. Money between your own accounts shows up on
+  // both sides and nets to nothing, which is the honest answer and worth being able to see.
+  const yIn =its.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
+  const yOut=its.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
+  const scope=[FINTXDIR?'money '+FINTXDIR.toLowerCase():'',FINTXKIND?FINTXKIND+'s':'',
+    FINTXCARD||'all accounts'].filter(Boolean).join(' \u00b7 ');
+  let h=finSeg();
+  h+=`<div class="grid stats">
+    <div class="stat" style="--accent:var(--green)"><div class="k">Transfers in</div>
+      <div class="v pos">${money2(yIn)}</div><div class="u">${esc(scope)}</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="k">Transfers out</div>
+      <div class="v neg">${money2(yOut)}</div><div class="u">${its.filter(i=>usdVal(i)<0).length} out of ${its.length}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Net transfers</div>
+      <div class="v ${signCls(yIn+yOut)}">${money2(yIn+yOut)}</div>
+      <div class="u">${yIn+yOut>=0?'more in than out':'more out than in'}</div></div>
+  </div>`;
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — ${FINYEAR} (${finView==='American'?'US':'Haiti'}) ${finYearSel()}</h2>
+  <div class="hint">${finView==='American'?'Every US account you have connected.':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.${kinds.length>1||dirs.length>1?' Narrow by account, by Zelle or wire, or by money in against money out \u2014 leave one open to see all of it.':''}</div>
+  ${cards.length>1||kinds.length>1||dirs.length>1?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+    ${cards.length>1?`<select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
+      <option${FINTXCARD?'':' selected'}>All accounts</option>
+      ${cards.map(c=>`<option${c===FINTXCARD?' selected':''}>${esc(c)}</option>`).join('')}
+    </select>`:''}
+    ${kinds.length>1?`<select class="cfoIn" style="max-width:200px" onchange="fintxSetKind(this.selectedIndex-1)">
+      <option${FINTXKIND?'':' selected'}>All kinds</option>
+      ${kinds.map(k=>`<option${k===FINTXKIND?' selected':''}>${esc(k)}</option>`).join('')}
+    </select>`:''}
+    ${dirs.length>1?`<select class="cfoIn" style="max-width:190px" onchange="fintxSetDir(this.selectedIndex-1)">
+      <option${FINTXDIR?'':' selected'}>In and out</option>
+      ${dirs.map(d=>`<option${d===FINTXDIR?' selected':''}>${d}</option>`).join('')}
+    </select>`:''}
+  </div>`:''}
+  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' '+(FINTXKIND?esc(FINTXKIND).toLowerCase()+' transfers':'transfers')+(FINTXDIR?' '+(FINTXDIR==='In'?'coming in':'going out'):'')+(FINTXCARD?' on '+esc(FINTXCARD):(FINTXKIND||FINTXDIR)?'':' logged yet')+'.</div>'}</div>`;
+  [...months].reverse().forEach(mn=>{
+    const rows=by[mn].slice().sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up));
+    const inn=rows.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
+    const out=rows.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
+    const head=`<h2 style="justify-content:space-between;flex-wrap:wrap">${mn}<span style="font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);font-weight:400">In <span class="pos">${money2(inn)}</span> · Out <span class="neg">${money2(out)}</span> · Net <span class="${signCls(inn+out)}">${money2(inn+out)}</span></span></h2>`;
+    if(finView==='American'){h+=`<div class="panel">${head}${rows.map(txrow).join('')}</div>`}
+    else{const ru=rows.filter(i=>i.d.cur!=='HTG'),rh=rows.filter(i=>i.d.cur==='HTG');
+      h+=`<div class="panel">${head}${ru.length?`<div class="ghead">USD<span class="gsub">${ru.length}</span></div>`+ru.map(txrow).join(''):''}${rh.length?`<div class="ghead">HTG<span class="gsub">${rh.length}</span></div>`+rh.map(txrow).join(''):''}</div>`}
+  });
+  return h;
+}
+function latestInvest(){
+  const r=list('invest').filter(x=>x.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
+  return r[0]||null;
+}
+function assetVal(i){                          // linked assets are read-only mirrors
+  if(i.d.src==='Investment log'){const l=latestInvest();return l?(+l.d.val||0):0}
+  return +i.d.val||0;
+}
+function assetHasVal(i){
+  return i.d.src==='Investment log'?!!latestInvest():(i.d.val!==''&&i.d.val!=null);
+}
+let INVPTS=[];
+function investChart(rows){
+  if(rows.length<2){INVPTS=[];return'<div class="empty">Log a second month and the curve appears here.</div>'}
+  const W=680,H=250,L=54,R=14,T=18,B=34;
+  const vals=rows.map(r=>+r.d.val||0);
+  const mn=Math.min(...vals),mx=Math.max(...vals),span=(mx-mn)||mx||1;
+  const lo=mn-span*.18, hi=mx+span*.18;
+  const x=i=>L+(W-L-R)*(i/(rows.length-1));
+  const y=v=>T+(H-T-B)*(1-((v-lo)/((hi-lo)||1)));
+  const k=v=>Math.abs(v)>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
+  // y grid
+  let grid='';
+  const TICKS=4;
+  for(let t=0;t<=TICKS;t++){
+    const v=lo+(hi-lo)*(t/TICKS), yy=y(v);
+    grid+=`<line x1="${L}" y1="${yy.toFixed(1)}" x2="${W-R}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`
+        +`<text x="${L-8}" y="${(yy+3.5).toFixed(1)}" class="cLab" text-anchor="end">${k(v)}</text>`;
+  }
+  // x labels — month name, skipped when they'd collide
+  const every=Math.ceil(rows.length/7);
+  let xl='';
+  rows.forEach((r,i)=>{
+    if(i%every&&i!==rows.length-1)return;
+    const d=new Date(r.d.date+'T12:00:00');
+    xl+=`<text x="${x(i).toFixed(1)}" y="${H-12}" class="cLab" text-anchor="middle">${isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short'})}</text>`;
+  });
+  const pts=vals.map((v,i)=>[x(i),y(v)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${H-B} L ${pts[0][0].toFixed(1)} ${H-B} Z`;
+  const up=vals[vals.length-1]>=vals[0], col=up?'var(--acc)':'var(--bad)';
+  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:2.8}" fill="${col}"/>`).join('');
+  INVPTS=rows.map((r,i)=>({x:pts[i][0],y:pts[i][1],date:r.d.date,val:vals[i],
+    delta:i?vals[i]-vals[i-1]:null,added:+r.d.added||0}));
+  const last=INVPTS[INVPTS.length-1];
+  return`<div class="chartRead" id="ivRead">${readLine(last)}</div>
+  <div class="chartWrap"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="invSvg" id="ivSvg">
+    <defs><linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${col}" stop-opacity=".2"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    ${grid}
+    <line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
+    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
+    <path d="${area}" fill="url(#ig)"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <line id="ivGuide" x1="0" y1="${T}" x2="0" y2="${H-B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="ivDot" r="5.5" fill="none" stroke="${col}" stroke-width="2.5" opacity="0"/>
+    ${xl}
+  </svg></div>`;
+}
+function readLine(p){
+  if(!p)return'';
+  const d=fdate(p.date).replace(/^\w+, /,'');
+  const ch=p.delta==null?'<span class="rMut">first entry</span>'
+    :`<span class="${p.delta>=0?'pos':'neg'}">${p.delta>=0?'+':''}${money2(p.delta)}</span> <span class="rMut">since previous</span>`;
+  return`<span class="rDate">${esc(d)}</span><span class="rVal">${money2(p.val)}</span>${ch}${p.added?`<span class="rMut">· ${money2(p.added)} added</span>`:''}`;
+}
+function bindInvest(el){
+  const svg=el.querySelector('#ivSvg'); if(!svg||!INVPTS.length)return;
+  const guide=svg.querySelector('#ivGuide'), dot=svg.querySelector('#ivDot'), read=el.querySelector('#ivRead');
+  const VB=680;
+  const at=e=>{
+    const r=svg.getBoundingClientRect();
+    const cx=((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(VB/r.width);
+    let best=0,bd=1e9;
+    INVPTS.forEach((p,i)=>{const d=Math.abs(p.x-cx);if(d<bd){bd=d;best=i}});
+    const p=INVPTS[best];
+    guide.setAttribute('x1',p.x);guide.setAttribute('x2',p.x);guide.setAttribute('opacity','1');
+    dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.y);dot.setAttribute('opacity','1');
+    read.innerHTML=readLine(p);
+  };
+  const off=()=>{guide.setAttribute('opacity','0');dot.setAttribute('opacity','0');
+    read.innerHTML=readLine(INVPTS[INVPTS.length-1])};
+  svg.addEventListener('pointermove',at);
+  svg.addEventListener('pointerdown',at);
+  svg.addEventListener('pointerleave',off);
+  svg.addEventListener('touchmove',e=>{at(e);e.preventDefault()},{passive:false});
+  svg.addEventListener('touchend',off);
+}
+/* The balance is logged every day now, which is the right thing to record and the wrong
+   thing to read: a year of it is three hundred points and no shape. So the page is read at
+   a granularity, and a week or a month is represented the way it always was -- by its last
+   balance, the one standing at the close of it. Daily is simply every entry.
+
+   The same set feeds the chart and the log beneath it, so what you are looking at and what
+   you can scroll through are the same thing at the same resolution. */
+let INVGRAIN='Monthly', INVKEEP=null;
+function invSetGrain(v){INVGRAIN=v;renderActive()}
+const INV_GRAINS=['Daily','Weekly','Monthly'];
+const INV_NOUN={Daily:'day',Weekly:'week',Monthly:'month'};
+function invBucket(date){
+  const d=String(date||'');
+  if(INVGRAIN==='Daily')return d;
+  if(INVGRAIN==='Monthly')return d.slice(0,7);
+  const t=new Date(d+'T00:00:00');            // a week is its Monday, whatever month it straddles
+  if(isNaN(t))return d;
+  t.setDate(t.getDate()-((t.getDay()+6)%7));
+  return 'w'+t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+function invKeep(){
+  const best=new Map();
+  list('invest').filter(i=>i.d.date).forEach(i=>{
+    const k=invBucket(i.d.date), cur=best.get(k);
+    if(!cur||String(i.d.date)>String(cur.d.date)||(i.d.date===cur.d.date&&i.up>cur.up))best.set(k,i);
+  });
+  return new Set([...best.values()].map(i=>i.id));
+}
+function investPage(){
+  INVKEEP=invKeep();
+  const all=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+  const rows=all.filter(i=>INVKEEP.has(i.id));
+  const cur=all.length?(+all[all.length-1].d.val||0):0;
+  // What you put in is what you put in, at any resolution -- summed over every entry, not
+  // just the ones this view happens to draw.
+  const put_in=all.reduce((t,i)=>t+(+i.d.added||0),0);
+  const gain=cur-put_in, pct=put_in>0?gain/put_in*100:0;
+  const prev=rows.length>1?(+rows[rows.length-2].d.val||0):0;
+  const mom=prev?cur-prev:0;
+  let h=`<div class="grid stats">
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Value now</div><div class="v">${money2(cur)}</div>${rows.length?`<div class="u">as of ${fdate(rows[rows.length-1].d.date).replace(/^\w+, /,'')}</div>`:''}</div>
+    <div class="stat" style="--accent:var(--blue)"><div class="k">Put in</div><div class="v">${money2(put_in)}</div><div class="u">across ${all.length} entr${all.length===1?'y':'ies'}</div></div>
+    <div class="stat" style="--accent:${gain>=0?'var(--ok)':'var(--bad)'}"><div class="k">Gain</div><div class="v ${signCls(gain)}">${gain>0?'+':''}${money2(gain)}</div>${put_in>0?`<div class="u">${pct>0?'+':''}${pct.toFixed(1)}% on what you put in</div>`:''}</div>
+    <div class="stat" style="--accent:var(--gold)"><div class="k">Since last ${INV_NOUN[INVGRAIN]}</div><div class="v ${signCls(mom)}">${mom>0?'+':''}${money2(mom)}</div></div>
+  </div>`;
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Growth</h2>
+    <div class="hint">${INVGRAIN==='Daily'?'Every logged balance, oldest to newest.'
+      :'The balance standing at the close of each '+INV_NOUN[INVGRAIN]+', oldest to newest.'}</div>
+    <div style="margin:2px 0 10px"><select class="cfoIn" style="max-width:200px" onchange="invSetGrain(this.value)">
+      ${INV_GRAINS.map(g=>`<option${g===INVGRAIN?' selected':''}>${g}</option>`).join('')}
+    </select></div>${investChart(rows)}</div>`;
+  h+=genList('invest');
+  return h;
+}
+function networthPage(){
+  // Net worth spans both banks. Bills stay out — that's physical cash, tracked on its own.
+  const us=finUsd('Banking','Credit'), ht=finUsd('Haiti cash','Haiti credit'), net=us+ht;
+  const assets=list('assets');
+  const atot=assets.reduce((s,i)=>s+assetVal(i),0);
+  const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&assetHasVal(i));
+  const growth=tracked.reduce((s,i)=>s+(assetVal(i)-(+i.d.paid||0)),0);
+  let h=`<div class="grid stats">
+    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">US ${money2(us)} · Haiti ${money2(ht)} · HTG at ${fxRate()}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money2(atot)}</div></div>
+    <div class="stat" style="--accent:var(--green)"><div class="k">Growth</div><div class="v ${signCls(growth)}">${growth>0?'+':''}${money2(growth)}</div><div class="u">worth now − bought for${tracked.length<assets.length?' · '+(assets.length-tracked.length)+' asset'+(assets.length-tracked.length>1?'s':'')+' missing a price':''}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v ${signCls(net+atot)}">${money2(net+atot)}</div></div>
+  </div>`;
+  h+=genList('assets');
+  return h;
+}
+/* ---------------- CFO ----------------
+   A read-only lens over everything else plus four registers of its own
+   (income, debt, goal, spend). It writes nothing that another page owns —
+   cash, subscriptions, investments and assets are read where they live. */
+function cfoUsd(amt,cur){const v=+amt||0;return cur==='HTG'?v/fxRate():v}
+const CFO_CYC={'Monthly':1,'Twice a month':2,'Every 2 weeks':26/12,'Weekly':52/12,'Quarterly':1/3,'Yearly':1/12,'One-off':0};
+function cfoMo(d){return cfoUsd(d.amt,d.cur)*(CFO_CYC[d.cyc]??1)}
+function cfoMonKey(s){const m=String(s||'').split(' ');return (+m[1]||0)*100+(MONTHS.indexOf(m[0])+1)}
+function cfoIncomeMo(){return list('income').reduce((s,i)=>s+cfoMo(i.d),0)}
+function cfoSubsMo(){return list('finsub').reduce((s,i)=>s+(+i.d.cost||0)*(i.d.cycle==='Yearly'?1/12:1),0)}
+function cfoPayrollMo(){return list('payroll').reduce((s,i)=>s+(+i.d.amt||0),0)}
+function cfoDebts(){return list('debt').map(i=>({id:i.id,name:i.d.name||'Debt',
+  bal:cfoUsd(i.d.bal,i.d.cur),apr:+i.d.apr||0,min:cfoUsd(i.d.min,i.d.cur),day:+i.d.day||0})).filter(d=>d.bal>0)}
+/* ---------------- import from the monitor ----------------
+   A one-time lift of the financial rows out of the monitor's `items` table.
+   It deliberately runs HERE rather than as SQL on the server: only this browser holds
+   the data key, so writing through put() is what makes the rows arrive encrypted. A
+   server-side copy would land them in plaintext and quietly defeat the whole app.
+   Ids are preserved, and a row that already exists here is never overwritten, so
+   running it twice is safe and anything already edited in this app wins. */
+const MON_SECS=['fincash','finstmt','fintx','finsub','invest','income','assets'];
+const MON_LABEL={fincash:'Cash accounts',finstmt:'Statements',fintx:'Transfers',
+  finsub:'Subscriptions',invest:'Investment log',income:'Income',assets:'Assets'};
+let MONROWS=null,MONBUSY=0;
+async function monScan(){
+  if(MONBUSY)return;
+  if(!cfg){alert('Set up the cloud connection first — the gear, top right.');return}
+  MONBUSY=1;renderActive();
+  try{
+    const rows=await sb('items?select=id,sec,data,del&sec=in.('+MON_SECS.join(',')+')&limit=2000');
+    MONROWS=(rows||[]).filter(r=>!r.del);
+  }catch(e){MONROWS=null;alert('Could not read the monitor: '+e.message)}
+  MONBUSY=0;renderActive();
+}
+async function monImport(){
+  if(!MONROWS||MONBUSY)return;
+  const fresh=MONROWS.filter(r=>!S.items[r.id]);
+  if(!fresh.length){alert('Nothing new to bring over.');return}
+  if(!confirm('Bring '+fresh.length+' row'+(fresh.length===1?'':'s')+' over from the monitor?\n\nThey are written through this browser, so they arrive encrypted. Anything already here is left alone.'))return;
+  MONBUSY=1;renderActive();
+  fresh.forEach(r=>put(r.sec,r.data||{},r.id));
+  MONBUSY=0;MONROWS=null;renderActive();
+}
+function monHeld(){return MON_SECS.reduce((n,k)=>n+list(k).length,0)}
+function monPanel(){
+  let h='<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Import from the monitor</h2>';
+  if(MONBUSY)return h+'<div class="hint">Working…</div></div>';
+  const held=monHeld();
+  if(!MONROWS){
+    return h+'<div class="hint">Brings the financial rows across from the monitor — cash accounts, statements, transfers, subscriptions, the investment log, income and assets. They are read here in the browser and written back <b>encrypted</b>; a copy done on the server would land in plaintext and defeat the point of this app.'+
+      (held?' You already hold '+held+' row'+(held===1?'':'s')+', and those are never overwritten.':'')+
+      '</div><button class="btn sm" onclick="monScan()">Check what is there</button></div>';
+  }
+  const fresh=MONROWS.filter(r=>!S.items[r.id]),byS={};
+  fresh.forEach(r=>byS[r.sec]=(byS[r.sec]||0)+1);
+  if(!fresh.length){
+    return h+'<div class="hint">Nothing new — every financial row from the monitor is already here.</div>'+
+      '<button class="btn sm ghost" onclick="MONROWS=null;renderActive()">Close</button></div>';
+  }
+  h+='<div class="hint">'+fresh.length+' row'+(fresh.length===1?'':'s')+' to bring over'+
+    (MONROWS.length>fresh.length?', '+(MONROWS.length-fresh.length)+' already here and left alone':'')+'.</div>';
+  h+=MON_SECS.filter(k=>byS[k]).map(k=>'<div class="finRow"><span class="n">'+MON_LABEL[k]+'</span><span class="v">'+byS[k]+'</span></div>').join('');
+  h+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm" onclick="monImport()">Bring them over</button>'+
+    '<button class="btn sm ghost" onclick="MONROWS=null;renderActive()">Cancel</button></div></div>';
+  return h;
+}
+
+/* ---------------- Plaid ----------------
+   The bank feed. The access token that reads his accounts lives in a row of HIS database,
+   reachable only by his signed-in account, and the edge function keeps nothing between
+   calls -- the browser hands the token over for the length of one request. Plaid's own
+   secret never leaves the function's environment and is never in this page.
+   The token is never handed to this page. It is written into a table the browser cannot
+   read -- RLS on, no policies, no grants -- and only the edge function's service role can
+   reach it. This page knows an item_id and nothing more, which is the whole point: a
+   stolen session can ask for transactions but cannot walk away with the credential that
+   fetches them. */
+let PLAIDBUSY=0, PLAIDMSG='';
+function plaidLoad(){
+  if(window.Plaid)return Promise.resolve();
+  if(!plaidLoad._p)plaidLoad._p=new Promise((res,rej)=>{
+    const el=document.createElement('script');
+    el.src='https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    el.onload=res; el.onerror=()=>{plaidLoad._p=null;rej(new Error('could not reach Plaid'))};
+    document.head.appendChild(el);
+  });
+  return plaidLoad._p;
+}
+async function plaidFn(action,body){
+  // The room's own credentials, not the house's: the edge function authorises against the
+  // CFO account, and the house's key would be refused even where the address is the same.
+  const tok=await cfoAuthToken();
+  if(!tok)throw new Error('open the room first');
+  const r=await fetch(CFO_URL+'/functions/v1/plaid',{method:'POST',
+    headers:{apikey:CFO_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({action},body||{}))});
+  const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch(e){}
+  if(!r.ok)throw new Error(j.error||('Plaid call failed ('+r.status+')'));
+  return j;
+}
+// Connections live server-side now. This mirror holds only what the page needs to draw
+// them -- id, institution, accounts -- and never a token.
+function plaidItems(){return list('plaid')}
+async function plaidPull(){
+  try{
+    const out=await plaidFn('items');
+    const seen=new Set();
+    (out.items||[]).forEach(it=>{
+      seen.add('plaid:'+it.item_id);
+      put('plaid',{item:it.item_id,inst:it.institution||'Bank',
+        accts:it.accounts||[],last:it.updated_at||''},'plaid:'+it.item_id);
+    });
+    list('plaid').forEach(x=>{if(!seen.has(x.id))kill(x.id)});   // removed elsewhere
+    plaidRelabel();                                              // old names caught up here
+    plaidSeatAccounts();
+    return true;
+  }catch(e){return false}                                        // offline is not an error here
+}
+// Plaid's primary category cannot tell groceries from a restaurant, so the detailed one
+// decides first where it actually matters to a budget.
+const PFC={FOOD_AND_DRINK:'Restaurants',GENERAL_MERCHANDISE:'Shopping',TRANSPORTATION:'Transport',
+  TRAVEL:'Travel',MEDICAL:'Health',PERSONAL_CARE:'Health',RENT_AND_UTILITIES:'Home',
+  HOME_IMPROVEMENT:'Home',BANK_FEES:'Fees & interest',LOAN_PAYMENTS:'Fees & interest',
+  ENTERTAINMENT:'Other',GENERAL_SERVICES:'Other',INCOME:'Other',
+  TRANSFER_IN:'Other',TRANSFER_OUT:'Other',GOVERNMENT_AND_NON_PROFIT:'Other'};
+function plaidCat(t){
+  const d=String(t.det||'');
+  if(/GROCER|SUPERMARKET/.test(d))return 'Groceries';
+  if(/GAS|FUEL/.test(d))return 'Fuel';
+  if(/SUBSCRIPTION|STREAM/.test(d))return 'Subscriptions';
+  if(/CLOTHING|ACCESSOR/.test(d))return 'Clothing';
+  if(/ELECTRONIC|SOFTWARE|TECHNOLOG/.test(d))return 'Tech';
+  if(/ATM|CASH_ADVANCE|WITHDRAWAL/.test(d))return 'Cash withdrawal';
+  return PFC[t.cat]||'Other';
+}
+/* A bank's own name for an account is written for a statement, not for a row of chips:
+   "WELLS FARGO ACTIVE CASH VISA CARD ...5181" says almost nothing the four digits do not,
+   and three of them fill the screen. What actually tells two accounts apart is the bank,
+   what kind of account it is, and the last four -- so that is the name, and every account
+   fits on one line.
+
+   The bank's text is also not always clean. Names arrive carrying legal suffixes nobody
+   says out loud, and occasionally a character that lost its encoding somewhere upstream
+   and renders as a lozenge. Both are dropped rather than shown. */
+const INST_SHORT={'american express':'Amex','amex':'Amex','wells fargo':'Wells Fargo',
+  'bankunited':'BankUnited','bank of america':'BofA','chase':'Chase','jpmorgan':'Chase',
+  'citibank':'Citi','citi':'Citi','capital one':'Capital One','discover':'Discover',
+  'usaa':'USAA','td bank':'TD','pnc':'PNC','truist':'Truist','regions':'Regions',
+  'fifth third':'Fifth Third','schwab':'Schwab','fidelity':'Fidelity','ally':'Ally',
+  'apple':'Apple','robinhood':'Robinhood','sofi':'SoFi','synchrony':'Synchrony'};
+function plaidInstShort(name){
+  const raw=String(name||'').replace(/[\uFFFD\u25C6\u2666\u25CF]/g,'').trim();
+  const base=raw.replace(/,.*$/,'')
+    .replace(/\b(N\.?\s?A\.?|National Association|Bank\s?N\.?A\.?|Inc\.?|Corp\.?|Company)\b/gi,'')
+    .replace(/\s{2,}/g,' ').trim();
+  const k=base.toLowerCase();
+  // Matched as a whole word, wherever it sits: "Charles Schwab" is Schwab, and "Rally Bank"
+  // is not Ally. Longest key first, so Citibank is not read as Citi and then stopped there.
+  for(const key of Object.keys(INST_SHORT).sort((a,b)=>b.length-a.length))
+    if(k===key||new RegExp('\\b'+key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b').test(k))
+      return INST_SHORT[key];
+  return base||raw||'Bank';
+}
+// Plaid's subtype is the honest answer; the type is the fallback when it has none.
+const ACCT_KIND={'credit card':'CC',paypal:'PayPal',checking:'Checking',savings:'Savings',
+  'money market':'Money market',cd:'CD','cash management':'Cash',hsa:'HSA',prepaid:'Prepaid',
+  brokerage:'Brokerage',ira:'IRA','roth':'Roth',401:'401k','401k':'401k',mortgage:'Mortgage',
+  student:'Student loan',auto:'Auto loan','line of credit':'Credit line'};
+function plaidAcctKind(a){
+  const sub=String(a&&a.subtype||'').toLowerCase().replace(/_/g,' ');
+  if(ACCT_KIND[sub])return ACCT_KIND[sub];
+  const typ=String(a&&a.type||'').toLowerCase();
+  return typ==='credit'?'CC':typ==='depository'?'Checking'
+    :typ==='investment'?'Brokerage':typ==='loan'?'Loan':'Account';
+}
+function plaidAcctLabel(inst,a){
+  return [plaidInstShort(inst),plaidAcctKind(a),a&&a.mask?'\u2022\u2022'+a.mask:''].filter(Boolean).join(' ');
+}
+// What an account was called before this existed, so rows written then can be found again.
+const plaidLegacyLabel=a=>(a&&a.name||'Account')+(a&&a.mask?' \u2022\u2022'+a.mask:'');
+/* Transactions carry the name they were filed under, so renaming an account has to go and
+   correct them -- otherwise the old name lingers as a chip of its own with the history
+   behind it. Matching on Plaid's account id where a row has one, and on the old name where
+   it does not, which is every row written before today. */
+function plaidRelabel(){
+  let n=0;
+  plaidItems().forEach(it=>{
+    (it.d.accts||[]).forEach(a=>{
+      const now=plaidAcctLabel(it.d.inst,a), was=plaidLegacyLabel(a);
+      list('tx').forEach(x=>{
+        if(x.d.acct!==a.id&&x.d.card!==was&&x.d.card!==now)return;
+        if(x.d.card===now&&x.d.acct===a.id)return;          // already right, leave it alone
+        put('tx',{card:now,acct:a.id},x.id);n++;
+      });
+    });
+  });
+  return n;
+}
+// Plaid reports money leaving as a positive amount, which is this register's convention too.
+function plaidRow(t,card,item){
+  return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,item:item||'',
+    acct:t.account||'',cat:plaidCat(t),det:t.det||'',cur:t.cur||'USD',notes:t.pending?'pending':''};
+}
+/* The three fields the payoff comparison cannot work without -- APR, minimum payment and
+   due day -- are printed on a statement four times a year and typed in by hand roughly
+   never. Plaid knows them, so they arrive with everything else.
+
+   A row is keyed on Plaid's own account id, so a refresh corrects the card it created
+   before instead of adding a second one. Only values Plaid actually returned are written:
+   a bank that reports no APR leaves a typed-in one alone rather than blanking it, and the
+   name, notes and anything else you set by hand are never touched after the first sync.
+
+   A checking-only bank has no liabilities at all and says so. That is an ordinary answer,
+   not a failure, and one bank refusing must not stop the others. */
+async function plaidLiabSync(){
+  let filled=0,failed=0;
+  for(const it of plaidItems()){
+    let out;
+    try{ out=await plaidFn('liabilities',{item_id:it.d.item}) }
+    catch(e){ failed++; continue }
+    (out.debts||[]).forEach(d=>{
+      if(!d.account)return;
+      const id='debt:plaid:'+d.account, fresh=!one(id);
+      const row={cur:'USD',src:'Plaid',acct:d.account,item:it.id};
+      if(fresh){row.name=d.name||'Card';row.kind=d.kind||'Credit card'}
+      if(d.bal!=null)row.bal=d.bal;
+      if(d.apr!=null)row.apr=d.apr;
+      if(d.min!=null)row.min=d.min;
+      if(d.day!=null)row.day=d.day;
+      put('debt',row,id);filled++;
+      const fid='fin:plaid:'+d.account;          // the same card, over on the Accounts page
+      if(one(fid)){
+        const f={};
+        if(d.day!=null)f.dueDay=d.day;
+        if(d.stmtDay!=null)f.stmtDay=d.stmtDay;
+        if(Object.keys(f).length)put('fincash',f,fid);
+      }
+    });
+  }
+  return{filled,failed};
+}
+/* Depository money is cash, a card's balance counts against it, and an investment account
+   is the Investment log's business rather than this page's. */
+function plaidFinGrp(a){
+  const t=String(a&&a.type||'').toLowerCase();
+  return t==='depository'?'Banking':t==='credit'?'Credit':'';
+}
+// Which column on the Statements page a card's payments belong under. The label is ours
+// now, so the bank is a surer guide than guessing at the words in it.
+const PLAID_SRC={'Citi':'Citibank CC','Amex':'Amex CC','Wells Fargo':'Wells Fargo CC'};
+
+/* A balance you typed in was true on the day you typed it, which is the whole reason for
+   connecting a bank. Accounts arrive as rows on the Accounts page and keep themselves
+   current -- and because net liquid reads that page, the figure the goal is measured
+   against follows without anyone maintaining it.
+
+   Keyed on Plaid's account id, so a refresh corrects the row it made before instead of
+   adding a second. The name is set once and left alone after, so a rename sticks. A
+   balance the bank declined to give is skipped rather than written down as zero. */
+/* The Investment log is a running record of what the brokerage is worth. The value comes
+   from the same balance call as everything else, so it costs no extra request and leans on
+   no product the plan might not carry.
+
+   One row a day covering every connected investment account together, not one row each:
+   net liquid reads the newest entry, so a row per account would have it counting a single
+   brokerage and calling that the lot. The per-account figures ride along in the note.
+
+   What was added is deliberately left blank. A value that moved is not money paid in, and
+   telling the two apart is the difference between a contribution and a good week. */
+function plaidInvLog(accts){
+  if(!accts.length)return 0;
+  const tot=accts.reduce((s,a)=>s+a.current,0), d=today();
+  put('invest',{date:d,val:Math.round(tot*100)/100,
+    acct:accts.length===1?accts[0].label:'Brokerage',
+    notes:accts.map(a=>a.label+' '+money2(a.current)).join(' \u00b7 '),
+    src:'Plaid'},'inv:plaid:'+d);
+  return accts.length;
+}
+/* Every account a connection reports gets a row on the Accounts page, whether or not its
+   balance ever arrives. A bank can hand over transactions and still refuse a balance, and
+   when that happened the account was simply absent -- which reads as an account you do not
+   have, rather than one whose number is missing. It also left the account with nowhere to
+   attach: selecting it on Transactions found no row, so the page fell back to showing
+   totals for every card at once.
+
+   The row is created empty and never overwritten here. Balances fill it when they come. */
+function plaidSeatAccounts(){
+  let made=0;
+  plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>{
+    const grp=plaidFinGrp(a); if(!grp||!a.id)return;
+    const id='fin:plaid:'+a.id; if(one(id))return;
+    const name=plaidAcctLabel(it.d.inst,a);
+    put('fincash',{grp,cur:'USD',src:'Plaid',acct:a.id,amt:'',name,
+      card:grp==='Credit'?(PLAID_SRC[plaidInstShort(it.d.inst)]||guessSrc(name)):''},id);
+    made++;
+  }));
+  return made;
+}
+async function plaidBalSync(){
+  let filled=0,failed=0;
+  const inv=[];
+  for(const it of plaidItems()){
+    let out;
+    /* A bank that will hand over transactions can still refuse a balance, and when that
+       happened the account simply was not there -- no row, no reason, nothing to tell it
+       apart from an account that does not exist. The reason is kept on the connection now
+       and shown on the Service page beside it. */
+    try{ out=await plaidFn('balances',{item_id:it.d.item}) }
+    catch(e){ put('plaid',{balErr:String(e.message||e)},it.id); failed++; continue }
+    put('plaid',{balErr:''},it.id);
+    (out.balances||[]).forEach(a=>{
+      // A brokerage is not cash and not a card. It is the Investment log's, collected here
+      // and written once at the end so the log holds one figure rather than several.
+      if(String(a.type||'').toLowerCase()==='investment'){
+        if(a.current!=null)inv.push({label:plaidAcctLabel(it.d.inst,a),current:+a.current||0});
+        return;
+      }
+      const grp=plaidFinGrp(a);
+      if(!grp)return;
+      /* Some banks report only what is available and leave the ledger balance out. For a
+         checking account the available figure is the answer to "how much have I got", so
+         it is used rather than treating the account as having no balance at all. */
+      const val=a.current!=null?a.current:(a.available!=null?a.available:null);
+      const id='fin:plaid:'+a.id, fresh=!one(id);
+      if(val==null){
+        // Neither figure given. The account still belongs on the page -- it exists and you
+        // can type its balance -- but nothing is invented, and a figure already there stands.
+        if(fresh)put('fincash',{grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,amt:'',
+          name:plaidAcctLabel(it.d.inst,a)},id);
+        return;
+      }
+      const row={grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,at:Date.now(),
+        amt:grp==='Credit'?-Math.abs(+val||0):(+val||0)};
+      if(a.limit!=null)row.limit=+a.limit||0;   // room left on the card, where it is offered
+      if(fresh){
+        row.name=plaidAcctLabel(it.d.inst,a);
+        row.card=grp==='Credit'?(PLAID_SRC[plaidInstShort(it.d.inst)]||guessSrc(row.name)):'';
+      }
+      put('fincash',row,id);filled++;
+    });
+  }
+  // Stamped here rather than by the caller, so the full sync and the Brief's own refresh
+  // both count as having asked. Otherwise a sync would be followed immediately by the page
+  // asking again for figures it had just been handed.
+  try{localStorage.cfo_plaidBal=String(Date.now())}catch(e){}
+  return{filled,failed,inv:plaidInvLog(inv)};
+}
+
+/* Plaid reports a card payment as money arriving on the card, so it is the negative rows
+   on a credit account that say what was paid. The bank's own category names them where
+   there is one; rows pulled before that was kept have only the words on the line, so
+   those are read too.
+
+   The Statements page holds one row per month per card with no year on it, so only this
+   year is filled -- writing last September over this September would be worse than
+   leaving it alone. */
+function plaidIsCardPayment(x){
+  if(x.d.det==='LOAN_PAYMENTS_CREDIT_CARD_PAYMENT')return true;
+  return (+x.d.amt||0)<0&&/\b(payment|autopay|thank you|pymt|epay)\b/i.test(String(x.d.desc||''));
+}
+/* Which statement a payment settles, which is not the month it left the account. A card
+   closing on the 24th bills you in July and takes the money in August: the money belongs
+   to July's statement, and filing it under August would show a month you paid twice and a
+   month you paid nothing.
+
+   So a payment is filed under the last statement to close on or before it. A card whose
+   closing day we do not know falls back to the month of the payment, which is right often
+   enough and wrong quietly rather than confidently. */
+function plaidStmtMonth(date,stmtDay){
+  const d=new Date(String(date)+'T00:00:00');
+  if(isNaN(d))return null;
+  let y=d.getFullYear(), m=d.getMonth();
+  if(stmtDay){
+    const closes=Math.min(stmtDay,new Date(y,m+1,0).getDate());
+    if(d.getDate()<closes){ m--; if(m<0){m=11;y--} }
+  }
+  return {y,month:MONTHS[m]};
+}
+/* The number on this page is what you PAID, not what the statement said you owed. They
+   are rarely the same -- a balance carried, a part payment, an overpayment -- and the
+   amount that left your account is the one that answers "where did the money go". */
+function plaidStmtSync(){
+  const col=new Map();
+  list('fincash').forEach(f=>{
+    if(f.d.grp==='Credit'&&f.d.acct&&f.d.card)col.set(f.d.acct,{src:f.d.card,day:stmtDayOf(f.d)});
+  });
+  if(!col.size)return 0;
+  // Every year the payments cover, not just this one -- so a deeper history backfills the
+  // years behind it instead of being silently dropped on the way in.
+  const tot=new Map();
+  list('tx').forEach(x=>{
+    const c=col.get(x.d.acct); if(!c||!plaidIsCardPayment(x))return;
+    const when=plaidStmtMonth(x.d.date,c.day);
+    if(!when)return;
+    const k=c.src+'|'+when.y+'|'+when.month;
+    tot.set(k,(tot.get(k)||0)+Math.abs(+x.d.amt||0));
+  });
+  let n=0;
+  tot.forEach((amt,k)=>{
+    const [src,ys,month]=k.split('|'); if(!month)return;
+    const year=+ys;
+    /* One canonical row per card per month, whoever filled it in: a figure carried over
+       from the old site and a figure Plaid works out are the same cell, not two. An
+       existing row is reused by its own id, so rows written before the year existed are
+       updated in place rather than duplicated beside a new year-shaped id. */
+    const had=list('finstmt').find(i=>i.d.src===src&&i.d.month===month&&stmtYearOf(i)===year);
+    put('finstmt',{src,month,year,amt:Math.round(amt*100)/100,src2:'Plaid'},
+      had?had.id:'finstmt:'+src+':'+year+':'+month);n++;
+  });
+  return n;
+}
+
+/* Zelle is how money actually moves between people, and a transfer is not a purchase --
+   it belongs on the Transfers page as well as in the ledger. Matched on the word itself,
+   which every bank puts on the line. Money out of the account is money out of the
+   transfer, so the sign flips to the convention that page uses. */
+/* What kind of movement a ledger row is, or nothing if it is not a transfer at all.
+   Plaid's own category is trusted first and the wording second, because banks disagree
+   about categories -- Citi files half its Zelles as card payments -- but they all spell
+   "ZELLE" and "WIRE" the same way.
+
+   A wire fee is deliberately not a transfer. It is a charge for moving the money, not the
+   money moving, and it already counts as spending on Transactions; carrying it here as
+   well would net it off the amount that actually arrived. */
+function txTfrKind(d){
+  const desc=String(d.desc||''), det=String(d.det||'');
+  if(/\bzelle\b/i.test(desc))return'Zelle';
+  if(/\bfee\b/i.test(desc))return'';
+  if(/TRANSFER_(IN|OUT)_WIRE/.test(det)||/\bwires?\b/i.test(desc))return'Wire';
+  return'';
+}
+function plaidTfrSync(){
+  let n=0;
+  list('tx').forEach(x=>{
+    const kind=txTfrKind(x.d); if(!kind)return;
+    const d=String(x.d.date||''); if(!d)return;
+    put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',year:+d.slice(0,4),desc:x.d.desc||kind,kind,
+      acct:'American',card:x.d.card||'',cur:x.d.cur||'USD',amt:-(+x.d.amt||0),src2:'Plaid'},
+      'fintx:plaid:'+x.id.replace(/^tx:plaid:/,''));n++;
+  });
+  return n;
+}
+
+/* Connected should mean current when you open the page, not when you remember to ask.
+   Banks and Plaid both dislike being asked every few seconds, so a visit refreshes at
+   most once every six hours; the button is there for the times you want it now. */
+/* Balances are the one figure you open the page expecting to be current, and the cheapest
+   thing to ask for -- one call per bank, no paging, no history. So they refresh on their
+   own when they are more than a quarter of an hour old, rather than waiting for the full
+   sync, which pulls transactions and statements and has no business running that often. */
+const PLAID_BAL_MS=15*60*1000;
+function plaidBalRefresh(){
+  if(plaidBalRefresh._going||plaidAutoSync._going||!plaidItems().length)return;
+  if(Date.now()-(+localStorage.cfo_plaidBal||0)<PLAID_BAL_MS)return;
+  plaidBalRefresh._going=1;
+  plaidLive().then(()=>{plaidBalRefresh._going=0;renderActive()})
+             .catch(()=>{plaidBalRefresh._going=0});
+}
+const PLAID_AUTO_MS=6*60*60*1000;
+/* A page missing the figures it exists to show is not waiting for a schedule. When a
+   connected account has no balance against it -- cleared by hand, or never reported -- the
+   clock is skipped entirely and the refresh happens on sight.
+
+   Nothing runs away: this is called once per page load, so the worst case is one round of
+   calls per visit, and only while something is actually missing. */
+function plaidAutoSync(){
+  if(plaidAutoSync._going||!plaidItems().length)return;
+  const missing=list('fincash').some(f=>f.d.src==='Plaid'&&(f.d.amt===''||f.d.amt==null));
+  if(!missing&&Date.now()-(+localStorage.cfo_plaidAuto||0)<PLAID_AUTO_MS)return;
+  plaidAutoSync._going=1;
+  try{localStorage.cfo_plaidAuto=String(Date.now())}catch(e){}
+  plaidSyncAll().then(()=>{plaidAutoSync._going=0;renderActive()})
+                .catch(()=>{plaidAutoSync._going=0});
+}
+/* Pulling transactions, on its own, so the quick refresh and the full sync can both use
+   it without one of them dragging the other's work along.
+
+   It is cheap to repeat: the cursor lives on the server, so a bank with nothing new
+   answers with an empty delta rather than resending its history. */
+async function plaidTxSync(){
+  const items=plaidItems();
+  let added=0,updated=0,removed=0,failed=0;
+  for(const it of items){
+    const accts=it.d.accts||[];
+    const nameOf=id=>{const a=accts.find(x=>x.id===id);
+      return a?plaidAcctLabel(it.d.inst,a):plaidInstShort(it.d.inst)};
+    /* Each bank on its own. One connection refusing -- a login gone stale, a bank having
+       a bad morning -- used to throw out of the loop and silently strip every bank after
+       it of its sync, which looks exactly like a bank with no transactions. */
+    let out;
+    try{ out=await plaidFn('sync',{item_id:it.d.item}) }
+    catch(e){ put('plaid',{err:String(e.message||e),last:new Date().toISOString()},it.id);
+              failed++; continue }
+    // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
+    let n=0;
+    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++;n++});
+    (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);updated++});
+    (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
+    // What this bank gave, so a connection that keeps arriving empty can say so rather
+    // than looking identical to one nobody has spent on.
+    put('plaid',{last:new Date().toISOString(),err:'',
+      rows:plaidRowsOf(it).length,got:n},it.id);
+  }
+  plaidRelabel();
+  plaidSeatAccounts();                          // a row for every account, balance or not
+  return{added,updated,removed,failed,items:items.length};
+}
+/* Everything that moves between one visit and the next: what you spent, what you paid,
+   what is left. Statements and Transfers are then worked out from those rows without
+   touching the network at all -- so a card payment that has posted lands on the Statements
+   page in the same pass that notices the balance drop.
+
+   Liabilities are deliberately not here. An APR, a minimum payment and a due day change
+   once a month at most, and asking every quarter of an hour would be asking for nothing. */
+async function plaidLive(){
+  const tx=await plaidTxSync();
+  const bal=await plaidBalSync();
+  const stmts=plaidStmtSync(), zelle=plaidTfrSync();
+  return{...tx,accts:bal.filled,inv:bal.inv,stmts,zelle};
+}
+async function plaidSyncAll(){
+  const items=plaidItems();
+  if(!items.length)return{added:0,updated:0,removed:0,items:0};
+  const tx=await plaidTxSync();
+  const bal=await plaidBalSync();               // balances first: the rest hang off those rows
+  const liab=await plaidLiabSync();
+  const stmts=plaidStmtSync(), zelle=plaidTfrSync();
+  return{...tx,debts:liab.filled,accts:bal.filled,inv:bal.inv,stmts,zelle};
+}
+async function plaidConnect(){
+  PLAIDBUSY=1;PLAIDMSG='opening Plaid…';renderActive();
+  try{
+    await plaidLoad();
+    const {link_token}=await plaidFn('link_token');
+    PLAIDMSG='waiting for you to finish in Plaid…';renderActive();
+    await new Promise(done=>{
+      const h=Plaid.create({
+        token:link_token,
+        onSuccess:async(public_token,meta)=>{
+          try{
+            PLAIDBUSY=1;PLAIDMSG='connecting…';renderActive();
+            const ex=await plaidFn('exchange',{public_token,
+              institution:(meta&&meta.institution&&meta.institution.name)||''});
+            put('plaid',{item:ex.item_id,inst:ex.institution||'Bank',
+              accts:ex.accounts||[],added:today()},'plaid:'+ex.item_id);
+            PLAIDMSG='fetching transactions…';renderActive();
+            const r=await plaidSyncAll();
+            PLAIDMSG='';
+            alert(['Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.',
+              r.accts?r.accts+' account'+(r.accts===1?'':'s')+' now keep their balance current.':'',
+              r.debts?r.debts+' card'+(r.debts===1?'':'s')+' carry their real APR, minimum and due date.':'',
+              r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
+              r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
+              r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':''
+            ].filter(Boolean).join('\n'));
+          }catch(e){alert('Could not finish connecting: '+e.message)}
+          done();
+        },
+        onExit:(err)=>{if(err)PLAIDMSG='';done()},
+      });
+      h.open();
+    });
+  }catch(e){alert(e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+/* Re-opening a connection you already have. Plaid calls it update mode: the token we hold
+   stays valid, so nothing is exchanged and no slot is spent -- the bank is simply asked to
+   re-authorise what it is willing to hand over.
+
+   It is the answer to a connection that authenticates but returns nothing, and it is also
+   how an older connection picks up the two years of history the link now asks for, since
+   that window is fixed when a bank is linked and cannot be widened from outside. */
+async function plaidReconnect(id){
+  const it=one(id); if(!it)return;
+  PLAIDBUSY=1;PLAIDMSG='opening Plaid\u2026';renderActive();
+  try{
+    await plaidLoad();
+    const {link_token}=await plaidFn('link_token',{item_id:it.d.item});
+    PLAIDMSG='waiting for you to finish in Plaid\u2026';renderActive();
+    await new Promise(done=>{
+      const h=Plaid.create({
+        token:link_token,
+        onSuccess:async()=>{
+          try{
+            PLAIDBUSY=1;PLAIDMSG='fetching\u2026';renderActive();
+            const r=await plaidSyncAll();
+            alert('Reconnected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in'
+              +(r.accts?', '+r.accts+' balance'+(r.accts===1?'':'s')+' refreshed':'')+'.');
+          }catch(e){alert('Reconnected, but the refresh failed: '+e.message)}
+          done();
+        },
+        onExit:()=>done(),
+      });
+      h.open();
+    });
+  }catch(e){alert(e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+async function plaidSyncNow(){
+  PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
+  try{
+    const r=await plaidSyncAll();
+    alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
+      r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
+      r.debts?r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':'',
+      r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
+      r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
+      r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':'',
+      r.failed?r.failed+' connection'+(r.failed===1?'':'s')+' could not be reached — see Service.':''
+    ].filter(Boolean).join('\n'));
+  }catch(e){alert('Sync failed: '+e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+// Rows carry the connection they came from; older ones predate that, so fall back to
+// matching the account names this connection actually reported.
+function plaidRowsOf(it){
+  const ids=new Set((it.d.accts||[]).map(a=>a.id).filter(Boolean));
+  const names=new Set((it.d.accts||[]).flatMap(a=>[plaidAcctLabel(it.d.inst,a),plaidLegacyLabel(a)]));
+  return list('tx').filter(x=>x.d.item===it.id||(x.d.acct&&ids.has(x.d.acct))||
+    (!x.d.item&&x.id.startsWith('tx:plaid:')&&names.has(x.d.card)));
+}
+async function plaidDisconnect(id){
+  const it=one(id);if(!it)return;
+  const rows=plaidRowsOf(it), name=it.d.inst||'this bank';
+  if(!confirm('Disconnect '+name+'?\n\nNew transactions stop arriving, Plaid is told to drop the connection, and the stored bank token is deleted.'))return;
+  try{ await plaidFn('remove',{item_id:it.d.item}) }
+  catch(e){ if(!confirm('Could not reach Plaid to revoke it: '+e.message+'\n\nRemove it from this page anyway?'))return }
+  if(rows.length&&confirm('Also delete the '+rows.length+' transaction'+(rows.length===1?'':'s')+' it brought in?\n\nOK deletes them. Cancel keeps them.\n\nDelete them if this was a test connection \u2014 sandbox data is invented and will otherwise sit in your real figures.')){
+    rows.forEach(x=>kill(x.id));
+  }
+  kill(id);renderActive();
+}
+/* The connection list lives on the server. Both pages want it -- Service draws it, and
+   Transactions needs it to know which accounts should have a chip even when nothing has
+   been spent on them -- so it is asked for once a visit and shared between them. */
+function plaidPullOnce(){
+  /* Not before you are signed in. The app opens on the Brief, which asks for this, and the
+     sign-in screen is still up at that moment -- so the one attempt would be spent on a
+     request that could only be refused, and the connections would stay missing all session. */
+  if(plaidPullOnce._done||!cfoAuthed())return;
+  plaidPullOnce._done=1;
+  plaidPull().then(ok=>{
+    if(!ok)plaidPullOnce._done=0;                // a refused ask is not an ask; try again
+    renderActive();plaidAutoSync();
+  });
+}
+/* Connecting a bank is something you do a handful of times and then never think about
+   again, so it had no business sitting at the top of the page you open every day. On its
+   own tab it has room, and Transactions is left to the transactions. */
+function servicePage(){
+  plaidPullOnce();
+  return plaidPanel();
+}
+function plaidPanel(){
+  const items=plaidItems();
+  let h='<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Bank connections</h2>';
+  if(PLAIDBUSY)return h+'<div class="hint">'+esc(PLAIDMSG||'working…')+'</div></div>';
+  if(!items.length){
+    return h+'<div class="hint">Connect a card or account and every transaction on it arrives here — dated, named, assigned to the right card and already categorised. Your Plaid secret stays on the server and never reaches this page.<br><br>Syncing happens when you open Alfred rather than overnight.</div>'+
+      '<button class="btn sm" onclick="plaidConnect()">Connect a bank</button></div>';
+  }
+  h+=items.map(i=>{
+    const n=(i.d.accts||[]).length;
+    const last=i.d.last?new Date(i.d.last).toLocaleString():'never';
+    const note=i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
+      :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
+      :(i.d.last&&!i.d.rows?' · <b style="color:var(--orange)">no transactions yet — a bank can take a while to hand over its history</b>':'');
+    return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
+      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span></span>'+
+      '<span style="margin-left:auto;display:inline-flex;gap:8px">'+
+      '<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
+        'title="Re-authorise this bank without using another connection">Reconnect</button>'+
+      '<button class="btn sm ghost" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></span></div>';
+  }).join('');
+  h+='<div style="display:flex;gap:8px;margin-top:12px">'+
+     '<button class="btn sm" onclick="plaidSyncNow()">Sync now</button>'+
+     '<button class="btn sm ghost" onclick="plaidConnect()">Connect another</button></div></div>';
+  return h;
+}
+
+/* ---------------- transactions ----------------
+   The per-purchase ledger. Everything else in the finance pages says what a card was
+   PAID; only this says what was BOUGHT, which is the only thing that can be cut.
+   Filed by calendar month -- the first of the month to the last -- and by the date on the
+   purchase itself. Statement cycles were tried here first, on the reasoning that a cycle
+   is the set of purchases that produced one bill. The cost was that every card cut the
+   year on its own dates, so the same week sat under "Sep 22-Oct 21" on one card and
+   "Sep 8-Oct 7" on another, and "All cards" interleaved both. A month means the same
+   thing on every account, which is what makes two of them comparable.
+
+   What a card actually costs and when it is due is still answered, on its own tiles. */
+const TXKEY={};                 // label -> sort key, filled by txMonthLabel as groups are built
+let TXCARD='';                  // '' = every card
+let TXIMP=0;                    // import panel open
+/* The month the purchase happened in, read off its own date. A row the bank dated badly,
+   or one typed without a date, is not guessed at -- it is gathered under Undated and sorts
+   last, where it is visible rather than silently filed into a month it may not belong to. */
+function txMonthLabel(d){
+  const m=String(d.date||'').match(/^(\d{4})-(\d{2})/); if(!m)return 'Undated';
+  const y=+m[1], mo=+m[2]-1;
+  if(mo<0||mo>11)return 'Undated';
+  const l=MONTHS[mo]+' '+y; TXKEY[l]=y*100+mo; return l;
+}
+function txMonthKey(label){return TXKEY[label]||0}
+/* Every account you have connected deserves a chip whether or not anything has been spent
+   on it yet -- an empty one answers "nothing on this card this cycle", which is a real
+   answer and used to be indistinguishable from the card not existing. Cards named only on
+   an imported statement come along too, since nothing else knows about them. */
+function txCards(){
+  const s=new Set(list('tx').map(i=>i.d.card).filter(Boolean));
+  // A brokerage has holdings, not purchases: /transactions/sync never returns a row for
+  // one, so a chip for it could only ever say "nothing here". It belongs to the
+  // Investment log instead, and is left off rather than left permanently empty.
+  plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>{
+    if(String(a.type||'').toLowerCase()!=='investment')s.add(plaidAcctLabel(it.d.inst,a));
+  }));
+  return[...s].sort();
+}
+// Selected by index, never by interpolating the name into an onclick attribute:
+// esc() escapes for HTML, but the parser decodes the entity before the JS is parsed, so an
+// apostrophe in a freely-typed card name would break out of the call.
+function txSetCard(c){TXCARD=c;renderActive()}
+// Shut unless you ask. Kept in memory rather than saved: it is a glance, not a setting.
+let TXWHERE=0;
+function txToggleWhere(){TXWHERE=!TXWHERE;renderActive()}
+function txSetCardIdx(n){const cs=txCards();TXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
+function txShown(){return list('tx').filter(i=>!TXCARD||i.d.card===TXCARD)}
+// The Accounts row for whichever card is selected. It carries the live balance, so the
+// question "what is on this card right now" is answered where you are already looking.
+function txAcctRow(){
+  return TXCARD?(list('fincash').find(f=>String(f.d.name||'')===TXCARD)||null):null;
+}
+const txIsOwed=a=>a&&(a.d.grp==='Credit'||a.d.grp==='Haiti credit');
+const shortDate=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+/* The statement about to close and the date it must be paid by. Read from the same rule the
+   Accounts page uses, so the two never disagree about which cycle a card is on. */
+function txCycleTile(a){
+  const c=cardCycle(a);
+  if(!c||(!c.st&&!c.du))return TXBLANK;
+  return{k:'Next statement',v:c.st?shortDate(c.st):'\u2014',
+    u:c.du?'due '+shortDate(c.du):'no due date known',c:'var(--blue)'};
+}
+function txBalanceTile(a){
+  if(a){
+    // No figure is not the same as zero, and saying $0.00 would be a claim about the money.
+    if(a.d.amt===''||a.d.amt==null)
+      return{k:txIsOwed(a)?'Owed now':'Balance now',v:'\u2014',
+        u:'the bank has not reported one \u2014 tap the row on Brief to set it',c:'var(--line2)'};
+    const v=Math.abs(cfoUsd(a.d.amt,a.d.cur));
+    if(txIsOwed(a)){
+      const lim=+a.d.limit||0;
+      return{k:'Owed now',v:money2(v),
+        u:lim?money2(lim-v)+' left of '+money2(lim):'on this card',c:'var(--red)'};
+    }
+    return{k:'Balance now',v:money2(v),u:'in this account',c:'var(--green)'};
+  }
+  // Every account at once: the cash gets its own figure and the cards get theirs, because
+  // netting them hides both. A card carried alone shows only what belongs to a card.
+  const n=list('fincash').filter(f=>f.d.grp==='Banking'||f.d.grp==='Haiti cash').length;
+  return{k:'Cash on hand',v:money2(finUsd('Banking','Haiti cash')),
+    u:n+' account'+(n===1?'':'s'),c:'var(--green)'};
+}
+// One placeholder, so an empty tile looks the same wherever it appears.
+const TXBLANK={k:'\u2014',v:'',u:'',c:'var(--line2)'};
+/* Room left on the card if the bank says what the limit is, the next payment if it does
+   not, and nothing at all rather than something invented. An empty tile is honest and
+   leaves the space for whatever you decide belongs there. */
+function txFourthTile(a){
+  const blank=TXBLANK;
+  if(!a){
+    const cards=list('fincash').filter(f=>f.d.grp==='Credit'||f.d.grp==='Haiti credit');
+    const owed=Math.abs(finUsd('Credit','Haiti credit'));
+    return{k:'Owed on cards',v:money2(owed),
+      u:cards.length+' card'+(cards.length===1?'':'s'),c:owed?'var(--red)':'var(--muted)'};
+  }
+  const owed=Math.abs(cfoUsd(a.d.amt,a.d.cur));
+  if(txIsOwed(a)&&+a.d.limit>0){
+    const left=(+a.d.limit)-owed;
+    return{k:'Credit left',v:money2(left),
+      u:Math.round(owed/(+a.d.limit)*100)+'% of '+money2(+a.d.limit)+' used',
+      c:left<(+a.d.limit)*0.2?'var(--gold)':'var(--blue)'};
+  }
+  if(txIsOwed(a)){
+    const debt=list('debt').find(x=>x.d.acct&&x.d.acct===a.d.acct);
+    const day=dueDayOf(a.d)||(debt?+debt.d.day||0:0);
+    const min=debt?cfoUsd(debt.d.min,debt.d.cur):0;
+    if(day||min)return{k:'Next payment',v:min?money2(min):'\u2014',
+      u:[min?'minimum':'',day?'due the '+ord(day):''].filter(Boolean).join(' \u00b7 '),c:'var(--gold)'};
+  }
+  return blank;
+}
+// Average monthly spend from real transactions, over the months actually covered.
+// Subscriptions are counted from the subscriptions page, and they also land on the card
+// as transactions. Counting both bills him twice for Netflix, so that one category is
+// left out here and the subscriptions figure stays the single source for it.
+function cfoTxMo(){
+  const r=list('tx').filter(i=>i.d.date&&i.d.cat!=='Subscriptions');if(!r.length)return 0;
+  const mons=new Set(list('tx').filter(i=>i.d.date).map(i=>String(i.d.date).slice(0,7))).size;
+  return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons);
+}
+/* --- statement import ------------------------------------------------------
+   Card exports disagree on almost everything, so nothing is assumed: a date is
+   whichever cell parses as one, the amount is the last cell that parses as a number,
+   and the description is the longest cell that is neither. Everything is previewed
+   before a single row is written. */
+function txSplitCSV(line){
+  const out=[];let cur='',q=false;
+  for(let i=0;i<line.length;i++){const c=line[i];
+    if(q){if(c==='"'){if(line[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true; else if(c===','){out.push(cur);cur=''} else cur+=c}
+  out.push(cur);return out.map(x=>x.trim());
+}
+function txParseDate(v){
+  const s=String(v||'').trim();let m;
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))return `${m[3]}-${String(+m[1]).padStart(2,'0')}-${String(+m[2]).padStart(2,'0')}`;
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/))return `20${m[3]}-${String(+m[1]).padStart(2,'0')}-${String(+m[2]).padStart(2,'0')}`;
+  return '';
+}
+function txParseAmt(v){
+  const s=String(v||'').replace(/[$\s,]/g,'').replace(/^\((.*)\)$/,'-$1');
+  if(!s||!/^-?\d*\.?\d+$/.test(s))return null;
+  const n=parseFloat(s);return isNaN(n)?null:n;
+}
+function txParse(text){
+  const rows=[];
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    if(!line.trim())return;
+    const c=txSplitCSV(line);if(c.length<2)return;
+    let date='',amt=null,di=-1,ai=-1;
+    c.forEach((v,i)=>{const d=txParseDate(v);if(d&&!date){date=d;di=i}});
+    if(!date)return;                                   // header rows and junk drop out here
+    c.forEach((v,i)=>{if(i===di)return;const n=txParseAmt(v);if(n!==null&&n!==0){amt=n;ai=i}});
+    if(amt===null)return;
+    let desc='';c.forEach((v,i)=>{if(i!==di&&i!==ai&&v.length>desc.length&&!txParseDate(v)&&txParseAmt(v)===null)desc=v});
+    rows.push({date,desc:desc||'Transaction',amt});
+  });
+  return rows;
+}
+function txDoImport(){
+  const ta=document.getElementById('txPaste'),card=document.getElementById('txCard');
+  if(!ta||!card)return;
+  const flip=document.getElementById('txFlip')?.checked;
+  const rows=txParse(ta.value);
+  if(!rows.length){alert('Nothing recognisable. Each line needs a date and an amount.');return}
+  if(!card.value){alert('Pick which card these belong to.');return}
+  if(!confirm(`Import ${rows.length} transaction${rows.length===1?'':'s'} onto ${card.value}?`))return;
+  rows.forEach((r,n)=>put('tx',{date:r.date,desc:r.desc,amt:flip?-r.amt:r.amt,
+    card:card.value,cat:'',cur:'USD',notes:''},'tx:'+Date.now().toString(36)+':'+n));
+  ta.value='';TXIMP=0;renderActive();
+}
+function txPreview(){
+  const ta=document.getElementById('txPaste'),out=document.getElementById('txPrev');
+  if(!ta||!out)return;
+  const rows=txParse(ta.value),flip=document.getElementById('txFlip')?.checked;
+  if(!rows.length){out.innerHTML='<div class="empty">Nothing recognised yet. Paste rows that each carry a date and an amount.</div>';return}
+  const tot=rows.reduce((s,r)=>s+(flip?-r.amt:r.amt),0);
+  out.innerHTML=`<div class="hint">${rows.length} row${rows.length===1?'':'s'} recognised \u00b7 total ${money2(tot)}${tot<0?' \u2014 these read as credits, tick the box below to flip them':''}</div>`+
+    rows.slice(0,6).map(r=>`<div class="finRow"><span class="n">${esc(r.desc)}<span class="sub"> \u00b7 ${esc(r.date)}</span></span><span class="v">${money2(flip?-r.amt:r.amt)}</span></div>`).join('')+
+    (rows.length>6?`<div class="hint" style="margin-top:8px">\u2026and ${rows.length-6} more</div>`:'');
+}
+function txPage(){
+  const all=list('tx'),cards=txCards(),shown=txShown();
+  let h=`<div class="segbar wrap" style="margin:12px 0 2px">`+
+    [['','All cards'],...cards.map(c=>[c,c])].map(([k,l],i)=>
+      `<button class="${TXCARD===k?'active':''}" onclick="txSetCardIdx(${i-1})">${esc(l)}</button>`).join('')+`</div>`;
+
+  plaidPullOnce();                    // the chips need every account, panel or no panel
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Import a statement</h2>`;
+  if(!TXIMP)h+=`<div class="hint">Download the CSV from Citi, Amex or Wells Fargo and paste it here \u2014 it reads all three without being told which is which. Nothing is written until you have seen the preview.</div>
+    <button class="btn sm" onclick="TXIMP=1;renderActive()">Paste a statement</button></div>`;
+  else{
+    h+=`<div class="hint">Paste the rows. A line needs a date and an amount; headers and totals are ignored.</div>
+      <textarea id="txPaste" class="cfoIn" style="width:100%;min-height:110px;font-family:'IBM Plex Mono';font-size:12px" oninput="txPreview()" placeholder="08/24/2026,AMAZON MKTPL,-42.19"></textarea>
+      <div style="margin:10px 0"><select id="txCard" class="cfoIn"><option value="">Which card?</option>${
+        TX_ACCTS.map(c=>`<option${c===TXCARD?' selected':''}>${esc(c)}</option>`).join('')}</select></div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:10px">
+        <input type="checkbox" id="txFlip" onchange="txPreview()"> Flip the signs (use if purchases came in negative)</label>
+      <div id="txPrev"></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm" onclick="txDoImport()">Import</button>
+      <button class="btn sm ghost" onclick="TXIMP=0;renderActive()">Cancel</button></div></div>`;
+  }
+
+  if(all.length){
+    const spendRows=shown.filter(txIsSpend);
+    const spent=spendRows.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
+    const byC={};spendRows.forEach(i=>{const v=cfoUsd(i.d.amt,i.d.cur);
+      const c=i.d.cat||'Uncategorised';byC[c]=(byC[c]||0)+v});
+    const cats=Object.entries(byC).sort((a,b)=>b[1]-a[1]);
+    if(cats.length){
+      /* Fourteen bars is a page of its own between you and the ledger, and most visits do
+         not ask the question. The total stays on show, since that is the answer you want at
+         a glance; the breakdown opens when you want to know where it went. */
+      h+=`<div class="panel"><h2 style="cursor:pointer;justify-content:space-between" onclick="txToggleWhere()">
+          <span><span class="sw" style="background:var(--orange)"></span>Where it went</span>
+          <span style="font-family:'IBM Plex Mono';font-size:11px;font-weight:400;color:var(--muted)">${
+            TXWHERE?'hide \u25be':cats.length+' categor'+(cats.length===1?'y':'ies')+' \u25b8'}</span></h2>
+        <div class="hint">${TXCARD?esc(TXCARD):'Every card'} \u00b7 ${spendRows.length} purchase${spendRows.length===1?'':'s'} \u00b7 ${money2(spent)} spent.${TXWHERE?' This is the list to cut from.':''}</div>`;
+      if(TXWHERE)h+=cats.map(([c,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(c)}</span><span class="v">${money2(v)}</span></div>
+        <div class="cfoBar"><i style="width:${(v/spent*100).toFixed(1)}%"></i></div>
+        <div class="cfoGoalSub">${(v/spent*100).toFixed(0)}% of what you spent</div></div>`).join('');
+      h+=`</div>`;
+    }
+  }
+  return h+genList('tx');
+}
+function cfoSpendMo(){const r=list('spend');if(!r.length)return 0;
+  const mons=new Set(r.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
+  return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons)}
+function cfoLiquid(){return finUsd('Banking','Haiti cash','Bills')}
+// Property. A house only reaches the cash-flow numbers once it is actually Renting;
+// a Pending transfer contributes nothing, which is why propLive gates every sum.
+// Costs are held per-month so gross rent and net rent are directly comparable.
+function propLive(i){return (i.d||i).status==='Renting'}
+function propCost(d){const r=+d.rent||0;
+  return (+d.tax||0)/12+(+d.ins||0)/12+(+d.hoa||0)+(+d.maint||0)/12+r*((+d.mgmt||0)/100)+r*((+d.vac||0)/100)}
+function propNet(d){return (+d.rent||0)-propCost(d)}
+function cfoPropMo(){return list('prop').filter(propLive).reduce((s,i)=>s+propNet(i.d),0)}
+// Net liquid — the goal basis. Cash he can move plus the brokerage, minus what he owes.
+// Deliberately excludes assets: watches and houses are net worth, but they are gifts and
+// appreciation rather than anything his saving changes, so tracking them in the goal
+// would flatter the number and hide whether the plan is working.
+function cfoInvestVal(){const r=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+  return r.length?(+r[r.length-1].d.val||0):0}
+function cfoNetLiquid(){return finUsd('Banking','Credit','Haiti cash','Haiti credit','Bills')+cfoInvestVal()}
+// Month-by-month simulation. The budget stays fixed at total-minimums + extra, so a
+// cleared debt's minimum rolls onto the next one — that roll-up IS the strategy.
+// Order is decided by the caller; this only runs the arithmetic.
+function cfoPayoff(ordered,extra){
+  const ds=ordered.map(d=>({name:d.name,bal:d.bal,apr:d.apr,min:d.min,done:0}));
+  if(!ds.length)return{months:0,interest:0,order:[],ok:true};
+  const budget=ds.reduce((s,d)=>s+d.min,0)+Math.max(0,+extra||0);
+  let months=0,interest=0;const order=[];
+  while(ds.some(d=>d.bal>0.005)){
+    if(++months>600)return{months:null,interest,order,ok:false};
+    ds.forEach(d=>{if(d.bal>0){const i=d.bal*(d.apr/100/12);d.bal+=i;interest+=i}});
+    let pool=budget;
+    ds.forEach(d=>{if(d.bal>0&&pool>0){const p=Math.min(d.bal,d.min,pool);d.bal-=p;pool-=p}});
+    for(const d of ds){if(pool<=0.005)break;if(d.bal>0){const p=Math.min(d.bal,pool);d.bal-=p;pool-=p}}
+    ds.forEach(d=>{if(d.bal<=0.005&&!d.done){d.done=1;d.bal=0;order.push(d.name)}});
+  }
+  return{months,interest,order,ok:true};
+}
+function cfoGoals(){const now=Date.now();
+  return list('goal').map(i=>{const t=+i.d.target||0,live=i.d.track==='Net liquid — live';
+    const sv=live?cfoNetLiquid():(+i.d.saved||0);
+    let mons=null,need=null;
+    if(i.d.by){const d=new Date(i.d.by+'T12:00:00');
+      if(!isNaN(d)){mons=Math.max(0,Math.round((d-now)/2629800000));
+        need=mons>0?Math.max(0,(t-sv)/mons):Math.max(0,t-sv)}}
+    return{id:i.id,name:i.d.name||'',by:i.d.by||'',pri:i.d.pri||'2',t,sv,live,
+      pct:t?Math.max(0,Math.min(100,sv/t*100)):0,mons,need}})}
+let CFOV='dash';
+let CFOEXTRA=+(localStorage.alfred_cfo_extra||0)||0;
+function cfoSetExtra(v){CFOEXTRA=Math.max(0,+v||0);localStorage.alfred_cfo_extra=CFOEXTRA;renderActive()}
+const CFO_VIEWS=[['dash','Dashboard'],['income','Income'],['debt','Debts'],['prop','Property'],['goal','Goals'],['spend','Spending']];
+function cfoPage(){
+  let h=`<div class="segbar" style="margin:12px 0 2px">`+CFO_VIEWS.map(([k,l])=>
+    `<button class="${CFOV===k?'active':''}" onclick="CFOV='${k}';renderActive()">${l}</button>`).join('')+`</div>`;
+  if(CFOV!=='dash')return h+genList(CFOV);
+
+  const nInc=list('income').length;
+  const rent=cfoPropMo();
+  const inc=cfoIncomeMo()+rent,subs=cfoSubsMo(),pay=cfoPayrollMo(),ds=cfoDebts();
+  const dmin=ds.reduce((s,d)=>s+d.min,0),dtot=ds.reduce((s,d)=>s+d.bal,0);
+  const dint=ds.reduce((s,d)=>s+d.bal*(d.apr/100/12),0);
+  const wapr=dtot?ds.reduce((s,d)=>s+d.bal*d.apr,0)/dtot:0;
+  // Real transactions beat the hand-typed category register whenever there are any.
+  const nTx=list('tx').length;
+  const spend=nTx?cfoTxMo():cfoSpendMo(),burn=subs+pay+dmin+spend,net=inc-burn;
+  const rate=inc>0?net/inc*100:null;
+  const liquid=cfoLiquid(),runway=burn>0?liquid/burn:null;
+
+  h+=`<div class="grid stats">
+    <div class="stat" style="--accent:var(--green)"><div class="k">Income / month</div><div class="v">${money2(inc)}</div><div class="u">${[nInc?nInc+' source'+(nInc>1?'s':''):'',rent?'incl. '+money2(rent)+' net rent':''].filter(Boolean).join(' · ')||'nothing recorded yet'}</div></div>
+    <div class="stat" style="--accent:var(--orange)"><div class="k">Money out / month</div><div class="v">${money2(burn)}</div><div class="u">${[subs?'subs '+money2(subs):'',dmin?'debt min '+money2(dmin):'',pay?'payroll '+money2(pay):'',spend?'spending '+money2(spend)+(nTx?' from '+nTx+' transactions':''):''].filter(Boolean).join(' · ')||'nothing committed yet'}</div></div>
+    <div class="stat" style="--accent:${net>=0?'var(--blue)':'var(--red)'}"><div class="k">${net>=0?'Surplus':'Deficit'} / month</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">${nInc?'what is left to put to work':'not real until income is in'}</div></div>
+    <div class="stat" style="--accent:var(--acc)"><div class="k">Savings rate</div><div class="v">${rate==null?'—':rate.toFixed(0)+'%'}</div><div class="u">${rate==null?'needs income':'of every dollar in'}</div></div>
+  </div>`;
+
+  const gaps=[];
+  if(!nInc)gaps.push(['income','Income','unlocks surplus, savings rate and every roadmap number']);
+  if(!list('debt').length)gaps.push(['debt','Debts','unlocks avalanche vs snowball and your true interest cost']);
+  if(!list('goal').length)gaps.push(['goal','Goals','unlocks "am I on track" and what to set aside each month']);
+  if(!list('spend').length&&!list('tx').length)gaps.push(['spend','Spending','turns card payments into categories you can actually cut']);
+  if(gaps.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Fill these in</h2>
+    <div class="hint">Everything on this page is computed live from your own rows — nothing here is an estimate. These registers are still empty; each one you fill lights up more of the dashboard.</div>`+
+    gaps.map(([k,l,why])=>`<div class="cfoGap"><span class="n">${l}</span><span class="why">${why}</span><button class="btn sm" style="margin-left:auto" onclick="CFOV='${k}';renderActive()">Open</button></div>`).join('')+`</div>`;
+
+  if(!monHeld()||MONROWS||MONBUSY)h+=monPanel();
+  if(!list('tx').length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>No transactions yet</h2>
+    <div class="hint">Every figure above is built from balances and monthly totals — what a card was <b>paid</b>. None of it can tell you what you <b>bought</b>, which is the only thing you can decide to stop doing. Import a statement and the spending line here starts reading from real purchases.</div>
+    <button class="btn sm" onclick="go('tx')">Open Transactions</button></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Liquidity</h2>
+    <div class="hint">Cash you could reach this week — checking, the BUH balances and physical bills. Runway is how long that lasts at your current burn, ignoring anything new coming in.</div>
+    <div class="finRow" onclick="go('fincash')"><span class="n">Liquid cash</span><span class="v">${money2(liquid)}</span></div>
+    <div class="finRow"><span class="n">Burn / month</span><span class="v">${money2(burn)}</span></div>
+    <div class="finTot"><span class="n">Runway</span><span class="v">${runway==null?'—':runway.toFixed(1)+' months'}</span></div></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Debt</h2>`;
+  if(!ds.length)h+=`<div class="empty">Nothing recorded. Add each card and loan under <b>Debts</b> — with the APR and the minimum in, the payoff strategies below run themselves.</div>`;
+  else{
+    h+=`<div class="hint">Weighted APR ${wapr?wapr.toFixed(1)+'%':'not set'} — interest alone costs ${money2(dint)} a month, ${money2(dint*12)} a year.</div>`;
+    h+=[...ds].sort((a,b)=>b.bal-a.bal).map(d=>`<div class="finRow" onclick="openForm('debt','${d.id}')"><span class="n">${esc(d.name)}<span class="sub"> · ${d.apr?d.apr+'% APR':'no APR set'}</span></span><span class="v2 cfoDebtMin" style="margin-left:auto">${d.min?money2(d.min)+'/mo min':'no minimum'}</span><span class="v neg cfoDebtBal">${money2(d.bal)}</span></div>`).join('');
+    h+=`<div class="finTot"><span class="n">Total owed</span><span class="v neg">${money2(dtot)}</span></div>`;
+  }
+  h+=`</div>`;
+
+  if(ds.length){
+    const hasApr=ds.some(d=>d.apr>0),hasMin=ds.some(d=>d.min>0);
+    const av=cfoPayoff([...ds].sort((a,b)=>(b.apr-a.apr)||(a.bal-b.bal)),CFOEXTRA);
+    const sn=cfoPayoff([...ds].sort((a,b)=>(a.bal-b.bal)||(b.apr-a.apr)),CFOEXTRA);
+    const fm=r=>!r.ok||r.months==null?'never':r.months>=12?Math.floor(r.months/12)+'y '+(r.months%12)+'m':r.months+' mo';
+    const win=(av.ok&&sn.ok&&Math.abs(av.interest-sn.interest)>1)?(av.interest<sn.interest?'av':'sn'):null;
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Payoff strategy</h2>
+      <div class="hint">${hasMin?'':'⚠ No minimum payments set — add them on each debt or these numbers mean nothing. '}${hasApr?'':'⚠ No APRs set — until they are in, the two strategies are arithmetically identical. '}Extra you can put toward debt each month, on top of the minimums:</div>
+      <div style="margin:2px 0 14px"><input class="cfoIn" type="number" min="0" step="50" value="${CFOEXTRA}" onchange="cfoSetExtra(this.value)"><span style="font-size:11.5px;color:var(--faint);margin-left:9px">extra / month</span></div>
+      <div class="cfoWrap"><table class="cfoTbl"><thead><tr><th>Strategy</th><th>Debt-free in</th><th>Interest paid</th><th>Clears first</th></tr></thead><tbody>
+        <tr class="${win==='av'?'win':''}"><td>Avalanche — highest APR first</td><td>${fm(av)}</td><td>${av.ok?money2(av.interest):'—'}</td><td>${esc(av.order[0]||'—')}</td></tr>
+        <tr class="${win==='sn'?'win':''}"><td>Snowball — smallest balance first</td><td>${fm(sn)}</td><td>${sn.ok?money2(sn.interest):'—'}</td><td>${esc(sn.order[0]||'—')}</td></tr>
+      </tbody></table></div>`;
+    if(!av.ok||!sn.ok)h+=`<div class="hint" style="margin-top:12px">⚠ At these minimums the balances never clear — interest outruns the payments. Raise the extra above until a number appears.</div>`;
+    else if(win)h+=`<div class="hint" style="margin-top:12px">Avalanche saves ${money2(Math.abs(sn.interest-av.interest))} in interest. Snowball clears its first debt sooner, which is worth something if you need to see progress to stay with it — but it is the more expensive of the two here.</div>`;
+    h+=`</div>`;
+  }
+
+  const gs=cfoGoals();
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Goals</h2>`;
+  if(!gs.length)h+=`<div class="empty">No goals set. A roadmap without a destination is just a budget — add what you are saving toward under <b>Goals</b>.</div>`;
+  else{
+    const need=gs.reduce((s,g)=>s+(g.need||0),0);
+    h+=`<div class="hint">Together they need ${money2(need)} a month to land on time${net>0?` — you have ${money2(net)} spare, ${need>net?'<b>'+money2(need-net)+' short</b>':'enough'}.`:net<0?' — and you are running a deficit, so every dollar of this has to come from a cut first.':'.'}</div>`;
+    h+=gs.sort((a,b)=>String(a.pri).localeCompare(String(b.pri))||(a.by||'9999').localeCompare(b.by||'9999')).map(g=>`<div class="cfoGoal" onclick="openForm('goal','${g.id}')">
+      <div class="cfoGoalTop"><span class="n">${esc(g.name)}</span><span class="v">${money2(g.sv)} of ${money2(g.t)}</span></div>
+      <div class="cfoBar"><i style="width:${g.pct.toFixed(1)}%"></i></div>
+      <div class="cfoGoalSub">${g.pct.toFixed(0)}% there${g.live?' · live from net liquid':''}${g.by?' · by '+fdate(g.by).replace(/^\w+, /,''):' · no date set'}${g.need!=null?' · '+money2(g.need)+'/mo needed':''}${g.mons!=null?' · '+g.mons+' month'+(g.mons===1?'':'s')+' left':''}</div></div>`).join('');
+  }
+  h+=`</div>`;
+
+  const nwCash=finUsd('Banking','Credit','Haiti cash','Haiti credit');
+  // Assets that mirror the investment log are excluded: net liquid already carries the
+  // brokerage, and counting the mirror too would add it to net worth twice.
+  const atot=list('assets').filter(i=>i.d.src!=='Investment log').reduce((s,i)=>s+assetVal(i),0);
+  const pend=list('prop').filter(i=>!propLive(i)&&i.d.status!=='Sold');
+  const pval=list('prop').filter(i=>i.d.status!=='Sold').reduce((s,i)=>s+(+i.d.val||0),0);
+  const nl=cfoNetLiquid(),brk=cfoInvestVal(),bills=finUsd('Bills');
+
+  if(pend.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Not counted yet</h2>
+    <div class="hint">Property you do not have the keys to. None of this touches the income, surplus or runway figures above — it starts counting the day you switch it to <b>Renting</b>.</div>`+
+    pend.map(i=>`<div class="finRow" onclick="openForm('prop','${i.id}')"><span class="n">${esc(i.d.name)}<span class="sub"> · ${esc(i.d.status||'Pending transfer')}${i.d.from?' · expected '+fdate(i.d.from).replace(/^\w+, /,''):''}</span></span><span class="v2" style="margin-left:auto">${(+i.d.rent||0)?money2(i.d.rent)+'/mo gross':'no rent set'}</span><span class="v">${(+i.d.val||0)?money2(i.d.val):'—'}</span></div>`).join('')+
+    `<div class="hint" style="margin-top:12px">Gross rent is not income. Tax, insurance, HOA, maintenance, management and vacancy come out of it first — fill those in on the property and the net figure is what will actually reach you.</div></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Net liquid</h2>
+    <div class="hint">What you can actually move, and the only thing the goal tracks: cash, the BUH balances, physical bills and the brokerage, less what you owe. Watches and property are yours but they are gifts and appreciation — counting them would flatter the number and hide whether the saving is working.</div>
+    <div class="finRow" onclick="go('fincash')"><span class="n">Net cash<span class="sub"> · after cards</span></span><span class="v ${signCls(nwCash)}">${money2(nwCash)}</span></div>
+    <div class="finRow" onclick="go('fincash')"><span class="n">Physical bills</span><span class="v">${money2(bills)}</span></div>
+    <div class="finRow" onclick="go('invest')"><span class="n">Brokerage</span><span class="v">${money2(brk)}</span></div>
+    <div class="finTot"><span class="n">Net liquid</span><span class="v ${signCls(nl)}">${money2(nl)}</span></div></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Net worth</h2>
+    <div class="hint">The whole picture, tracked but not targeted.</div>
+    <div class="finRow"><span class="n">Net liquid</span><span class="v ${signCls(nl)}">${money2(nl)}</span></div>
+    <div class="finRow" onclick="go('networth')"><span class="n">Assets<span class="sub"> · watches and the like</span></span><span class="v">${money2(atot)}</span></div>
+    ${pval?`<div class="finRow" onclick="CFOV='prop';renderActive()"><span class="n">Property</span><span class="v">${money2(pval)}</span></div>`:''}
+    <div class="finRow" onclick="go('finsub')"><span class="n">Subscriptions</span><span class="v">${money2(subs)} <span style="font-size:11px;color:var(--faint)">/mo</span></span></div>
+    <div class="finTot"><span class="n">Net worth</span><span class="v ${signCls(nl+atot+pval)}">${money2(nl+atot+pval)}</span></div></div>`;
+  return h;
+}
 // The menu is the one page that is a table rather than a list: it is read across — day, meal,
 // what is served — the way the sheet pinned in the kitchen is, and a list of cards loses that.
 // One table per week. A row opens for editing, which is how a note gets written on a meal.
@@ -2373,6 +4297,11 @@ function toMin(s){if(!s)return null;const[p,q]=String(s).split(':').map(Number);
    carrying no rights of its own — it is revoked on the ledger's table outright. The sync
    secret is NOT here and never can be; it is the whole lock on the monitor's own table and
    stays typed in per device under the gear. */
+// The one account there is. Knowing the address gets nobody in — the password is the whole
+// of the lock — and it is already in this repository's commit history on every commit he
+// has authored, so naming it here exposes nothing that was not public already. What it buys
+// is a door with one field on it instead of two.
+const CFO_EMAIL='matheodeeb@gmail.com';
 const CFO_URL='https://lceferergfrjklqhzokf.supabase.co';
 const CFO_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjZWZlcmVyZ2ZyamtscWh6b2tmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NzEyOTAsImV4cCI6MjEwMDE0NzI5MH0.ZHjqUsMd1uQgi_o2OnGmUwEQ3iVWzU5ectoc6vRCbak';
 let CFOAUTH=null; try{CFOAUTH=JSON.parse(localStorage.cfo_auth||'null')}catch(e){}
@@ -2390,13 +4319,13 @@ async function cfoAuthPost(path,body){
   return j;
 }
 async function cfoSignIn(){
-  const em=$('#cfoEmail'),pw=$('#cfoPass'),msg=$('#cfoMsg'),go=$('#cfoGo');
-  const e=(em.value||'').trim(), p=pw.value||'';
-  if(!e||!p){msg.textContent='Email and password.';msg.className='cfoMsg bad';return}
+  const pw=$('#cfoPass'),msg=$('#cfoMsg'),go=$('#cfoGo');
+  const p=pw.value||'';
+  if(!p){msg.textContent='The password.';msg.className='cfoMsg bad';return}
   go.disabled=true;msg.textContent='Checking…';msg.className='cfoMsg';
   try{
-    cfoAuthSave(await cfoAuthPost('token?grant_type=password',{email:e,password:p}));
-    markSite();renderActive();                 // the door swings and the room is just there
+    cfoAuthSave(await cfoAuthPost('token?grant_type=password',{email:CFO_EMAIL,password:p}));
+    markSite();cfoSync();renderActive();        // the door swings and the room is just there
   }catch(err){
     msg.textContent=err.message||'That did not work.';msg.className='cfoMsg bad';
     go.disabled=false;pw.value='';pw.focus();
@@ -2404,30 +4333,22 @@ async function cfoSignIn(){
 }
 function cfoSignOut(){
   CFOAUTH=null;try{delete localStorage.cfo_auth}catch(e){}
+  SC={items:{},lastPull:0,lastSyncAt:0};        // the figures leave the tab with the session
   markSite();renderActive();
 }
-function cfoRoomPage(){
-  if(!cfoAuthed())return`<div class="roomGate">
+// One field. The account is a constant because there is only ever one of them, and knowing
+// the address gets nobody in — the password is the whole of the lock.
+function cfoGateHtml(){
+  return`<div class="roomGate">
     <div class="rgMark">CFO</div>
     <h2>This room is locked</h2>
-    <p>The ledger keeps account balances and card statements, so it asks for the account
-       rather than riding in on the PIN.</p>
+    <p>The ledger keeps account balances and card statements, so it asks for its own
+       password rather than riding in on the PIN.</p>
     <form class="rgForm" onsubmit="event.preventDefault();cfoSignIn()">
-      <input id="cfoEmail" type="email" autocomplete="username" inputmode="email" placeholder="email"
-        value="${esc(CFOAUTH?.email||'')}">
       <input id="cfoPass" type="password" autocomplete="current-password" placeholder="password">
       <button class="btn primary" id="cfoGo" type="submit">Open the room</button>
       <div class="cfoMsg" id="cfoMsg"></div>
     </form>
-  </div>`;
-  return`<div class="panel">
-    <h2><span class="sw" style="background:var(--acc)"></span>The ledger is moving in</h2>
-    <div class="hint">Signed in as ${esc(CFOAUTH.email||'your account')}. The room is open and
-      the door works; the furniture — cash, statements, transfers, investments, net worth and
-      the CFO dashboard — is being carried across from the standalone page next.</div>
-    <div class="foot" style="margin-top:14px">
-      <button class="btn sm ghost" onclick="cfoSignOut()">Lock this room</button>
-    </div>
   </div>`;
 }
 function geoRoomPage(){
@@ -2994,13 +4915,24 @@ function overviewPage(){
    That is the whole difference between this and three sites: nothing is reloaded, so
    crossing reads as walking through a doorway rather than leaving and arriving. */
 const SITES={
-  main:{n:'Main',tag:'Personal life console',home:'overview'},
-  cfo :{n:'CFO', tag:'Money and cards',      home:'cfoRoom',gate:1},
-  geo :{n:'Geo', tag:'Geopolitics',          home:'geoRoom'},
+  main:{n:'Main',mark:'',   tag:'Personal life console',home:'overview'},
+  cfo :{n:'CFO', mark:'CFO',tag:'Private ledger',      home:'fincash',gate:1},
+  geo :{n:'Geo', mark:'GEO',tag:'Geopolitics',         home:'geoRoom'},
 };
 let SITE=SITES[localStorage.alfred_site]?localStorage.alfred_site:'main';
 const NAVS={
- cfo:[{t:'Ledger',p:'cfoRoom'}],
+ // The CFO room's own nav, as it stood on the standalone page. What you actually came to
+ // check — what is in the accounts and what is owed on the cards — leads; CFO is the
+ // thinking, the Brief is the looking.
+ cfo:[
+  {t:'Brief',p:'fincash'},
+  {t:'CFO',p:'cfo'},
+  {t:'Transactions',p:'tx'},
+  {t:'Accounts',g:[['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
+  {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
+  {t:'Net worth',p:'networth'},
+  {t:'Service',p:'service'},
+ ],
  geo:[{t:'Desk',p:'geoRoom'}],
  main:[
   {t:'Overview',p:'overview'},
@@ -3023,8 +4955,17 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
   schedule:{render:schedulePage,fab:'acts'},
-  cfoRoom:{render:cfoRoomPage,fab:null},
-  geoRoom:{render:geoRoomPage,fab:null}};
+  geoRoom:{render:geoRoomPage,fab:null},
+  // The CFO room. Every one of these is gated: renderActive sends you to the door instead
+  // if the room is locked, so none of them can be reached with the ledger still shut.
+  fincash:{render:fincashPage,fab:'fincash'},
+  invest:{render:investPage,bind:bindInvest,fab:'invest'},
+  finstmt:{render:finstmtPage,fab:'finstmt'},
+  fintx:{render:fintxPage,fab:'fintx'},
+  tx:{render:txPage,fab:'tx'},
+  networth:{render:networthPage,fab:'assets'},
+  service:{render:servicePage},           // nothing here is added with +, so no button
+  cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV}};
 // Each room remembers its own last tab, so coming back lands where you left rather than at
 // the front of it. A remembered tab that no longer exists — a money page from before they
 // moved out, say — falls back to the room's own front page, because renderActive quietly
@@ -3079,6 +5020,11 @@ function goSite(s){
 // What the header says you are in, and which row of the menu is lit.
 function markSite(){
   const t=$('#siteTag');if(t)t.textContent=SITES[SITE].tag;
+  // The mark names the room. In the house it is the full stop it has always been; in a room
+  // it is the room's own name in the room's own colour, which is what the standalone pages
+  // wore and the last thing needed for a crossing to read as arriving somewhere.
+  const lg=$('#siteLogo');
+  if(lg)lg.innerHTML=SITES[SITE].mark?'ALFRED <b>'+SITES[SITE].mark+'</b>':'ALFRED<b>.</b>';
   $$('#siteMenu button').forEach(b=>{
     const on=b.dataset.s===SITE;
     b.classList.toggle('active',on);
@@ -3129,6 +5075,14 @@ function renderActive(){
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
   const el=$('#pg-'+activePage);if(!el)return;
+  // The door, checked here rather than page by page: every page in the CFO room draws the
+  // gate until the room is open, so there is no page that forgets to ask.
+  if(SITES[SITE].gate&&!cfoAuthed()){
+    el.innerHTML=cfoGateHtml();el.classList.add('active');markNav();
+    $('#fab').style.display='none';setPill();
+    setTimeout(()=>$('#cfoPass')?.focus(),60);
+    return;
+  }
   const sp=SPECIAL[activePage];
   el.innerHTML=sp?sp.render():genList(activePage);
   if(sp?.bind)sp.bind(el);
