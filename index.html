@@ -153,7 +153,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .shead.now,.shead.now .gchev,.shead.now .gsub{color:var(--blue)}
   .shead.now{border-bottom-color:rgba(74,125,155,.45)}
   .sbox{border-left:3px solid var(--line2);padding-left:9px;margin-bottom:12px}
-  .lnk{color:var(--muted);font-style:italic}
   .sshead{font-family:"IBM Plex Mono";font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:13px 2px 3px}
   .ghead{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:17px;color:var(--txt);margin:20px 2px 4px;padding-bottom:6px;border-bottom:2px solid var(--line2);display:flex;align-items:baseline;gap:7px}
   .gtot{margin-left:auto;font-family:"IBM Plex Mono";font-size:12px;font-weight:600;color:var(--muted)}
@@ -318,35 +317,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .oItem .oP{font-family:"IBM Plex Mono";font-size:12.5px;white-space:nowrap;text-align:right}
   .oItem .oP b{font-weight:600}
   .oItem .oP i{font-style:normal;color:var(--faint);font-size:11px;margin-left:7px}
-  .neg{color:var(--bad)} .pos{color:#2e7247}
-  .finRow{display:flex;align-items:baseline;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
-  .finRow:hover{background:var(--panel2)}
-  .finRow:last-child{border-bottom:0}
-  .finRow .n{font-size:13.5px}
-  .finRow .sub{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint)}
-  .finRow .sub.late{color:var(--bad);font-weight:500}   /* a due date that has gone past */
-  .finRow .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:13.5px}
-  .finRow .v2{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted)}
-  .finTot{display:flex;gap:10px;padding:10px 2px 2px;border-top:2px solid var(--line2);margin-top:2px;font-weight:600}
-  .finTot .n{font-size:13px;font-family:"Fraunces",Georgia,serif}
-  .finTot .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:14px}
-  .statsSplit{display:flex;gap:12px;align-items:stretch}
-  .statsSplit>.stats{flex:1;min-width:0}
-  .statsRule{flex:none;width:2px;background:var(--line2);border-radius:2px;align-self:stretch}
-  .statsSplit>.statsBills{flex:0 0 216px}
-  @media(max-width:900px){.statsSplit>.statsBills{flex:0 0 180px}}
-  @media(max-width:760px){.statsSplit{flex-direction:column}.statsRule{width:auto;height:2px}.statsSplit>.statsBills{flex:1 1 auto}}
-  .chartWrap{margin-top:10px;overflow:hidden}
-  .invSvg{width:100%;height:auto;display:block}
-  .cLab{font-family:"IBM Plex Mono";font-size:9.5px;fill:var(--faint);letter-spacing:.04em}
-  .chartRead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:8px 2px 2px;min-height:22px}
-  .chartRead .rDate{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-  .chartRead .rVal{font-family:"IBM Plex Mono";font-size:17px;font-weight:600}
-  .chartRead .rMut{font-family:"IBM Plex Mono";font-size:11px;color:var(--faint)}
-  .chartRead .pos,.chartRead .neg{font-family:"IBM Plex Mono";font-size:12.5px}
-  #ivSvg{touch-action:pan-y;cursor:crosshair}
-  .panelRule{height:2px;background:var(--line2);border-radius:2px;margin:26px 2px 2px}
-  .totSel{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;text-transform:uppercase;padding:2px 4px;cursor:pointer;-webkit-appearance:none}
   /* brief */
   .briefBody{font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px}
   body.briefReading{background-image:none}
@@ -453,32 +423,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     .pad{grid-template-columns:repeat(3,64px)}
     .pkey{height:64px}
   }
-  /* ---- CFO ---- */
-  .cfoBar{height:7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin-top:8px}
-  .cfoBar>i{display:block;height:100%;background:var(--acc);border-radius:999px}
-  .cfoGoal{padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer}
-  .cfoGoal:hover{background:var(--panel2)}
-  .cfoGoal:last-child{border-bottom:0}
-  .cfoGoalTop{display:flex;align-items:baseline;gap:10px}
-  .cfoGoalTop .n{font-size:13.5px}
-  .cfoGoalTop .v{margin-left:auto;font-family:"IBM Plex Mono";font-size:12.5px;color:var(--muted)}
-  .cfoGoalSub{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint);margin-top:6px}
-  .cfoGap{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .cfoGap:last-child{border-bottom:0}
-  .cfoGap .n{font-size:13.5px}
-  .cfoGap .why{font-size:11px;color:var(--faint)}
-  .cfoWrap{overflow-x:auto}
-  .cfoTbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:440px}
-  .cfoTbl th{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line2);font-weight:600}
-  .cfoTbl th:first-child{text-align:left}
-  .cfoTbl td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;font-family:"IBM Plex Mono"}
-  .cfoTbl td:first-child{text-align:left;font-family:"Fraunces",Georgia,serif}
-  .cfoTbl tr:last-child td{border-bottom:0}
-  .cfoTbl tr.win td{background:rgba(63,111,79,.09)}
-  .cfoIn{font-family:"IBM Plex Mono";font-size:13px;padding:7px 10px;border:1px solid var(--line2);border-radius:9px;background:var(--panel);color:var(--txt);width:132px}
-  .cfoDebtBal{margin-left:14px}
-  /* on a phone the balance and the APR are what matter; the minimum drops and the balance takes the right edge */
-  @media(max-width:560px){.cfoDebtMin{display:none}.cfoDebtBal{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -563,14 +507,12 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-23 · 20:15';
+const BUILD='2026-09-25 · finances out';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2})};
-const money2=n=>{n=+n||0;return (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
-const signCls=n=>(+n||0)<0?'neg':(+n||0)>0?'pos':'';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 // The cooks work a four-week rotation: A, B, C, D, then A again. The sheet they work from is
 // in French, so the page is too — renaming it into English would only mean translating it
@@ -1513,54 +1455,6 @@ function anchorIn(d,y,m){
 }
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');if(isNaN(d))return today();d.setDate(d.getDate()+n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
-const CARD_SRC=['Citibank CC','Amex CC','Wells Fargo CC'];
-// Which column on the Statements page a card's payments are entered under. Guessed from the
-// account name so nothing has to be linked up by hand, and overridable when the guess fails.
-const guessSrc=name=>{const n=String(name||'').toLowerCase().replace(/[^a-z]/g,'');
-  return (n&&CARD_SRC.find(x=>{const k=x.replace(' CC','').toLowerCase().replace(/[^a-z]/g,'');
-    return n.includes(k)||k.includes(n)}))||''};
-const dayOf=v=>{const m=String(v||'').match(/^\d{4}-\d{2}-(\d{2})$/);return m?+m[1]:0};
-const stmtDayOf=d=>+d.stmtDay||dayOf(d.stmt);   // fall back to the day of the old fixed date
-const dueDayOf =d=>+d.dueDay ||dayOf(d.due);
-// The 31st of a month with 30 days is the 30th.
-const onDay=(y,m,day)=>new Date(y,m,Math.min(day,new Date(y,m+1,0).getDate()));
-// A card bills on the same day every month, so the pair of dates is a rule rather than
-// something to retype. The cycle shown is the first one not yet settled: entering that
-// month's payment on the Statements page closes it and the card moves on to the next.
-// A due day earlier in the month than the statement day falls the month after.
-function cardCycle(i){
-  const sd=stmtDayOf(i.d), dd=dueDayOf(i.d);
-  if(!sd&&!dd)return null;
-  const src=i.d.card||guessSrc(i.d.name);
-  const settled=m=>{const mn=MONTHS[((m%12)+12)%12];
-    return !!src&&list('finstmt').some(x=>x.d.src===src&&x.d.month===mn&&String(x.d.amt??'').trim()!=='')};
-  const now=new Date(); const y=now.getFullYear();
-  // Where the card stands follows the Statements page, not the calendar. A month's row there
-  // is that month's statement, so the cycle showing is the one after the last month actually
-  // paid: leave August unpaid and August keeps showing through September, which is the point
-  // — the card is still on that cycle until the payment is entered.
-  // The rows carry a month but no year, so the search stays inside this one.
-  let last=-1;
-  for(let k=0;k<=now.getMonth();k++)if(settled(k))last=k;
-  // A card with nothing on the Statements page has no history to read, so it falls back to
-  // the calendar month rather than guessing at eight unpaid statements.
-  let m=last<0?now.getMonth():Math.min(last+1,11);
-  while(m<11&&settled(m))m++;                  // paid ahead? keep moving forward
-  const st=sd?onDay(y,m,sd):null;
-  const dm=(dd&&sd&&dd<sd)?m+1:m;
-  const du=dd?onDay(y+(dm>11?1:0),dm%12,dd):null;
-  return{st,du};
-}
-const cycDate=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-function cycTxt(i){
-  const c=cardCycle(i);if(!c)return null;
-  // The cycle only moves on when the payment is entered, so a due date now behind us means
-  // it went unpaid. The row says so, in the red an overdue day gets on the To-do list.
-  const t0=new Date();t0.setHours(0,0,0,0);
-  const late=!!c.du&&c.du<t0;
-  return{t:[c.st?'stmt '+cycDate(c.st):'',c.du?'due '+cycDate(c.du):'',late?'overdue':'']
-    .filter(Boolean).join(' · '),late};
-}
 const wOpen=i=>!i.d.done&&!i.d.got;          // a want is "open" until it's ordered
 const NEED_SRC=['Bathroom','Living room','Supplements'];   // Necessities groups by the stock page it came from
 // To-do: the Done view is a record of when things got finished, so it reads by completion date, newest first
@@ -1925,147 +1819,6 @@ todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. T
   // brief would bury the day. Tap the task to read it.
   card:i=>({t:esc(i.d.task),dim:!!i.d.done,
     pill:i.d.due&&!i.d.done&&i.d.due<today()?{cls:'bad',txt:'overdue'}:null})},
-fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
-  fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
-          {k:'stmtDay',l:'Statement day of the month',t:'num',ph:'24'},
-          {k:'dueDay',l:'Payment due day',t:'num',ph:'17'},
-          {k:'card',l:'Statements column',t:'sel',opt:['',...CARD_SRC]}],
-  // The day fields open showing what the account is already billing on, whether that was
-  // typed here or is still being read off the old fixed dates.
-  formIn:(it,k,v)=>{
-    if(k==='amt'&&(it?.d?.grp==='Credit'||it?.d?.grp==='Haiti credit')&&v!==''&&v!=null)return Math.abs(+v||0);
-    if(k==='stmtDay')return v||stmtDayOf(it?.d||{})||'';
-    if(k==='dueDay') return v||dueDayOf(it?.d||{})||'';
-    if(k==='card')   return v||guessSrc(it?.d?.name);
-    return v;
-  },
-  formOut:d=>{if((d.grp==='Credit'||d.grp==='Haiti credit')&&d.amt!==''&&d.amt!=null)d.amt=-Math.abs(+d.amt);return d}},
-finstmt:{title:'Monthly statement',color:'var(--blue)',hint:'',
-  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'src',l:'Card / source',t:'sel',opt:['Citibank CC','Amex CC','Wells Fargo CC','BUH'],def:()=>finView==='Haitian'?'BUH':'Citibank CC'},{k:'amt',l:'Amount paid',t:'money'}]},
-fintx:{title:'Transfer',color:'var(--purple)',hint:'',
-  fields:[{k:'date',l:'Date',t:'date',def:()=>today()},{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'desc',l:'What / who',t:'text',ph:'optional'},{k:'acct',l:'Bank side',t:'sel',opt:['American','Haitian'],def:()=>finView},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},{k:'dir',l:'Direction',t:'sel',opt:['Out','In'],def:'Out'},{k:'amt',l:'Amount',t:'money',req:1}],
-  formIn:(it,k,v)=>k==='amt'?Math.abs(+v||0):k==='dir'?((+it.d.amt||0)>=0?'In':'Out'):v,
-  formOut:d=>{d.amt=(d.dir==='In'?1:-1)*Math.abs(+d.amt||0);delete d.dir;if(d.acct!=='Haitian')d.cur='USD';if(d.date)d.month=MONTHS[+d.date.slice(5,7)-1];return d}},
-finsub:{title:'Subscriptions',color:'var(--orange)',hint:'Tap a subscription to edit it — totals update themselves.',
-  fields:[{k:'name',l:'Subscription',t:'text',req:1},{k:'cycle',l:'Billing',t:'sel',opt:['Monthly','Yearly']},{k:'cost',l:'Cost',t:'money',req:1},{k:'bank',l:'Paid from',t:'text',ph:'Wells Fargo CC…'},{k:'notes',l:'Concerns / notes',t:'ta',full:1}],
-  group:i=>i.d.cycle||'Monthly',
-  groupOrder:(a,b)=>(a==='Monthly'?0:1)-(b==='Monthly'?0:1),
-  sort:(a,b)=>(+b.d.cost||0)-(+a.d.cost||0),
-  stats:it=>{const mo=it.filter(i=>i.d.cycle!=='Yearly').reduce((s,i)=>s+(+i.d.cost||0),0);
-    const yr=it.filter(i=>i.d.cycle==='Yearly').reduce((s,i)=>s+(+i.d.cost||0),0);
-    return[{k:'Monthly subs',v:money2(mo),c:'var(--orange)'},{k:'Yearly subs',v:money2(yr),u:'≈ '+money2(yr/12)+' / month',c:'var(--blue)'},{k:'All-in / month',v:money2(mo+yr/12),c:'var(--acc)'}]},
-  card:i=>({t:esc(i.d.name),s:[esc(i.d.bank||''),esc(i.d.notes||'')].filter(Boolean).join(' · '),
-    pill:{cls:'acc',txt:money2(i.d.cost)+(i.d.cycle==='Yearly'?'/yr':'/mo')}})},
-income:{title:'Income',color:'var(--green)',hint:'Everything that comes in. Whatever cadence you pick is normalised to a monthly figure — that one number drives the whole CFO dashboard.',
-  fields:[{k:'name',l:'Source',t:'text',req:1},
-          {k:'kind',l:'Type',t:'sel',opt:['Salary','Business distribution','Freelance','Rent','Interest / dividends','Gift','Other'],def:'Salary'},
-          {k:'amt',l:'Amount',t:'money',req:1},
-          {k:'cyc',l:'How often',t:'sel',opt:['Monthly','Twice a month','Every 2 weeks','Weekly','Quarterly','Yearly','One-off'],def:'Monthly'},
-          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
-          {k:'acct',l:'Lands in',t:'dyn',opt:['Wells Fargo','Citi Bank','PayPal','BUH USD','BUH HTG','Cash']},
-          {k:'start',l:'Started / next',t:'date'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.kind||'Other',
-  sort:(a,b)=>cfoMo(b.d)-cfoMo(a.d),
-  groupNote:g=>money2(g.reduce((s,i)=>s+cfoMo(i.d),0))+' /mo',
-  stats:it=>{const m=it.reduce((s,i)=>s+cfoMo(i.d),0);
-    return[{k:'Income / month',v:money2(m),c:'var(--green)'},
-           {k:'Income / year',v:money2(m*12),c:'var(--blue)'},
-           {k:'Sources',v:it.length,c:'var(--acc)'}]},
-  card:i=>({t:esc(i.d.name),
-    s:[esc(i.d.cyc||'Monthly'),i.d.cur==='HTG'?(+i.d.amt||0).toLocaleString('en-US')+' HTG':money2(i.d.amt),i.d.acct?'→ '+esc(i.d.acct):''].filter(Boolean).join(' · '),
-    pill:{cls:'acc',txt:money2(cfoMo(i.d))+'/mo'}}),
-  empty:'Nothing recorded yet. This is the biggest hole in your picture — every surplus, savings-rate and payoff number below stays blank until one source is here.'},
-debt:{title:'Debts',color:'var(--red)',hint:'Enter the balance as a positive number — this page is about what you owe. Fill in APR and the minimum and the payoff strategies run themselves.',
-  fields:[{k:'name',l:'Debt',t:'text',req:1},
-          {k:'kind',l:'Type',t:'sel',opt:['Credit card','Line of credit','Personal loan','Auto loan','Mortgage','Student loan','Family / private','Other'],def:'Credit card'},
-          {k:'bal',l:'Balance owed',t:'money',req:1},
-          {k:'apr',l:'APR %',t:'num'},
-          {k:'min',l:'Minimum / month',t:'money'},
-          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
-          {k:'day',l:'Due day (1–31)',t:'num'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.kind||'Other',
-  sort:(a,b)=>(+b.d.apr||0)-(+a.d.apr||0)||cfoUsd(b.d.bal,b.d.cur)-cfoUsd(a.d.bal,a.d.cur),
-  groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur),0)),
-  stats:it=>{const tot=it.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur),0);
-    const int=it.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur)*((+i.d.apr||0)/100/12),0);
-    const w=tot?it.reduce((s,i)=>s+cfoUsd(i.d.bal,i.d.cur)*(+i.d.apr||0),0)/tot:0;
-    return[{k:'Total owed',v:money2(tot),c:'var(--red)'},
-           {k:'Weighted APR',v:w?w.toFixed(1)+'%':'—',u:w?'':'add APRs',c:'var(--orange)'},
-           {k:'Interest / month',v:money2(int),u:money2(int*12)+' a year',c:'var(--gold)'},
-           {k:'Minimums / month',v:money2(it.reduce((s,i)=>s+cfoUsd(i.d.min,i.d.cur),0)),c:'var(--blue)'}]},
-  card:i=>({t:esc(i.d.name),
-    s:[(+i.d.apr||0)?i.d.apr+'% APR':'no APR set',cfoUsd(i.d.min,i.d.cur)?money2(cfoUsd(i.d.min,i.d.cur))+'/mo min':'no minimum set',(+i.d.day||0)?'due the '+i.d.day+'th':''].filter(Boolean).join(' · '),
-    pill:{cls:(+i.d.apr||0)>=20?'bad':(+i.d.apr||0)>=10?'warn':'mut',txt:money2(cfoUsd(i.d.bal,i.d.cur))}}),
-  empty:'No debts recorded. Add one per card or loan — the avalanche-vs-snowball comparison needs the APR and the minimum to say anything real.'},
-goal:{title:'Goals',color:'var(--gold)',hint:'What the money is for, and by when. A target date turns a wish into a monthly number.',
-  fields:[{k:'name',l:'Goal',t:'text',req:1},
-          {k:'target',l:'Target amount',t:'money',req:1},
-          {k:'track',l:'Progress from',t:'sel',opt:['Typed in below','Net liquid — live'],def:'Typed in below'},
-          {k:'saved',l:'Put aside so far',t:'money',hint:'Ignored when progress reads from net liquid.'},
-          {k:'by',l:'Target date',t:'date'},
-          {k:'pri',l:'Priority',t:'sel',opt:['1 — first','2 — next','3 — later','Someday'],def:'2 — next'},
-          {k:'notes',l:'Why it matters',t:'ta',full:1}],
-  sort:(a,b)=>String(a.d.pri||'2').localeCompare(String(b.d.pri||'2'))||(a.d.by||'9999').localeCompare(b.d.by||'9999'),
-  stats:it=>{const t=it.reduce((s,i)=>s+(+i.d.target||0),0),
-      sv=it.reduce((s,i)=>s+(i.d.track==='Net liquid — live'?cfoNetLiquid():(+i.d.saved||0)),0);
-    return[{k:'Targeted',v:money2(t),c:'var(--gold)'},
-           {k:'Put aside',v:money2(sv),u:t?(sv/t*100).toFixed(0)+'% of the way':'',c:'var(--green)'},
-           {k:'Still to find',v:money2(Math.max(0,t-sv)),c:'var(--acc)'}]},
-  card:i=>{const t=+i.d.target||0,sv=+i.d.saved||0,p=t?Math.min(100,sv/t*100):0;
-    return{t:esc(i.d.name),
-      s:[money2(sv)+' of '+money2(t),i.d.track==='Net liquid — live'?'tracking net liquid':'',i.d.by?'by '+fdate(i.d.by).replace(/^\w+, /,''):'no date set'].filter(Boolean).join(' · '),
-      pill:{cls:p>=100?'ok':p>=50?'warn':'mut',txt:p.toFixed(0)+'%'}}},
-  empty:'No goals yet. A wealth roadmap without a destination is just a budget — add what you are actually saving toward.'},
-spend:{title:'Spending',color:'var(--purple)',hint:'One row per category per month. Your cards tell you what you paid; this tells you what you bought — which is the only thing you can act on.',
-  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},
-          {k:'year',l:'Year',t:'num',def:()=>new Date().getFullYear()},
-          {k:'cat',l:'Category',t:'dyn',opt:['Housing','Groceries','Restaurants','Travel','Transport','Shopping','Health','Gifts','Family support','Business','Fees & interest','Other'],req:1},
-          {k:'amt',l:'Amount',t:'money',req:1},
-          {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>(i.d.month||'—')+' '+(i.d.year||''),
-  groupOrder:(a,b)=>cfoMonKey(b)-cfoMonKey(a),
-  groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
-  sort:(a,b)=>cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
-  stats:it=>{const tot=it.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0);
-    const mons=new Set(it.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
-    const byCat={};it.forEach(i=>{const c=i.d.cat||'Other';byCat[c]=(byCat[c]||0)+cfoUsd(i.d.amt,i.d.cur)});
-    const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
-    return[{k:'Average / month',v:money2(mons?tot/mons:0),u:mons?mons+' month'+(mons>1?'s':'')+' logged':'',c:'var(--purple)'},
-           {k:'Logged in total',v:money2(tot),c:'var(--blue)'},
-           {k:'Biggest category',v:top?esc(top[0]):'—',u:top?money2(top[1]):'',c:'var(--orange)'}]},
-  card:i=>({t:esc(i.d.cat||'Other'),s:esc(i.d.notes||''),
-    pill:{cls:'acc',txt:money2(cfoUsd(i.d.amt,i.d.cur))}}),
-  empty:'Nothing logged. Statements tell you what you paid the card; only this tells you what you bought — and nothing can be cut on purpose until it is broken down here.'},
-prop:{title:'Property',color:'var(--blue)',hint:'Real estate you own or are due to receive. A property feeds the cash-flow numbers only once its status is Renting — anything still Pending sits here as context, and its rent stays out of every figure on the dashboard.',
-  fields:[{k:'name',l:'Property',t:'text',req:1},
-          {k:'status',l:'Status',t:'sel',opt:['Pending transfer','Renting','Lived in','Sold'],def:'Pending transfer'},
-          {k:'addr',l:'Address',t:'text',full:1},
-          {k:'val',l:'Market value',t:'money'},
-          {k:'rent',l:'Gross rent / month',t:'money'},
-          {k:'tax',l:'Property tax / year',t:'money'},
-          {k:'ins',l:'Insurance / year',t:'money'},
-          {k:'hoa',l:'HOA / month',t:'money'},
-          {k:'maint',l:'Maintenance / year',t:'money'},
-          {k:'mgmt',l:'Management % of rent',t:'num'},
-          {k:'vac',l:'Vacancy % allowance',t:'num'},
-          {k:'from',l:'Expected from',t:'date'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.status||'Pending transfer',
-  sort:(a,b)=>propNet(b.d)-propNet(a.d),
-  groupNote:g=>money2(g.reduce((s,i)=>s+propNet(i.d),0))+' /mo net',
-  stats:it=>{const live=it.filter(propLive);
-    return[{k:'Net rent / month',v:money2(live.reduce((s,i)=>s+propNet(i.d),0)),u:live.length?'counted in cash flow':'nothing renting yet',c:'var(--green)'},
-           {k:'Gross rent / month',v:money2(live.reduce((s,i)=>s+(+i.d.rent||0),0)),c:'var(--blue)'},
-           {k:'Carrying cost / month',v:money2(live.reduce((s,i)=>s+propCost(i.d),0)),c:'var(--orange)'},
-           {k:'Value held',v:money2(it.filter(i=>i.d.status!=='Sold').reduce((s,i)=>s+(+i.d.val||0),0)),u:'net worth only, not the goal',c:'var(--acc)'}]},
-  card:i=>{const live=propLive(i),n=propNet(i.d);
-    return{t:esc(i.d.name),
-      s:[esc(i.d.addr||''),(+i.d.rent||0)?money2(i.d.rent)+'/mo gross':'',(+i.d.val||0)?'worth '+money2(i.d.val):''].filter(Boolean).join(' · '),
-      pill:live?{cls:n>0?'ok':'warn',txt:money2(n)+'/mo net'}:{cls:'mut',txt:i.d.from?'from '+fdate(i.d.from).replace(/^\w+, /,''):'paused'}}},
-  empty:'No property recorded. Add one per house — a Pending transfer sits out of the numbers until you switch it to Renting.'},
 payroll:{title:'Payroll — house staff',color:'var(--green)',hint:'Tap the circle when someone is paid — it resets each month.',
   fields:[{k:'name',l:'Name',t:'text',req:1},{k:'role',l:'Role',t:'text'},{k:'amt',l:'Salary / month',t:'money'},{k:'payday',l:'Pay day (1–31)',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
   stats:it=>[{k:'Monthly payroll',v:money(it.reduce((s,i)=>s+(+i.d.amt||0),0)),c:'var(--green)'},{k:'Staff',v:it.length},
@@ -2323,20 +2076,6 @@ courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master
   chips:[{l:'All',f:()=>1},{l:'In progress',f:i=>i.d.status==='In progress'},{l:'Done',f:i=>i.d.status==='Done'}],
   card:i=>({t:esc(i.d.name),s:esc(i.d.src||''),dim:i.d.status==='Done',
     pill:i.d.status==='In progress'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
-assets:{title:'Assets',color:'var(--acc)',hint:'Watches, the Doral house, anything of value. Net worth counts what it\'s worth now.',
-  fields:[{k:'name',l:'Asset',t:'text',req:1},{k:'cat',l:'Category',t:'dyn',opt:['Watch','Property','Vehicle','Investment','Other']},
-          {k:'src',l:'Value from',t:'sel',opt:['Manual','Investment log'],def:'Manual'},
-          {k:'paid',l:'Bought for',t:'money'},
-          {k:'val',l:'Worth now',t:'money',showIf:c=>c.src!=='Investment log'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.cat||'Other',
-  card:i=>{const linked=i.d.src==='Investment log', v=assetVal(i), hasVal=assetHasVal(i);
-    const hasPaid=i.d.paid!==''&&i.d.paid!=null, d=v-(+i.d.paid||0);
-    const l=linked?latestInvest():null;
-    const sub=[hasPaid?`Bought for ${money(i.d.paid)}`+(hasVal&&d!==0?` · <span class="${d>0?'pos':'neg'}">${d>0?'+':''}${money(d)}</span>`:''):'',
-      linked?`<span class="lnk">↳ from the investment log${l?' · '+fdate(l.d.date).replace(/^\w+, /,''):' · nothing logged yet'}</span>`:'',
-      esc(i.d.notes||'').slice(0,80)].filter(Boolean).join(' · ');
-    return{t:esc(i.d.name),s:sub,pill:hasVal?{cls:'acc',txt:money(v)}:null}}},
 acts:{title:'Daily activities',color:'var(--green)',hint:'Pick the days and times — the week planner above draws itself from these. One task can keep a different time on one day: turn on "Choose times daily" and tap that day\'s block.',
   sort:byStart,
   fields:[{k:'name',l:'Activity',t:'text',req:1},{k:'splitDaily',l:'Choose specifics daily',t:'check'},{k:'split',l:d=>d&&d.splitDaily&&editCtx?.day?'Specifics — '+editCtx.day:'Specifics',t:'text',ph:'Chest day'},{k:'days',l:'Days',t:'days',full:1},
@@ -2405,16 +2144,6 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its 
     ||ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
   card:i=>({t:esc(i.d.name),s:[esc(whenLabel(i.d)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
     pill:i.d.done?{cls:'mut',txt:'done'}:{cls:i.d.status==='In progress'?'ok':'acc',txt:esc(i.d.status||'')}})},
-invest:{title:'Investment log',color:'var(--green)',hint:'One entry per month — the balance, and anything you put in. The chart above draws itself from these.',
-  fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
-          {k:'acct',l:'Account',t:'dyn',opt:['Citi','Other'],def:'Citi'},
-          {k:'val',l:'Total value',t:'money',req:1},
-          {k:'added',l:'Added since last entry',t:'money'},
-          {k:'notes',l:'Notes',t:'ta',full:1}],
-  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
-  card:i=>{const v=+i.d.val||0,a=+i.d.added||0;
-    return{t:money2(v),s:[fdate(i.d.date).replace(/^\w+, /,''),esc(i.d.acct||''),a?'+'+money2(a)+' in':''].filter(Boolean).join(' · ')}},
-  empty:'Nothing logged yet — hit + and record this month\'s balance.'},
 recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
           {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly','Biyearly','Yearly'],def:'Weekly'},
@@ -2502,53 +2231,6 @@ function actToday(i){const w=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Dat
   return false}
 
 /* ---------------- special pages ---------------- */
-const debTimers={};
-function debSave(key,fn){clearTimeout(debTimers[key]);if(typeof fn==='function')debTimers[key]=setTimeout(fn,600)}
-function finBy(grp){return list('fincash').filter(i=>(i.d.grp||'')===grp)}
-function finSum(grp){return finBy(grp).reduce((s,i)=>s+(+i.d.amt||0),0)}
-function fxRate(){return (+finBy('Setting')[0]?.d?.amt)||131}
-// Same as finSum but in dollars — the Haiti rows can be held in HTG.
-function finUsd(...grps){const r=fxRate();
-  return grps.flatMap(finBy).reduce((s,i)=>s+(i.d.cur==='HTG'?(+i.d.amt||0)/r:(+i.d.amt||0)),0)}
-let finView='American',htTotCur='USD';
-function finSeg(){return `<div class="segbar" style="margin:12px 0 2px"><button class="${finView==='American'?'active':''}" onclick="finView='American';renderActive()">American</button><button class="${finView==='Haitian'?'active':''}" onclick="finView='Haitian';renderActive()">Haitian</button></div>`}
-function finStats(bt,ct,ov,u,bills){
-  const cards=`<div class="stat" style="--accent:var(--blue)"><div class="k">Overall</div><div class="v ${signCls(ov)}">${money2(ov)}</div>${u?`<div class="u">${u}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--green)"><div class="k">Cash &amp; checking</div><div class="v">${money2(bt)}</div>${u?`<div class="u">${u}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--red)"><div class="k">Credit</div><div class="v">${money2(ct)}</div>${u?`<div class="u">${u}</div>`:''}</div>`;
-  if(bills==null)return `<div class="grid stats">${cards}</div>`;
-  return `<div class="statsSplit"><div class="grid stats">${cards}</div><div class="statsRule"></div>
-    <div class="grid stats statsBills"><div class="stat" style="--accent:var(--gold)"><div class="k">Bills</div><div class="v">${money2(bills)}</div><div class="u">cash on hand · kept separate</div></div></div></div>`}
-function billBump(id,dir){const i=one(id);if(!i)return;const dn=+i.d.denom||0;if(!dn)return;
-  put('fincash',{amt:Math.max(0,(+i.d.amt||0)+dir*dn)},id);renderActive()}
-function fincashPage(){
-  const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
-  const usd=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
-  const row=i=>{const cyc=cycTxt(i);
-    return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cyc?`<span class="sub${cyc.late?' late':''}"> · ${esc(cyc.t)}</span>`:''}</span><span class="v ${signCls(i.d.amt)}">${money2(i.d.amt)}</span></div>`};
-  const hrow=i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span>${i.d.cur==='HTG'?`<span class="v2" style="margin-left:auto">= ${money2(usd(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}">${money2(usd(i))}</span>`}</div>`;
-  let h=finSeg();
-  if(finView==='American'){
-    const bank=finBy('Banking'),cc=finBy('Credit'),bills=finBy('Bills'),fico=finBy('FICO');
-    const bkt=finSum('Banking'),blt=finSum('Bills'),ct=finSum('Credit');
-    h+=finStats(bkt,ct,bkt+ct,'',blt);
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Cash &amp; checking</h2><div class="hint">Tap an account to update its balance; totals recompute themselves. + adds an account.</div>${bank.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bkt)}">${money2(bkt)}</span></div></div>`;
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit</h2>${cc.map(row).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
-    const brow=i=>{const dn=+i.d.denom||0,cnt=dn?Math.round((+i.d.amt||0)/dn):null;
-      return`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}${cnt!=null?`<span class="sub"> · ${cnt} note${cnt===1?'':'s'}</span>`:''}</span>${dn?`<span class="qtyStep" style="margin-left:auto" onclick="event.stopPropagation()"><button class="qtyBtn" onclick="billBump('${i.id}',-1)">−</button><button class="qtyBtn" onclick="billBump('${i.id}',1)">+</button></span>`:''}<span class="v ${signCls(i.d.amt)}" style="margin-left:${dn?'14px':'auto'};min-width:104px;text-align:right">${money2(i.d.amt)}</span></div>`};
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>FICO scores</h2>${fico.map(i=>`<div class="finRow" onclick="openForm('fincash','${i.id}')"><span class="n">${esc(i.d.name)}</span><span class="v">${Math.round(+i.d.amt||0)}</span></div>`).join('')}</div>`;
-    h+=`<div class="panelRule"></div>`;
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Bills</h2><div class="hint">Physical cash on hand — tracked on its own, outside Cash &amp; checking. Use − / + to remove or add a note; tap a row to set the amount.</div>${bills.map(brow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(blt)}">${money2(blt)}</span></div></div>`;
-  }else{
-    const hc=finBy('Haiti cash'),hcc=finBy('Haiti credit');
-    const bt=hc.reduce((s,i)=>s+usd(i),0),ct=hcc.reduce((s,i)=>s+usd(i),0);
-    h+=finStats(bt,ct,bt+ct,'USD equivalent');
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Cash &amp; checking — BUH</h2><div class="hint">HTG converts at ${rate} HTG / USD — tap the rate at the bottom to change it.</div>${hc.map(hrow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(bt)}">${money2(bt)}</span></div></div>`;
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Credit — BUH</h2>${hcc.map(hrow).join('')}<div class="finTot"><span class="n">Total</span><span class="v ${signCls(ct)}">${money2(ct)}</span></div></div>`;
-    h+=rateItem?`<div class="panel"><div class="finRow" onclick="openForm('fincash','${rateItem.id}')"><span class="n">Exchange rate</span><span class="v">${rate} HTG / USD</span></div></div>`:'';
-  }
-  return h;
-}
 // The menu is the one page that is a table rather than a list: it is read across — day, meal,
 // what is served — the way the sheet pinned in the kitchen is, and a list of cards loses that.
 // One table per week. A row opens for editing, which is how a note gets written on a meal.
@@ -2579,374 +2261,6 @@ function menuPage(){
   });
   if(!drawn)h+=`<div class="empty">${m.empty}</div>`;
   return h+'</div>';
-}
-function stmtCell(src,mn){const it=list('finstmt').find(i=>i.d.src===src&&i.d.month===mn);openForm('finstmt',it?.id,{src,month:mn})}
-function finstmtPage(){
-  const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
-  let h=finSeg();
-  if(finView==='American'){
-    const its=list('finstmt').filter(i=>i.d.src!=='BUH');
-    const srcs=['Citibank CC','Amex CC','Wells Fargo CC'];
-    const byKey={};its.forEach(i=>{byKey[i.d.src+'|'+i.d.month]=i});
-    const txm={},txn={};list('fintx').filter(i=>(i.d.acct||'American')==='American').forEach(i=>{txm[i.d.month]=(txm[i.d.month]||0)+(+i.d.amt||0);txn[i.d.month]=(txn[i.d.month]||0)+1});
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — 2026 (US)</h2>
-    <div class="hint">What each card's statement cost. Tap a cell to enter a number; the Transfers column and every total fill themselves.</div>
-    <div class="ftWrap"><table class="ft"><tr><th>Month</th>${srcs.map(s=>`<th>${esc(s.replace(' CC',''))}</th>`).join('')}<th>Transfers</th><th>Total paid</th></tr>`;
-    let grand=0;
-    MONTHS.forEach(mn=>{
-      const hasTx=!!txn[mn];
-      const tx=hasTx?-txm[mn]:0;
-      let tot=tx,any=hasTx;
-      const cells=srcs.map(s=>{const it=byKey[s+'|'+mn];const v=it?(+it.d.amt||0):null;
-        if(v!=null){tot+=v;any=true}
-        return`<td class="ed" onclick="stmtCell('${s}','${mn}')">${v!=null?money2(v):'·'}</td>`}).join('');
-      if(any)grand+=tot;
-      h+=`<tr><td>${mn.slice(0,3)}</td>${cells}<td class="${signCls(txm[mn]||0)}">${hasTx?money2(tx):'·'}</td><td>${any?money2(tot):'·'}</td></tr>`;
-    });
-    const txYear=-Object.values(txm).reduce((a,b)=>a+b,0),txAny=Object.keys(txn).length>0;
-    h+=`<tr class="tot"><td>Year</td>${srcs.map(s=>{const t=its.filter(i=>i.d.src===s).reduce((x,i)=>x+(+i.d.amt||0),0);return`<td>${t?money2(t):'·'}</td>`}).join('')}<td class="${signCls(-txYear)}">${txAny?money2(txYear):'·'}</td><td>${money2(grand)}</td></tr>`;
-    h+=`</table></div></div>`;
-  }else{
-    const its=list('finstmt').filter(i=>i.d.src==='BUH');
-    const byKey={};its.forEach(i=>{byKey[i.d.month]=i});
-    const txU={},txH={},txUn={},txHn={};
-    list('fintx').filter(i=>(i.d.acct||'American')==='Haitian').forEach(i=>{const htg=i.d.cur==='HTG';const t=htg?txH:txU,n=htg?txHn:txUn;t[i.d.month]=(t[i.d.month]||0)+(+i.d.amt||0);n[i.d.month]=(n[i.d.month]||0)+1});
-    const fmtTot=t=>htTotCur==='HTG'?(t*rate).toLocaleString('en-US',{maximumFractionDigits:0})+' HTG':money2(t);
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — 2026 (Haiti)</h2>
-    <div class="hint">BUH card payments entered in HTG; your transfers split by currency. Total converts at ${rate} HTG / USD — pick its currency in the header.</div>
-    <div class="ftWrap"><table class="ft"><tr><th>Month</th><th>BUH card (HTG)</th><th>Transfers ($)</th><th>Transfers (HTG)</th><th>Total <select class="totSel" onchange="htTotCur=this.value;renderActive()"><option ${htTotCur==='USD'?'selected':''}>USD</option><option ${htTotCur==='HTG'?'selected':''}>HTG</option></select></th></tr>`;
-    let grand=0;
-    MONTHS.forEach(mn=>{
-      const it=byKey[mn];const buh=it?(+it.d.amt||0):null;
-      const hasU=!!txUn[mn],hasH=!!txHn[mn];
-      const tu=hasU?-txU[mn]:0, th=hasH?-txH[mn]:0;
-      const any=buh!=null||hasU||hasH;
-      const tot=(buh||0)/rate+tu+th/rate;
-      if(any)grand+=tot;
-      h+=`<tr><td>${mn.slice(0,3)}</td><td class="ed" onclick="stmtCell('BUH','${mn}')">${buh!=null?buh.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(txU[mn]||0)}">${hasU?money2(tu):'·'}</td><td class="${signCls(txH[mn]||0)}">${hasH?(th||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${any?fmtTot(tot):'·'}</td></tr>`;
-    });
-    const yb=its.reduce((s,i)=>s+(+i.d.amt||0),0);
-    const yu=-Object.values(txU).reduce((a,b)=>a+b,0), yh=-Object.values(txH).reduce((a,b)=>a+b,0);
-    const yuAny=Object.keys(txUn).length>0, yhAny=Object.keys(txHn).length>0;
-    h+=`<tr class="tot"><td>Year</td><td>${yb?yb.toLocaleString('en-US')+' HTG':'·'}</td><td class="${signCls(-yu)}">${yuAny?money2(yu):'·'}</td><td class="${signCls(-yh)}">${yhAny?(yh||0).toLocaleString('en-US')+' HTG':'·'}</td><td>${fmtTot(grand)}</td></tr></table></div></div>`;
-  }
-  return h;
-}
-function fintxPage(){
-  const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
-  const its=list('fintx').filter(i=>(i.d.acct||'American')===finView);
-  const usdVal=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
-  const by={};its.forEach(i=>{(by[i.d.month]=by[i.d.month]||[]).push(i)});
-  const months=MONTHS.filter(m=>by[m]);
-  const txdate=i=>i.d.date?fdate(i.d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,''):'';
-  const txrow=i=>{const dt=txdate(i);
-    return `<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span>${dt?`<span class="v2" style="margin-left:auto">${dt}</span>`:''}${i.d.cur==='HTG'?`<span class="v2" style="margin-left:${dt?'12px':'auto'}">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}" style="margin-left:${dt?'12px':'auto'}">${money2(i.d.amt)}</span>`}</div>`};
-  let h=finSeg();
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
-  <div class="hint">${finView==='American'?'Your US banks together (Citi, Wells Fargo, Amex).':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.</div>
-  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' transfers logged yet.</div>'}</div>`;
-  [...months].reverse().forEach(mn=>{
-    const rows=by[mn].slice().sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up));
-    const inn=rows.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
-    const out=rows.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
-    const head=`<h2 style="justify-content:space-between;flex-wrap:wrap">${mn}<span style="font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);font-weight:400">In <span class="pos">${money2(inn)}</span> · Out <span class="neg">${money2(out)}</span> · Net <span class="${signCls(inn+out)}">${money2(inn+out)}</span></span></h2>`;
-    if(finView==='American'){h+=`<div class="panel">${head}${rows.map(txrow).join('')}</div>`}
-    else{const ru=rows.filter(i=>i.d.cur!=='HTG'),rh=rows.filter(i=>i.d.cur==='HTG');
-      h+=`<div class="panel">${head}${ru.length?`<div class="ghead">USD<span class="gsub">${ru.length}</span></div>`+ru.map(txrow).join(''):''}${rh.length?`<div class="ghead">HTG<span class="gsub">${rh.length}</span></div>`+rh.map(txrow).join(''):''}</div>`}
-  });
-  return h;
-}
-function latestInvest(){
-  const r=list('invest').filter(x=>x.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
-  return r[0]||null;
-}
-function assetVal(i){                          // linked assets are read-only mirrors
-  if(i.d.src==='Investment log'){const l=latestInvest();return l?(+l.d.val||0):0}
-  return +i.d.val||0;
-}
-function assetHasVal(i){
-  return i.d.src==='Investment log'?!!latestInvest():(i.d.val!==''&&i.d.val!=null);
-}
-let INVPTS=[];
-function investChart(rows){
-  if(rows.length<2){INVPTS=[];return'<div class="empty">Log a second month and the curve appears here.</div>'}
-  const W=680,H=250,L=54,R=14,T=18,B=34;
-  const vals=rows.map(r=>+r.d.val||0);
-  const mn=Math.min(...vals),mx=Math.max(...vals),span=(mx-mn)||mx||1;
-  const lo=mn-span*.18, hi=mx+span*.18;
-  const x=i=>L+(W-L-R)*(i/(rows.length-1));
-  const y=v=>T+(H-T-B)*(1-((v-lo)/((hi-lo)||1)));
-  const k=v=>Math.abs(v)>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
-  // y grid
-  let grid='';
-  const TICKS=4;
-  for(let t=0;t<=TICKS;t++){
-    const v=lo+(hi-lo)*(t/TICKS), yy=y(v);
-    grid+=`<line x1="${L}" y1="${yy.toFixed(1)}" x2="${W-R}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`
-        +`<text x="${L-8}" y="${(yy+3.5).toFixed(1)}" class="cLab" text-anchor="end">${k(v)}</text>`;
-  }
-  // x labels — month name, skipped when they'd collide
-  const every=Math.ceil(rows.length/7);
-  let xl='';
-  rows.forEach((r,i)=>{
-    if(i%every&&i!==rows.length-1)return;
-    const d=new Date(r.d.date+'T12:00:00');
-    xl+=`<text x="${x(i).toFixed(1)}" y="${H-12}" class="cLab" text-anchor="middle">${isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short'})}</text>`;
-  });
-  const pts=vals.map((v,i)=>[x(i),y(v)]);
-  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-  const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${H-B} L ${pts[0][0].toFixed(1)} ${H-B} Z`;
-  const up=vals[vals.length-1]>=vals[0], col=up?'var(--acc)':'var(--bad)';
-  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:2.8}" fill="${col}"/>`).join('');
-  INVPTS=rows.map((r,i)=>({x:pts[i][0],y:pts[i][1],date:r.d.date,val:vals[i],
-    delta:i?vals[i]-vals[i-1]:null,added:+r.d.added||0}));
-  const last=INVPTS[INVPTS.length-1];
-  return`<div class="chartRead" id="ivRead">${readLine(last)}</div>
-  <div class="chartWrap"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="invSvg" id="ivSvg">
-    <defs><linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${col}" stop-opacity=".2"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
-    ${grid}
-    <line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
-    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--line2)" stroke-width="1"/>
-    <path d="${area}" fill="url(#ig)"/>
-    <path d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-    ${dots}
-    <line id="ivGuide" x1="0" y1="${T}" x2="0" y2="${H-B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
-    <circle id="ivDot" r="5.5" fill="none" stroke="${col}" stroke-width="2.5" opacity="0"/>
-    ${xl}
-  </svg></div>`;
-}
-function readLine(p){
-  if(!p)return'';
-  const d=fdate(p.date).replace(/^\w+, /,'');
-  const ch=p.delta==null?'<span class="rMut">first entry</span>'
-    :`<span class="${p.delta>=0?'pos':'neg'}">${p.delta>=0?'+':''}${money2(p.delta)}</span> <span class="rMut">since previous</span>`;
-  return`<span class="rDate">${esc(d)}</span><span class="rVal">${money2(p.val)}</span>${ch}${p.added?`<span class="rMut">· ${money2(p.added)} added</span>`:''}`;
-}
-function bindInvest(el){
-  const svg=el.querySelector('#ivSvg'); if(!svg||!INVPTS.length)return;
-  const guide=svg.querySelector('#ivGuide'), dot=svg.querySelector('#ivDot'), read=el.querySelector('#ivRead');
-  const VB=680;
-  const at=e=>{
-    const r=svg.getBoundingClientRect();
-    const cx=((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(VB/r.width);
-    let best=0,bd=1e9;
-    INVPTS.forEach((p,i)=>{const d=Math.abs(p.x-cx);if(d<bd){bd=d;best=i}});
-    const p=INVPTS[best];
-    guide.setAttribute('x1',p.x);guide.setAttribute('x2',p.x);guide.setAttribute('opacity','1');
-    dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.y);dot.setAttribute('opacity','1');
-    read.innerHTML=readLine(p);
-  };
-  const off=()=>{guide.setAttribute('opacity','0');dot.setAttribute('opacity','0');
-    read.innerHTML=readLine(INVPTS[INVPTS.length-1])};
-  svg.addEventListener('pointermove',at);
-  svg.addEventListener('pointerdown',at);
-  svg.addEventListener('pointerleave',off);
-  svg.addEventListener('touchmove',e=>{at(e);e.preventDefault()},{passive:false});
-  svg.addEventListener('touchend',off);
-}
-function investPage(){
-  const rows=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
-  const cur=rows.length?(+rows[rows.length-1].d.val||0):0;
-  const put_in=rows.reduce((t,i)=>t+(+i.d.added||0),0);
-  const gain=cur-put_in, pct=put_in>0?gain/put_in*100:0;
-  const prev=rows.length>1?(+rows[rows.length-2].d.val||0):0;
-  const mom=prev?cur-prev:0;
-  let h=`<div class="grid stats">
-    <div class="stat" style="--accent:var(--acc)"><div class="k">Value now</div><div class="v">${money2(cur)}</div>${rows.length?`<div class="u">as of ${fdate(rows[rows.length-1].d.date).replace(/^\w+, /,'')}</div>`:''}</div>
-    <div class="stat" style="--accent:var(--blue)"><div class="k">Put in</div><div class="v">${money2(put_in)}</div><div class="u">across ${rows.length} entr${rows.length===1?'y':'ies'}</div></div>
-    <div class="stat" style="--accent:${gain>=0?'var(--ok)':'var(--bad)'}"><div class="k">Gain</div><div class="v ${signCls(gain)}">${gain>0?'+':''}${money2(gain)}</div>${put_in>0?`<div class="u">${pct>0?'+':''}${pct.toFixed(1)}% on what you put in</div>`:''}</div>
-    <div class="stat" style="--accent:var(--gold)"><div class="k">Since last entry</div><div class="v ${signCls(mom)}">${mom>0?'+':''}${money2(mom)}</div></div>
-  </div>`;
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Growth</h2>
-    <div class="hint">Every logged balance, oldest to newest.</div>${investChart(rows)}</div>`;
-  h+=genList('invest');
-  return h;
-}
-function networthPage(){
-  // Net worth spans both banks. Bills stay out — that's physical cash, tracked on its own.
-  const us=finUsd('Banking','Credit'), ht=finUsd('Haiti cash','Haiti credit'), net=us+ht;
-  const assets=list('assets');
-  const atot=assets.reduce((s,i)=>s+assetVal(i),0);
-  const tracked=assets.filter(i=>i.d.paid!==''&&i.d.paid!=null&&assetHasVal(i));
-  const growth=tracked.reduce((s,i)=>s+(assetVal(i)-(+i.d.paid||0)),0);
-  let h=`<div class="grid stats">
-    <div class="stat ovCard" onclick="go('fincash')" style="--accent:var(--blue)"><div class="k">Net cash</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">US ${money2(us)} · Haiti ${money2(ht)} · HTG at ${fxRate()}</div></div>
-    <div class="stat" style="--accent:var(--acc)"><div class="k">Assets</div><div class="v">${money2(atot)}</div></div>
-    <div class="stat" style="--accent:var(--green)"><div class="k">Growth</div><div class="v ${signCls(growth)}">${growth>0?'+':''}${money2(growth)}</div><div class="u">worth now − bought for${tracked.length<assets.length?' · '+(assets.length-tracked.length)+' asset'+(assets.length-tracked.length>1?'s':'')+' missing a price':''}</div></div>
-    <div class="stat" style="--accent:var(--acc)"><div class="k">Net worth</div><div class="v ${signCls(net+atot)}">${money2(net+atot)}</div></div>
-  </div>`;
-  h+=genList('assets');
-  return h;
-}
-/* ---------------- CFO ----------------
-   A read-only lens over everything else plus four registers of its own
-   (income, debt, goal, spend). It writes nothing that another page owns —
-   cash, subscriptions, investments and assets are read where they live. */
-function cfoUsd(amt,cur){const v=+amt||0;return cur==='HTG'?v/fxRate():v}
-const CFO_CYC={'Monthly':1,'Twice a month':2,'Every 2 weeks':26/12,'Weekly':52/12,'Quarterly':1/3,'Yearly':1/12,'One-off':0};
-function cfoMo(d){return cfoUsd(d.amt,d.cur)*(CFO_CYC[d.cyc]??1)}
-function cfoMonKey(s){const m=String(s||'').split(' ');return (+m[1]||0)*100+(MONTHS.indexOf(m[0])+1)}
-function cfoIncomeMo(){return list('income').reduce((s,i)=>s+cfoMo(i.d),0)}
-function cfoSubsMo(){return list('finsub').reduce((s,i)=>s+(+i.d.cost||0)*(i.d.cycle==='Yearly'?1/12:1),0)}
-function cfoPayrollMo(){return list('payroll').reduce((s,i)=>s+(+i.d.amt||0),0)}
-function cfoDebts(){return list('debt').map(i=>({id:i.id,name:i.d.name||'Debt',
-  bal:cfoUsd(i.d.bal,i.d.cur),apr:+i.d.apr||0,min:cfoUsd(i.d.min,i.d.cur),day:+i.d.day||0})).filter(d=>d.bal>0)}
-function cfoSpendMo(){const r=list('spend');if(!r.length)return 0;
-  const mons=new Set(r.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
-  return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons)}
-function cfoLiquid(){return finUsd('Banking','Haiti cash','Bills')}
-// Property. A house only reaches the cash-flow numbers once it is actually Renting;
-// a Pending transfer contributes nothing, which is why propLive gates every sum.
-// Costs are held per-month so gross rent and net rent are directly comparable.
-function propLive(i){return (i.d||i).status==='Renting'}
-function propCost(d){const r=+d.rent||0;
-  return (+d.tax||0)/12+(+d.ins||0)/12+(+d.hoa||0)+(+d.maint||0)/12+r*((+d.mgmt||0)/100)+r*((+d.vac||0)/100)}
-function propNet(d){return (+d.rent||0)-propCost(d)}
-function cfoPropMo(){return list('prop').filter(propLive).reduce((s,i)=>s+propNet(i.d),0)}
-// Net liquid — the goal basis. Cash he can move plus the brokerage, minus what he owes.
-// Deliberately excludes assets: watches and houses are net worth, but they are gifts and
-// appreciation rather than anything his saving changes, so tracking them in the goal
-// would flatter the number and hide whether the plan is working.
-function cfoInvestVal(){const r=list('invest').filter(i=>i.d.date).sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
-  return r.length?(+r[r.length-1].d.val||0):0}
-function cfoNetLiquid(){return finUsd('Banking','Credit','Haiti cash','Haiti credit','Bills')+cfoInvestVal()}
-// Month-by-month simulation. The budget stays fixed at total-minimums + extra, so a
-// cleared debt's minimum rolls onto the next one — that roll-up IS the strategy.
-// Order is decided by the caller; this only runs the arithmetic.
-function cfoPayoff(ordered,extra){
-  const ds=ordered.map(d=>({name:d.name,bal:d.bal,apr:d.apr,min:d.min,done:0}));
-  if(!ds.length)return{months:0,interest:0,order:[],ok:true};
-  const budget=ds.reduce((s,d)=>s+d.min,0)+Math.max(0,+extra||0);
-  let months=0,interest=0;const order=[];
-  while(ds.some(d=>d.bal>0.005)){
-    if(++months>600)return{months:null,interest,order,ok:false};
-    ds.forEach(d=>{if(d.bal>0){const i=d.bal*(d.apr/100/12);d.bal+=i;interest+=i}});
-    let pool=budget;
-    ds.forEach(d=>{if(d.bal>0&&pool>0){const p=Math.min(d.bal,d.min,pool);d.bal-=p;pool-=p}});
-    for(const d of ds){if(pool<=0.005)break;if(d.bal>0){const p=Math.min(d.bal,pool);d.bal-=p;pool-=p}}
-    ds.forEach(d=>{if(d.bal<=0.005&&!d.done){d.done=1;d.bal=0;order.push(d.name)}});
-  }
-  return{months,interest,order,ok:true};
-}
-function cfoGoals(){const now=Date.now();
-  return list('goal').map(i=>{const t=+i.d.target||0,live=i.d.track==='Net liquid — live';
-    const sv=live?cfoNetLiquid():(+i.d.saved||0);
-    let mons=null,need=null;
-    if(i.d.by){const d=new Date(i.d.by+'T12:00:00');
-      if(!isNaN(d)){mons=Math.max(0,Math.round((d-now)/2629800000));
-        need=mons>0?Math.max(0,(t-sv)/mons):Math.max(0,t-sv)}}
-    return{id:i.id,name:i.d.name||'',by:i.d.by||'',pri:i.d.pri||'2',t,sv,live,
-      pct:t?Math.max(0,Math.min(100,sv/t*100)):0,mons,need}})}
-let CFOV='dash';
-let CFOEXTRA=+(localStorage.alfred_cfo_extra||0)||0;
-function cfoSetExtra(v){CFOEXTRA=Math.max(0,+v||0);localStorage.alfred_cfo_extra=CFOEXTRA;renderActive()}
-const CFO_VIEWS=[['dash','Dashboard'],['income','Income'],['debt','Debts'],['prop','Property'],['goal','Goals'],['spend','Spending']];
-function cfoPage(){
-  let h=`<div class="segbar" style="margin:12px 0 2px">`+CFO_VIEWS.map(([k,l])=>
-    `<button class="${CFOV===k?'active':''}" onclick="CFOV='${k}';renderActive()">${l}</button>`).join('')+`</div>`;
-  if(CFOV!=='dash')return h+genList(CFOV);
-
-  const nInc=list('income').length;
-  const rent=cfoPropMo();
-  const inc=cfoIncomeMo()+rent,subs=cfoSubsMo(),pay=cfoPayrollMo(),ds=cfoDebts();
-  const dmin=ds.reduce((s,d)=>s+d.min,0),dtot=ds.reduce((s,d)=>s+d.bal,0);
-  const dint=ds.reduce((s,d)=>s+d.bal*(d.apr/100/12),0);
-  const wapr=dtot?ds.reduce((s,d)=>s+d.bal*d.apr,0)/dtot:0;
-  const spend=cfoSpendMo(),burn=subs+pay+dmin+spend,net=inc-burn;
-  const rate=inc>0?net/inc*100:null;
-  const liquid=cfoLiquid(),runway=burn>0?liquid/burn:null;
-
-  h+=`<div class="grid stats">
-    <div class="stat" style="--accent:var(--green)"><div class="k">Income / month</div><div class="v">${money2(inc)}</div><div class="u">${[nInc?nInc+' source'+(nInc>1?'s':''):'',rent?'incl. '+money2(rent)+' net rent':''].filter(Boolean).join(' · ')||'nothing recorded yet'}</div></div>
-    <div class="stat" style="--accent:var(--orange)"><div class="k">Money out / month</div><div class="v">${money2(burn)}</div><div class="u">${[subs?'subs '+money2(subs):'',dmin?'debt min '+money2(dmin):'',pay?'payroll '+money2(pay):'',spend?'spending '+money2(spend):''].filter(Boolean).join(' · ')||'nothing committed yet'}</div></div>
-    <div class="stat" style="--accent:${net>=0?'var(--blue)':'var(--red)'}"><div class="k">${net>=0?'Surplus':'Deficit'} / month</div><div class="v ${signCls(net)}">${money2(net)}</div><div class="u">${nInc?'what is left to put to work':'not real until income is in'}</div></div>
-    <div class="stat" style="--accent:var(--acc)"><div class="k">Savings rate</div><div class="v">${rate==null?'—':rate.toFixed(0)+'%'}</div><div class="u">${rate==null?'needs income':'of every dollar in'}</div></div>
-  </div>`;
-
-  const gaps=[];
-  if(!nInc)gaps.push(['income','Income','unlocks surplus, savings rate and every roadmap number']);
-  if(!list('debt').length)gaps.push(['debt','Debts','unlocks avalanche vs snowball and your true interest cost']);
-  if(!list('goal').length)gaps.push(['goal','Goals','unlocks "am I on track" and what to set aside each month']);
-  if(!list('spend').length)gaps.push(['spend','Spending','turns card payments into categories you can actually cut']);
-  if(gaps.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Fill these in</h2>
-    <div class="hint">Everything on this page is computed live from your own rows — nothing here is an estimate. These registers are still empty; each one you fill lights up more of the dashboard.</div>`+
-    gaps.map(([k,l,why])=>`<div class="cfoGap"><span class="n">${l}</span><span class="why">${why}</span><button class="btn sm" style="margin-left:auto" onclick="CFOV='${k}';renderActive()">Open</button></div>`).join('')+`</div>`;
-
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Liquidity</h2>
-    <div class="hint">Cash you could reach this week — checking, the BUH balances and physical bills. Runway is how long that lasts at your current burn, ignoring anything new coming in.</div>
-    <div class="finRow" onclick="go('fincash')"><span class="n">Liquid cash</span><span class="v">${money2(liquid)}</span></div>
-    <div class="finRow"><span class="n">Burn / month</span><span class="v">${money2(burn)}</span></div>
-    <div class="finTot"><span class="n">Runway</span><span class="v">${runway==null?'—':runway.toFixed(1)+' months'}</span></div></div>`;
-
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Debt</h2>`;
-  if(!ds.length)h+=`<div class="empty">Nothing recorded. Add each card and loan under <b>Debts</b> — with the APR and the minimum in, the payoff strategies below run themselves.</div>`;
-  else{
-    h+=`<div class="hint">Weighted APR ${wapr?wapr.toFixed(1)+'%':'not set'} — interest alone costs ${money2(dint)} a month, ${money2(dint*12)} a year.</div>`;
-    h+=[...ds].sort((a,b)=>b.bal-a.bal).map(d=>`<div class="finRow" onclick="openForm('debt','${d.id}')"><span class="n">${esc(d.name)}<span class="sub"> · ${d.apr?d.apr+'% APR':'no APR set'}</span></span><span class="v2 cfoDebtMin" style="margin-left:auto">${d.min?money2(d.min)+'/mo min':'no minimum'}</span><span class="v neg cfoDebtBal">${money2(d.bal)}</span></div>`).join('');
-    h+=`<div class="finTot"><span class="n">Total owed</span><span class="v neg">${money2(dtot)}</span></div>`;
-  }
-  h+=`</div>`;
-
-  if(ds.length){
-    const hasApr=ds.some(d=>d.apr>0),hasMin=ds.some(d=>d.min>0);
-    const av=cfoPayoff([...ds].sort((a,b)=>(b.apr-a.apr)||(a.bal-b.bal)),CFOEXTRA);
-    const sn=cfoPayoff([...ds].sort((a,b)=>(a.bal-b.bal)||(b.apr-a.apr)),CFOEXTRA);
-    const fm=r=>!r.ok||r.months==null?'never':r.months>=12?Math.floor(r.months/12)+'y '+(r.months%12)+'m':r.months+' mo';
-    const win=(av.ok&&sn.ok&&Math.abs(av.interest-sn.interest)>1)?(av.interest<sn.interest?'av':'sn'):null;
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Payoff strategy</h2>
-      <div class="hint">${hasMin?'':'⚠ No minimum payments set — add them on each debt or these numbers mean nothing. '}${hasApr?'':'⚠ No APRs set — until they are in, the two strategies are arithmetically identical. '}Extra you can put toward debt each month, on top of the minimums:</div>
-      <div style="margin:2px 0 14px"><input class="cfoIn" type="number" min="0" step="50" value="${CFOEXTRA}" onchange="cfoSetExtra(this.value)"><span style="font-size:11.5px;color:var(--faint);margin-left:9px">extra / month</span></div>
-      <div class="cfoWrap"><table class="cfoTbl"><thead><tr><th>Strategy</th><th>Debt-free in</th><th>Interest paid</th><th>Clears first</th></tr></thead><tbody>
-        <tr class="${win==='av'?'win':''}"><td>Avalanche — highest APR first</td><td>${fm(av)}</td><td>${av.ok?money2(av.interest):'—'}</td><td>${esc(av.order[0]||'—')}</td></tr>
-        <tr class="${win==='sn'?'win':''}"><td>Snowball — smallest balance first</td><td>${fm(sn)}</td><td>${sn.ok?money2(sn.interest):'—'}</td><td>${esc(sn.order[0]||'—')}</td></tr>
-      </tbody></table></div>`;
-    if(!av.ok||!sn.ok)h+=`<div class="hint" style="margin-top:12px">⚠ At these minimums the balances never clear — interest outruns the payments. Raise the extra above until a number appears.</div>`;
-    else if(win)h+=`<div class="hint" style="margin-top:12px">Avalanche saves ${money2(Math.abs(sn.interest-av.interest))} in interest. Snowball clears its first debt sooner, which is worth something if you need to see progress to stay with it — but it is the more expensive of the two here.</div>`;
-    h+=`</div>`;
-  }
-
-  const gs=cfoGoals();
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Goals</h2>`;
-  if(!gs.length)h+=`<div class="empty">No goals set. A roadmap without a destination is just a budget — add what you are saving toward under <b>Goals</b>.</div>`;
-  else{
-    const need=gs.reduce((s,g)=>s+(g.need||0),0);
-    h+=`<div class="hint">Together they need ${money2(need)} a month to land on time${net>0?` — you have ${money2(net)} spare, ${need>net?'<b>'+money2(need-net)+' short</b>':'enough'}.`:net<0?' — and you are running a deficit, so every dollar of this has to come from a cut first.':'.'}</div>`;
-    h+=gs.sort((a,b)=>String(a.pri).localeCompare(String(b.pri))||(a.by||'9999').localeCompare(b.by||'9999')).map(g=>`<div class="cfoGoal" onclick="openForm('goal','${g.id}')">
-      <div class="cfoGoalTop"><span class="n">${esc(g.name)}</span><span class="v">${money2(g.sv)} of ${money2(g.t)}</span></div>
-      <div class="cfoBar"><i style="width:${g.pct.toFixed(1)}%"></i></div>
-      <div class="cfoGoalSub">${g.pct.toFixed(0)}% there${g.live?' · live from net liquid':''}${g.by?' · by '+fdate(g.by).replace(/^\w+, /,''):' · no date set'}${g.need!=null?' · '+money2(g.need)+'/mo needed':''}${g.mons!=null?' · '+g.mons+' month'+(g.mons===1?'':'s')+' left':''}</div></div>`).join('');
-  }
-  h+=`</div>`;
-
-  const nwCash=finUsd('Banking','Credit','Haiti cash','Haiti credit');
-  // Assets that mirror the investment log are excluded: net liquid already carries the
-  // brokerage, and counting the mirror too would add it to net worth twice.
-  const atot=list('assets').filter(i=>i.d.src!=='Investment log').reduce((s,i)=>s+assetVal(i),0);
-  const pend=list('prop').filter(i=>!propLive(i)&&i.d.status!=='Sold');
-  const pval=list('prop').filter(i=>i.d.status!=='Sold').reduce((s,i)=>s+(+i.d.val||0),0);
-  const nl=cfoNetLiquid(),brk=cfoInvestVal(),bills=finUsd('Bills');
-
-  if(pend.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Not counted yet</h2>
-    <div class="hint">Property you do not have the keys to. None of this touches the income, surplus or runway figures above — it starts counting the day you switch it to <b>Renting</b>.</div>`+
-    pend.map(i=>`<div class="finRow" onclick="openForm('prop','${i.id}')"><span class="n">${esc(i.d.name)}<span class="sub"> · ${esc(i.d.status||'Pending transfer')}${i.d.from?' · expected '+fdate(i.d.from).replace(/^\w+, /,''):''}</span></span><span class="v2" style="margin-left:auto">${(+i.d.rent||0)?money2(i.d.rent)+'/mo gross':'no rent set'}</span><span class="v">${(+i.d.val||0)?money2(i.d.val):'—'}</span></div>`).join('')+
-    `<div class="hint" style="margin-top:12px">Gross rent is not income. Tax, insurance, HOA, maintenance, management and vacancy come out of it first — fill those in on the property and the net figure is what will actually reach you.</div></div>`;
-
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Net liquid</h2>
-    <div class="hint">What you can actually move, and the only thing the goal tracks: cash, the BUH balances, physical bills and the brokerage, less what you owe. Watches and property are yours but they are gifts and appreciation — counting them would flatter the number and hide whether the saving is working.</div>
-    <div class="finRow" onclick="go('fincash')"><span class="n">Net cash<span class="sub"> · after cards</span></span><span class="v ${signCls(nwCash)}">${money2(nwCash)}</span></div>
-    <div class="finRow" onclick="go('fincash')"><span class="n">Physical bills</span><span class="v">${money2(bills)}</span></div>
-    <div class="finRow" onclick="go('invest')"><span class="n">Brokerage</span><span class="v">${money2(brk)}</span></div>
-    <div class="finTot"><span class="n">Net liquid</span><span class="v ${signCls(nl)}">${money2(nl)}</span></div></div>`;
-
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Net worth</h2>
-    <div class="hint">The whole picture, tracked but not targeted.</div>
-    <div class="finRow"><span class="n">Net liquid</span><span class="v ${signCls(nl)}">${money2(nl)}</span></div>
-    <div class="finRow" onclick="go('networth')"><span class="n">Assets<span class="sub"> · watches and the like</span></span><span class="v">${money2(atot)}</span></div>
-    ${pval?`<div class="finRow" onclick="CFOV='prop';renderActive()"><span class="n">Property</span><span class="v">${money2(pval)}</span></div>`:''}
-    <div class="finRow" onclick="go('finsub')"><span class="n">Subscriptions</span><span class="v">${money2(subs)} <span style="font-size:11px;color:var(--faint)">/mo</span></span></div>
-    <div class="finTot"><span class="n">Net worth</span><span class="v ${signCls(nl+atot+pval)}">${money2(nl+atot+pval)}</span></div></div>`;
-  return h;
 }
 const DOW_TODAY=()=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
 function byStart(a,b){const dn=DOW_TODAY(), t=x=>{const m=toMin(actStart(x,dn));return m==null?99999:m};
@@ -3511,8 +2825,6 @@ const NAV=[
   {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
   {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
-  {t:'Finances',g:[['Cash','fincash'],['Statements','finstmt'],['Transfers','fintx'],['Subscriptions','finsub'],['Investments','invest'],['CFO','cfo']]},
-  {t:'Net worth',p:'networth'},
   {t:'Schedule',p:'schedule'},
   {t:'Timeline',g:[['Travels','travels'],['Past','travpast'],['Spoils','tlspoils']]},
   {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
@@ -3521,15 +2833,13 @@ const NAV=[
 ];
 const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
-  networth:{render:networthPage,fab:'assets'},
-  fincash:{render:fincashPage,fab:'fincash'},
-  invest:{render:investPage,bind:bindInvest,fab:'invest'},
-  finstmt:{render:finstmtPage,fab:'finstmt'},
   menu:{render:menuPage,fab:'menu'},
-  fintx:{render:fintxPage,fab:'fintx'},
-  cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV},
   schedule:{render:schedulePage,fab:'acts'}};
-let activePage=localStorage.alfred_page||'overview';
+// The last tab you were on is remembered, and it may be one of the money pages that are
+// gone. renderActive quietly does nothing when a page has no section to draw into, so
+// without this the app would open to a blank screen with no hint as to why.
+const PAGE_IDS=new Set(NAV.flatMap(n=>n.p?[n.p]:n.g.map(x=>x[1])));
+let activePage=PAGE_IDS.has(localStorage.alfred_page)?localStorage.alfred_page:'overview';
 function initNav(){
   const nav=$('#nav');nav.innerHTML='';
   NAV.forEach(n=>{

@@ -1,6 +1,6 @@
 ---
 name: alfred-data
-description: Read, add, edit, or remove data in Alfred, the personal life console in this repo. Alfred's real data lives in a private Supabase `items` table, never in the repo, so every change is a database write and takes effect on the next sync — no reload, no deploy. Use whenever the user wants something recorded, changed, priced, corrected, ticked off, or removed: spoils and watches, wants, to-do, travels, food and menu, bathroom and living-room stock, perfume, supplements, shows, movies, books, courses, finances, projects, daily activities, recurring jobs. Triggers on "add this to my …", "put this on my list", "change the price of …", "take … off", a photo of a product, or a listing link to file — anything the user would otherwise have typed into the website.
+description: Read, add, edit, or remove data in Alfred, the personal life console in this repo. Alfred's real data lives in a private Supabase `items` table, never in the repo, so every change is a database write and takes effect on the next sync — no reload, no deploy. Use whenever the user wants something recorded, changed, priced, corrected, ticked off, or removed: spoils and watches, wants, to-do, travels, food and menu, bathroom and living-room stock, perfume, supplements, shows, movies, books, courses, payroll, projects, daily activities, recurring jobs. Money is not here — cash, statements, investments, assets and the CFO registers live in the separate Alfred CFO app. Triggers on "add this to my …", "put this on my list", "change the price of …", "take … off", a photo of a product, or a listing link to file — anything the user would otherwise have typed into the website.
 ---
 
 # Alfred data entry
@@ -85,7 +85,7 @@ perf:santal33               book:meditations     stock:dove
 
 Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `juice:` ·
 `perf:` · `supp:` · `stock:` · `kitchen:` · `book:` · `show:` · `movie:` · `course:` ·
-`proj:` · `recur:` · `inv:` · `fin:` · `travel:` · `brief:`
+`proj:` · `recur:` · `travel:` · `brief:`
 
 ## Sections and their fields
 
@@ -110,26 +110,25 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `projects` | Projects | project, name, when, wk, mon, start, end, status, notes |
 | `acts` | Daily activities | name, splitDaily, split, days, timeDaily, start, end, notes |
 | `recur` | Recurring | name, who, paused, every, anchor, dom, last, notes |
-| `assets` | Assets | name, cat, src, paid, val, notes |
-| `invest` | Investment log | date, acct, val, added, notes |
-| `fincash` | Cash — accounts | name, grp, amt, denom, cur, stmtDay, dueDay, card |
-| `finstmt` | Monthly statement | month, src, amt |
-| `fintx` | Transfer | date, month, desc, acct, cur, dir, amt |
-| `finsub` | Subscriptions | name, cycle, cost, bank, notes |
 | `payroll` | Payroll | name, role, amt, payday, notes |
 | `bdays` | Birthdays | name, date, notes |
 | `brief` | Daily brief | date, title, body |
 | `briefs` | Journal | title, txt |
-| `income` | Finances → CFO | name, kind, amt, cyc, cur, acct, start, notes |
-| `debt` | Finances → CFO | name, kind, bal, apr, min, cur, day, notes |
-| `goal` | Finances → CFO | name, target, track, saved, by, pri, notes |
-| `spend` | Finances → CFO | month, year, cat, amt, cur, notes |
-| `prop` | Finances → CFO | name, status, addr, val, rent, tax, ins, hoa |
 
 Two sections are not their own rows. **Timeline → Past** (`travpast`) is a view over
 `travels` showing the ones with `done` set — a trip moves there by setting `done` on its
 `travels` row, not by writing a `travpast` row. And `cfg` holds the app's own settings
 (PIN hash, tab preferences); never write it as data entry.
+
+**Money is not here any more.** Cash, statements, transfers, subscriptions, investments,
+assets, net worth and the whole CFO register moved to **Alfred CFO**, a separate app with
+its own encrypted store. The monitor no longer has a page for any of them, so a `fincash`,
+`finstmt`, `fintx`, `finsub`, `invest`, `assets`, `income`, `debt`, `goal`, `spend` or
+`prop` row written into `items` lands somewhere nothing will ever show it. The old rows are
+still in the table — they were left alone, not deleted — but they are history, not a place
+to write. If he asks for something financial recorded, say it belongs in Alfred CFO rather
+than filing it here. Payroll is the exception and stays: it lives under **Staff**, because
+it is about the people, not the money.
 
 **Received means in his hands.** A `wants` row moves open → ordered → received, and the
 last step is not the courier's word for it. A parcel marked delivered, sitting at a
