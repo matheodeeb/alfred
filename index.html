@@ -49,17 +49,17 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* Geo reads as the earth seen at night: deep ocean blue for the ground, landmass green
      for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
-    /* The paint chip is the page, not a highlight on a near-black one — which is what it
-       was, and why it kept looking like the wrong colour. #9a9872 is a mid tone, so the
-       room reads light the way the monitor does: khaki ground, panels a shade above it,
-       dark ink, and a deep field green for anything that has to stand out. */
-    --bg:#9a9872; --bg2:#91906a; --panel:#a8a682; --panel2:#9e9c78;
-    --line:#8a8965; --line2:#70704f;
-    --txt:#1c1c12; --muted:#474733; --faint:#6a6a4e;
-    --acc:#35543a; --gold:#7d6115; --blue:#2c5470; --green:#35543a; --orange:#8a4a1c;
-    --purple:#5a4a70; --red:#8c3527;
-    --ok:#35543a; --bad:#8c3527; --warn:#7d6115;
-    --glow:rgba(53,84,58,.07);
+    /* The chip darkened along its own hue until white sits on it comfortably. Lighter than
+       this and the text has to go dark, which is the version before last; darker and it
+       stops reading as khaki at all. #4e4d3a clears AA for the body text and for the muted
+       line under it, and panels lift a shade above the ground the way paper does. */
+    --bg:#4e4d3a; --bg2:#474634; --panel:#575643; --panel2:#605f4b;
+    --line:#605f4a; --line2:#7b7a61;
+    --txt:#f2f1e6; --muted:#c3c2ac; --faint:#9a9983;
+    --acc:#b9c77f; --gold:#e0c06a; --blue:#8ab4cf; --green:#b9c77f; --orange:#d79a5e;
+    --purple:#b3a8cc; --red:#e08878;
+    --ok:#b9c77f; --bad:#e08878; --warn:#e0c06a;
+    --glow:rgba(185,199,127,.07);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -462,8 +462,8 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* The highlight on a looked-up word is a gold wash, which is a cream-page colour. On the
      desk it takes the room's own khaki so it reads as a mark rather than a stain, and the
      chip that floats over a selection takes dark text on that same khaki. */
-  :root[data-site="geo"] .wtMark{background:rgba(125,97,21,.26)}
-  :root[data-site="geo"] .wtChip{color:#f0efe2}
+  :root[data-site="geo"] .wtMark{background:rgba(224,192,106,.26)}
+  :root[data-site="geo"] .wtChip{color:#23230f}
   .wtBack{position:fixed;inset:0;z-index:1490;background:rgba(30,26,18,.28);opacity:0;pointer-events:none;transition:opacity .2s}
   .wtBack.on{opacity:1;pointer-events:auto}
   .wtSheet{position:fixed;left:0;right:0;bottom:0;z-index:1500;background:var(--panel);border-top:1px solid var(--line2);border-radius:18px 18px 0 0;box-shadow:0 -12px 44px rgba(41,36,24,.22);padding:10px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .24s cubic-bezier(.22,.8,.3,1);max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -724,7 +724,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · khaki ground';
+const BUILD='2026-09-25 · khaki white ink';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
