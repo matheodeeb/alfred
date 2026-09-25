@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.plaid.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.plaid.com; connect-src 'self' https://*.supabase.co https://cdn.plaid.com; frame-src https://cdn.plaid.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <script>
 /* Clickjacking. CSP frame-ancestors is ignored when delivered by <meta> and GitHub
@@ -49,13 +49,13 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* Geo reads as the earth seen at night: deep ocean blue for the ground, landmass green
      for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
-    --bg:#12140d; --bg2:#171a10; --panel:#1c2015; --panel2:#24281a;
-    --line:#262a1a; --line2:#3e442a;
-    --txt:#eaeade; --muted:#a2a68b; --faint:#6e7357;
-    --acc:#a8b573; --gold:#c9a25c; --blue:#6d92a8; --green:#a8b573; --orange:#b5793f;
-    --purple:#9a9bb0; --red:#c06152;
-    --ok:#a8b573; --bad:#c06152; --warn:#c9a25c;
-    --glow:rgba(168,181,115,.08);
+    --bg:#14140e; --bg2:#191911; --panel:#1d1e15; --panel2:#26261b;
+    --line:#27281c; --line2:#3e3f2e;
+    --txt:#eaeae1; --muted:#9f9f8a; --faint:#6c6d5b;
+    --acc:#9a9872; --gold:#c2a768; --blue:#6d8ea0; --green:#9a9872; --orange:#b0793f;
+    --purple:#95959f; --red:#bd6254;
+    --ok:#9a9872; --bad:#bd6254; --warn:#c2a768;
+    --glow:rgba(154,152,114,.08);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -457,8 +457,8 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* The highlight on a looked-up word is a gold wash, which is a cream-page colour. On the
      desk it takes the room's own khaki so it reads as a mark rather than a stain, and the
      chip that floats over a selection takes dark text on that same khaki. */
-  :root[data-site="geo"] .wtMark{background:rgba(168,181,115,.26)}
-  :root[data-site="geo"] .wtChip{color:#12140d}
+  :root[data-site="geo"] .wtMark{background:rgba(154,152,114,.26)}
+  :root[data-site="geo"] .wtChip{color:#14140e}
   .wtBack{position:fixed;inset:0;z-index:1490;background:rgba(30,26,18,.28);opacity:0;pointer-events:none;transition:opacity .2s}
   .wtBack.on{opacity:1;pointer-events:auto}
   .wtSheet{position:fixed;left:0;right:0;bottom:0;z-index:1500;background:var(--panel);border-top:1px solid var(--line2);border-radius:18px 18px 0 0;box-shadow:0 -12px 44px rgba(41,36,24,.22);padding:10px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .24s cubic-bezier(.22,.8,.3,1);max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -719,7 +719,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · desk and lock';
+const BUILD='2026-09-25 · plaid allowed';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -4511,7 +4511,11 @@ function mdBlocks(md){
   }
   fp();fl();return out;
 }
-function mdStrip(md,n){const b=mdBlocks(md).find(x=>x.t==='p'||x.t==='ul');const t=b?b.h.replace(/<[^>]+>/g,''):'';return t.slice(0,n||90)}
+function deEnt(h){const t=document.createElement('textarea');t.innerHTML=String(h||'');return t.value}
+function mdStrip(md,n){const b=mdBlocks(md).find(x=>x.t==='p'||x.t==='ul');
+  // plain text out, so the one esc() a caller applies is the only one
+  const t=b?deEnt(b.h.replace(/<[^>]+>/g,'')):'';
+  return t.slice(0,n||90)}
 let briefSel=null;
 /* --- brief language: three separately-written editions, last choice sticks --- */
 const BRIEF_LANGS=[{k:'en',lab:'English'},{k:'fr',lab:'Français'},{k:'es',lab:'Español'}];
@@ -4926,7 +4930,9 @@ function overviewPage(){
   const briefs=list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
   h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
-  if(b)h+=`<div class="hint">${fdate(b.d.date)}${briefTxt(b,'title')?' — '+esc(briefTxt(b,'title')):''}</div><div class="ovBody">${esc(mdStrip(briefTxt(b,'body'),400))}</div><div class="ovMore">Read the full brief →</div>`;
+  if(b)h+=`<div class="hint">${fdate(b.d.date)}${briefTxt(b,'title')?' — '+esc(briefTxt(b,'title')):''}</div>`
+    +`<div class="ovBody">Catch up on today's coverage — the world, the markets, and what moved overnight. A few minutes, written fresh each morning.</div>`
+    +`<div class="ovMore">Read the full brief →</div>`;
   else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
   h+=`</div>`;
   const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
