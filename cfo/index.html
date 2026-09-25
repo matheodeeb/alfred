@@ -1609,10 +1609,10 @@ tx:{title:'Transactions',color:'var(--purple)',hint:'Every purchase, one row eac
           {k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},
           {k:'notes',l:'Notes',t:'ta',full:1}],
   only:i=>!TXCARD||i.d.card===TXCARD,
-  collapse:1,                          // a statement at a time, newest already open
-  collapseKey:()=>TXCARD,              // each card opens on its own latest statement
-  group:i=>txCycleLabel(i.d),
-  groupOrder:(a,b)=>txCycleKey(b)-txCycleKey(a),
+  collapse:1,                          // a month at a time, newest already open
+  collapseKey:()=>TXCARD,              // each card opens on its own latest month
+  group:i=>txMonthLabel(i.d),
+  groupOrder:(a,b)=>txMonthKey(b)-txMonthKey(a),
   groupNote:g=>money2(g.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)),
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||cfoUsd(b.d.amt,b.d.cur)-cfoUsd(a.d.amt,a.d.cur),
   stats:it=>{
@@ -2827,38 +2827,27 @@ function plaidPanel(){
 /* ---------------- transactions ----------------
    The per-purchase ledger. Everything else in the finance pages says what a card was
    PAID; only this says what was BOUGHT, which is the only thing that can be cut.
-   Grouped by statement cycle rather than calendar month, because a cycle is the set of
-   purchases that produced one bill — so the total under a heading is the bill. */
-const TXKEY={};                 // label -> sort key, filled by txCycleLabel as groups are built
+   Filed by calendar month -- the first of the month to the last -- and by the date on the
+   purchase itself. Statement cycles were tried here first, on the reasoning that a cycle
+   is the set of purchases that produced one bill. The cost was that every card cut the
+   year on its own dates, so the same week sat under "Sep 22-Oct 21" on one card and
+   "Sep 8-Oct 7" on another, and "All cards" interleaved both. A month means the same
+   thing on every account, which is what makes two of them comparable.
+
+   What a card actually costs and when it is due is still answered, on its own tiles. */
+const TXKEY={};                 // label -> sort key, filled by txMonthLabel as groups are built
 let TXCARD='';                  // '' = every card
 let TXIMP=0;                    // import panel open
-// A card's statement day comes off its Cash row, so the cycle follows the card's real
-// billing rule rather than the calendar. An account without one falls back to the month.
-function txStmtDay(card){
-  const n=String(card||'').toLowerCase().replace(/[^a-z]/g,'');
-  if(!n)return 0;
-  const row=list('fincash').find(i=>{
-    if(i.d.grp!=='Credit'&&i.d.grp!=='Haiti credit')return false;
-    const k=String(i.d.name||'').toLowerCase().replace(/[^a-z]/g,'');
-    return k&&(n.includes(k)||k.includes(n))});
-  return row?stmtDayOf(row.d):0;
+/* The month the purchase happened in, read off its own date. A row the bank dated badly,
+   or one typed without a date, is not guessed at -- it is gathered under Undated and sorts
+   last, where it is visible rather than silently filed into a month it may not belong to. */
+function txMonthLabel(d){
+  const m=String(d.date||'').match(/^(\d{4})-(\d{2})/); if(!m)return 'Undated';
+  const y=+m[1], mo=+m[2]-1;
+  if(mo<0||mo>11)return 'Undated';
+  const l=MONTHS[mo]+' '+y; TXKEY[l]=y*100+mo; return l;
 }
-function txCycleEnd(d){
-  const m=String(d.date||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m)return null;
-  const y=+m[1],mo=+m[2]-1,day=+m[3],sd=txStmtDay(d.card);
-  if(!sd)return{y,mo,day:0,cal:1};
-  if(day<=sd)return{y,mo,day:sd};
-  return mo===11?{y:y+1,mo:0,day:sd}:{y,mo:mo+1,day:sd};
-}
-function txCycleLabel(d){
-  const c=txCycleEnd(d); if(!c)return 'Undated';
-  if(c.cal){const l=MONTHS[c.mo]+' '+c.y;TXKEY[l]=c.y*10000+c.mo*100;return l}
-  const end=onDay(c.y,c.mo,c.day), st=new Date(end); st.setMonth(st.getMonth()-1); st.setDate(st.getDate()+1);
-  const f=x=>x.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const l=`Statement ${f(end)} \u00b7 ${f(st)}\u2013${f(end)}`;
-  TXKEY[l]=c.y*10000+c.mo*100+c.day; return l;
-}
-function txCycleKey(label){return TXKEY[label]||0}
+function txMonthKey(label){return TXKEY[label]||0}
 /* Every account you have connected deserves a chip whether or not anything has been spent
    on it yet -- an empty one answers "nothing on this card this cycle", which is a real
    answer and used to be indistinguishable from the card not existing. Cards named only on
