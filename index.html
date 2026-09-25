@@ -49,13 +49,13 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* Geo reads as the earth seen at night: deep ocean blue for the ground, landmass green
      for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
-    --bg:#0a1510; --bg2:#0d1a14; --panel:#11231a; --panel2:#172e22;
-    --line:#1a3125; --line2:#2b4a37;
-    --txt:#e6eae5; --muted:#93a698; --faint:#5f7468;
-    --acc:#78bb8c; --gold:#c9a25c; --blue:#5a91b8; --green:#78bb8c; --orange:#b5793f;
-    --purple:#8a9db5; --red:#c06152;
-    --ok:#78bb8c; --bad:#c06152; --warn:#c9a25c;
-    --glow:rgba(120,187,140,.09);
+    --bg:#12140d; --bg2:#171a10; --panel:#1c2015; --panel2:#24281a;
+    --line:#262a1a; --line2:#3e442a;
+    --txt:#eaeade; --muted:#a2a68b; --faint:#6e7357;
+    --acc:#a8b573; --gold:#c9a25c; --blue:#6d92a8; --green:#a8b573; --orange:#b5793f;
+    --purple:#9a9bb0; --red:#c06152;
+    --ok:#a8b573; --bad:#c06152; --warn:#c9a25c;
+    --glow:rgba(168,181,115,.08);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -81,7 +81,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   :root:not([data-site="main"]) .logo b{margin-left:1px}
   :root[data-site="geo"] .logo b{color:var(--acc)}
   .tag{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
-  .statuspill{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:5px 10px;cursor:pointer;background:none}
+  .hdrRight{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .lockBtn{color:var(--acc);border-color:var(--line2)}
+  .lockBtn:hover{border-color:var(--acc);background:var(--panel2)}
+  .statuspill{display:flex;align-items:center;gap:7px;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:5px 10px;cursor:pointer;background:none}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
   .dot.off{background:var(--bad);box-shadow:0 0 8px var(--bad)}
   .dot.pend{background:var(--warn);box-shadow:0 0 8px var(--warn)}
@@ -451,6 +454,11 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* tap-to-understand */
   .bkP,.bkStand,.bkUl,.bkH3{cursor:text}
   .wtMark{background:rgba(185,139,46,.28);border-radius:3px}
+  /* The highlight on a looked-up word is a gold wash, which is a cream-page colour. On the
+     desk it takes the room's own khaki so it reads as a mark rather than a stain, and the
+     chip that floats over a selection takes dark text on that same khaki. */
+  :root[data-site="geo"] .wtMark{background:rgba(168,181,115,.26)}
+  :root[data-site="geo"] .wtChip{color:#12140d}
   .wtBack{position:fixed;inset:0;z-index:1490;background:rgba(30,26,18,.28);opacity:0;pointer-events:none;transition:opacity .2s}
   .wtBack.on{opacity:1;pointer-events:auto}
   .wtSheet{position:fixed;left:0;right:0;bottom:0;z-index:1500;background:var(--panel);border-top:1px solid var(--line2);border-radius:18px 18px 0 0;box-shadow:0 -12px 44px rgba(41,36,24,.22);padding:10px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .24s cubic-bezier(.22,.8,.3,1);max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -634,8 +642,19 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
             <span class="sN">Geo</span><span class="sD">Geopolitics</span></button>
         </div>
       </div>
-      <button class="statuspill" id="pill" title="Sync status"><span class="dot gray" id="pillDot"></span><span id="pillTxt">local</span></button>
-      <button class="gear" id="gearBtn" title="Settings">⚙</button>
+      <div class="hdrRight">
+        <!-- Turns the ledger's lock. Only in the CFO room, and only while it is open: in any
+             other room there is nothing for it to shut, so it is not there at all. -->
+        <button class="gear lockBtn" id="cfoLock" title="Lock the ledger" style="display:none">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="10.5" width="16" height="10.5" rx="2"></rect>
+            <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"></path>
+          </svg>
+        </button>
+        <button class="statuspill" id="pill" title="Sync status"><span class="dot gray" id="pillDot"></span><span id="pillTxt">local</span></button>
+        <button class="gear" id="gearBtn" title="Settings">⚙</button>
+      </div>
     </div>
   </header>
   <nav id="nav"></nav>
@@ -700,7 +719,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · front hall';
+const BUILD='2026-09-25 · desk and lock';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -3858,20 +3877,9 @@ function plaidPullOnce(){
    own tab it has room, and Transactions is left to the transactions. */
 function servicePage(){
   plaidPullOnce();
-  return plaidPanel()+cfoLockPanel();
+  return plaidPanel();
 }
-/* The ledger's lock is turned by hand and never on a timer. Locking the house does not
-   shut it, and neither does leaving the room -- it stays open until you say otherwise, and
-   then it wants the password again. */
-function cfoLockPanel(){
-  return`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>This room</h2>
-    <div class="hint">Open. It stays open &mdash; locking Alfred or walking back to the monitor
-      leaves it as it is. Lock it here when you want the password asked for again.</div>
-    <div class="foot" style="margin-top:14px">
-      <button class="btn sm danger ghost" onclick="cfoSignOut()">Lock the ledger</button>
-    </div>
-  </div>`;
-}
+
 function plaidPanel(){
   const items=plaidItems();
   let h='<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Bank connections</h2>';
@@ -4392,14 +4400,7 @@ function cfoGateHtml(){
     </form>
   </div>`;
 }
-function geoRoomPage(){
-  return`<div class="panel">
-    <h2><span class="sw" style="background:var(--acc)"></span>Nothing here yet</h2>
-    <div class="hint">The room exists and it is yours to fill. Tell me what belongs on a
-      geopolitics desk — what you want to track, and what you want it to tell you — and it
-      gets built in here rather than anywhere else.</div>
-  </div>`;
-}
+
 function schedulePage(){
   const acts=list('acts');
   const todayIdx=(new Date().getDay()+6)%7;
@@ -4958,10 +4959,11 @@ function overviewPage(){
 const SITES={
   main:{n:'Main',mark:'',   tag:'Personal life console',home:'overview'},
   cfo :{n:'CFO', mark:'CFO',tag:'Private ledger',      home:'fincash',gate:1},
-  geo :{n:'Geo', mark:'GEO',tag:'Geopolitics',         home:'geoRoom'},
+  geo :{n:'Geo', mark:'GEO',tag:'Geopolitics',         home:'brief'},
 };
 let SITE=SITES[localStorage.alfred_site]?localStorage.alfred_site:'main';
 const NAVS={
+ geo:[{t:'Brief',p:'brief'}],
  // The CFO room's own nav, as it stood on the standalone page. What you actually came to
  // check — what is in the accounts and what is owed on the cards — leads; CFO is the
  // thinking, the Brief is the looking.
@@ -4974,10 +4976,8 @@ const NAVS={
   {t:'Net worth',p:'networth'},
   {t:'Service',p:'service'},
  ],
- geo:[{t:'Desk',p:'geoRoom'}],
  main:[
   {t:'Overview',p:'overview'},
-  {t:'Brief',p:'brief'},
   {t:'To-do',p:'todo',cls:'todo'},
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
@@ -4996,7 +4996,6 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
   schedule:{render:schedulePage,fab:'acts'},
-  geoRoom:{render:geoRoomPage,fab:null},
   // The CFO room. Every one of these is gated: renderActive sends you to the door instead
   // if the room is locked, so none of them can be reached with the ledger still shut.
   fincash:{render:fincashPage,fab:'fincash'},
@@ -5052,7 +5051,10 @@ function goSite(s){
     document.documentElement.dataset.site=s;
     markSite();
     initNav();
-    activePage=homePage();
+    // a link that sent us here names the page it wanted; otherwise the room's own last one
+    activePage=(pendingPage&&pageIds().has(pendingPage))?pendingPage:homePage();
+    pendingPage=null;
+    try{localStorage[pageKey()]=activePage}catch(e){}
     renderActive();
     window.scrollTo(0,0);
     requestAnimationFrame(()=>w.classList.remove('crossing'));
@@ -5074,6 +5076,8 @@ function markSite(){
   // The CFO row says whether its door is still shut, so you know before you walk over.
   const c=$('#siteMenu button[data-s="cfo"] .sTag');
   if(c){c.textContent=cfoAuthed()?'open':'locked';c.classList.toggle('lit',cfoAuthed())}
+  const lk=$('#cfoLock');
+  if(lk)lk.style.display=(SITE==='cfo'&&cfoAuthed())?'flex':'none';
 }
 let flyStamp=0;
 function openFly(items,groupEl,btn){
@@ -5100,6 +5104,7 @@ $('#siteBtn').onclick=e=>{
   closeMenus();
   if(!was){s.classList.add('open');$('#siteBtn').setAttribute('aria-expanded','true')}
 };
+$('#cfoLock').onclick=()=>cfoSignOut();
 $('#siteMenu').onclick=e=>e.stopPropagation();   // clicking inside it is not clicking away
 $$('#siteMenu button').forEach(b=>b.onclick=()=>goSite(b.dataset.s));
 function markNav(){
@@ -5108,9 +5113,20 @@ function markNav(){
     g.querySelector('.navGroupBtn').classList.toggle('on',(g.dataset.pages||'').split(',').includes(activePage));
   });
 }
-function go(p){if(p!==activePage)unfreeze(p);activePage=p;
+/* Which room each page belongs to. Built once, because go() runs on every tap. */
+const PAGE_ROOM=(()=>{const m={};for(const s in NAVS)
+  for(const n of NAVS[s])for(const p of (n.p?[n.p]:n.g.map(x=>x[1])))m[p]=s;
+  return m})();
+/* A link to a page in another room walks you there rather than doing nothing. renderActive
+   draws nothing when a page has no section, so before this a card on the Overview pointing
+   at the Brief — which now lives on the Geo desk — would have opened a blank screen. */
+function go(p){
+  const room=PAGE_ROOM[p];
+  if(room&&room!==SITE){pendingPage=p;goSite(room);return}
+  if(p!==activePage)unfreeze(p);activePage=p;
   try{localStorage[pageKey()]=p}catch(e){}       // each room keeps its own place
   renderActive()}
+let pendingPage=null;
 function renderActive(){
   syncAutoOrders();syncRecurTodos();
   document.body.classList.toggle('briefReading',activePage==='brief');
