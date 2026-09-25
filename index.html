@@ -127,6 +127,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .sTag.lit{color:var(--acc);border-color:var(--acc);background:none}
   /* The door you meet on stepping into a locked room. It is a panel in the room rather than
      an overlay over the house, because the point is that you are already inside. */
+  :root.roomShut nav{display:none}
   .roomGate{max-width:390px;margin:6vh auto 0;text-align:center}
   .rgMark{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:34px;letter-spacing:.04em;color:var(--acc);line-height:1}
   .roomGate h2{font-family:"Fraunces",Georgia,serif;font-size:19px;margin:14px 0 8px}
@@ -719,7 +720,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · plaid allowed';
+const BUILD='2026-09-25 · shut means shut';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5140,7 +5141,18 @@ function renderActive(){
   const el=$('#pg-'+activePage);if(!el)return;
   // The door, checked here rather than page by page: every page in the CFO room draws the
   // gate until the room is open, so there is no page that forgets to ask.
-  if(SITES[SITE].gate&&!cfoAuthed()){
+  // A shut door is the whole room. The tabs behind it went nowhere — every one of them
+  // drew the door again — but leaving them on screen said you were inside when you were
+  // not, so they go with everything else until the password is in. The wordmark stays,
+  // because you must be able to walk back out.
+  // The !! is load-bearing. A room with no gate has `gate` undefined, and classList.toggle
+  // given undefined as its second argument does not clear the class — it flips it, the way
+  // it behaves with no second argument at all. So the monitor and the desk were turning the
+  // locked-room styling on and off with every redraw, and hiding their own nav on the odd
+  // ones. A real false is the difference.
+  const shut=!!(SITES[SITE].gate&&!cfoAuthed());
+  document.documentElement.classList.toggle('roomShut',shut);
+  if(shut){
     el.innerHTML=cfoGateHtml();el.classList.add('active');markNav();
     $('#fab').style.display='none';setPill();
     setTimeout(()=>$('#cfoPass')?.focus(),60);
