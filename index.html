@@ -55,15 +55,17 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
      outline of the sync badge, the panel-and-shadow of the nav flyout, Fraunces for names
      and Plex Mono in small caps for what each one is — so it reads as furniture rather
      than something bolted on. */
-  .siteSw{position:relative;align-self:center;flex:none}
-  .siteBtn{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);
-    border-radius:999px;padding:5px 11px 5px 10px;cursor:pointer;color:var(--txt);
-    font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:12.5px;line-height:1;transition:.14s}
-  .siteBtn:hover{border-color:var(--acc)}
-  .siteDot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none}
-  .siteCaret{font-size:9px;color:var(--faint);transition:transform .18s}
-  .siteSw.open .siteBtn{border-color:var(--acc);background:var(--panel2)}
-  .siteSw.open .siteCaret{transform:rotate(180deg)}
+  .siteSw{position:relative;flex:none}
+  /* The wordmark in a box, and the box is the button. No caret: the border and the way it
+     lifts under the cursor are enough, and an arrow next to the logo would read as
+     decoration on the mark rather than a control. */
+  .siteBtn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    padding:9px 15px 10px;cursor:pointer;text-align:left;transition:.15s}
+  .siteBtn:hover{border-color:var(--line2);background:var(--panel2)}
+  .siteBtn .logo,.siteBtn .tag{display:block;transition:.15s}
+  .siteSw.open .siteBtn{border-color:var(--acc);background:var(--panel2);
+    box-shadow:0 2px 10px rgba(46,40,28,.07)}
   .siteMenu{position:absolute;top:calc(100% + 8px);left:0;z-index:320;min-width:238px;
     background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:6px;
     box-shadow:0 14px 34px rgba(46,40,28,.16);display:none;flex-direction:column;gap:2px}
@@ -79,9 +81,8 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .siteMenu button.soon{padding-right:60px}
   .siteMenu button:disabled{cursor:default}
   .siteMenu button:disabled .sN{color:var(--muted)}
-  /* On a phone the button sits mid-width, and a menu hung off its left edge runs off the
-     screen. Hanging it off the right edge instead keeps all of it on the page. */
-  @media(max-width:560px){.siteMenu{left:auto;right:0}}
+  /* The box sits at the left margin at every width, so the menu hangs off its left edge
+     and stays on the page without a narrow-screen special case. */
   .sTag{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:"IBM Plex Mono";
     font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
     background:var(--bg2);border:1px solid var(--line2);border-radius:999px;padding:2px 7px}
@@ -471,17 +472,15 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 <div class="wrap">
   <header>
     <div class="brandrow">
-      <div>
-        <div class="logo">ALFRED<b>.</b></div>
-        <div class="tag">Personal life console</div>
-      </div>
-      <!-- Which of the three Alfreds you are in. It belongs beside the wordmark rather than
-           in the nav because it answers "which site", where the nav answers "where in it".
+      <!-- Which of the three Alfreds you are in. The wordmark itself is the switch: it is
+           already the thing that names the site, so boxing it and letting it open says
+           "this is which Alfred" without a caret or a second control competing with it.
            CFO and Geo are listed but inert until they exist — shown rather than hidden, so
            the shape of the thing is visible and they are one click away the day they land. -->
       <div class="siteSw" id="siteSw">
         <button class="siteBtn" id="siteBtn" title="Switch site" aria-haspopup="true" aria-expanded="false">
-          <span class="siteDot"></span><span class="siteNow">Main</span><span class="siteCaret">▾</span>
+          <span class="logo">ALFRED<b>.</b></span>
+          <span class="tag">Personal life console</span>
         </button>
         <div class="siteMenu" id="siteMenu" role="menu">
           <button class="active" role="menuitem" aria-current="true">
@@ -558,7 +557,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · site switcher';
+const BUILD='2026-09-25 · logo switcher';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
