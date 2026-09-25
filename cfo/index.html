@@ -1919,18 +1919,31 @@ function fintxKinds(view){
 }
 let FINTXKIND='';
 function fintxSetKind(n){const ks=fintxKinds(finView);FINTXKIND=(n<0||n>=ks.length)?'':ks[n];renderActive()}
+/* Which way the money went. The sign alone decides it, and converting to USD first would
+   change nothing -- the rate is positive, so it never flips a sign. A row of exactly zero
+   is neither, and says so rather than being quietly filed as one or the other. */
+const FINTX_DIRS=['In','Out'];
+const fintxDirOf=i=>{const v=+i.d.amt||0;return v>0?'In':v<0?'Out':''};
+function fintxDirs(view){
+  const seen=new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxDirOf));
+  return FINTX_DIRS.filter(d=>seen.has(d));
+}
+let FINTXDIR='';
+function fintxSetDir(n){const ds=fintxDirs(finView);FINTXDIR=(n<0||n>=ds.length)?'':ds[n];renderActive()}
 // Chosen by index rather than by name: a name goes through esc() for HTML, but the parser
 // decodes the entity before the JS is parsed, so an apostrophe would break out of the call.
 let FINTXCARD='';
 function fintxSetCard(n){const cs=fintxCards(finView);FINTXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
 function fintxPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
-  const cards=fintxCards(finView), kinds=fintxKinds(finView);
+  const cards=fintxCards(finView), kinds=fintxKinds(finView), dirs=fintxDirs(finView);
   if(FINTXCARD&&!cards.includes(FINTXCARD))FINTXCARD='';   // the view changed under the filter
   if(FINTXKIND&&!kinds.includes(FINTXKIND))FINTXKIND='';
+  if(FINTXDIR&&!dirs.includes(FINTXDIR))FINTXDIR='';
   const its=list('fintx').filter(i=>(i.d.acct||'American')===finView)
     .filter(i=>!FINTXCARD||fintxCardOf(i)===FINTXCARD)
-    .filter(i=>!FINTXKIND||fintxKindOf(i)===FINTXKIND);
+    .filter(i=>!FINTXKIND||fintxKindOf(i)===FINTXKIND)
+    .filter(i=>!FINTXDIR||fintxDirOf(i)===FINTXDIR);
   const usdVal=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const by={};its.forEach(i=>{(by[i.d.month]=by[i.d.month]||[]).push(i)});
   const months=MONTHS.filter(m=>by[m]);
@@ -1941,7 +1954,8 @@ function fintxPage(){
   // both sides and nets to nothing, which is the honest answer and worth being able to see.
   const yIn =its.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
   const yOut=its.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
-  const scope=[FINTXKIND?FINTXKIND+'s':'',FINTXCARD||'all accounts'].filter(Boolean).join(' \u00b7 ');
+  const scope=[FINTXDIR?'money '+FINTXDIR.toLowerCase():'',FINTXKIND?FINTXKIND+'s':'',
+    FINTXCARD||'all accounts'].filter(Boolean).join(' \u00b7 ');
   let h=finSeg();
   h+=`<div class="grid stats">
     <div class="stat" style="--accent:var(--green)"><div class="k">Transfers in</div>
@@ -1953,8 +1967,8 @@ function fintxPage(){
       <div class="u">${yIn+yOut>=0?'more in than out':'more out than in'}</div></div>
   </div>`;
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
-  <div class="hint">${finView==='American'?'Every US account you have connected.':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.${kinds.length>1?' Filter by account, by Zelle or wire, or leave both open to see everything.':''}</div>
-  ${cards.length>1||kinds.length>1?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+  <div class="hint">${finView==='American'?'Every US account you have connected.':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.${kinds.length>1||dirs.length>1?' Narrow by account, by Zelle or wire, or by money in against money out \u2014 leave one open to see all of it.':''}</div>
+  ${cards.length>1||kinds.length>1||dirs.length>1?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
     ${cards.length>1?`<select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
       <option${FINTXCARD?'':' selected'}>All accounts</option>
       ${cards.map(c=>`<option${c===FINTXCARD?' selected':''}>${esc(c)}</option>`).join('')}
@@ -1963,8 +1977,12 @@ function fintxPage(){
       <option${FINTXKIND?'':' selected'}>All kinds</option>
       ${kinds.map(k=>`<option${k===FINTXKIND?' selected':''}>${esc(k)}</option>`).join('')}
     </select>`:''}
+    ${dirs.length>1?`<select class="cfoIn" style="max-width:190px" onchange="fintxSetDir(this.selectedIndex-1)">
+      <option${FINTXDIR?'':' selected'}>In and out</option>
+      ${dirs.map(d=>`<option${d===FINTXDIR?' selected':''}>${d}</option>`).join('')}
+    </select>`:''}
   </div>`:''}
-  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' '+(FINTXKIND?esc(FINTXKIND).toLowerCase()+' transfers':'transfers')+(FINTXCARD?' on '+esc(FINTXCARD):' logged yet')+'.</div>'}</div>`;
+  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' '+(FINTXKIND?esc(FINTXKIND).toLowerCase()+' transfers':'transfers')+(FINTXDIR?' '+(FINTXDIR==='In'?'coming in':'going out'):'')+(FINTXCARD?' on '+esc(FINTXCARD):(FINTXKIND||FINTXDIR)?'':' logged yet')+'.</div>'}</div>`;
   [...months].reverse().forEach(mn=>{
     const rows=by[mn].slice().sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up));
     const inn=rows.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
