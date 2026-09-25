@@ -1953,7 +1953,7 @@ function fintxPage(){
       <div class="u">${yIn+yOut>=0?'more in than out':'more out than in'}</div></div>
   </div>`;
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
-  <div class="hint">${finView==='American'?'Your US banks together (Citi, Wells Fargo, Amex).':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.</div>
+  <div class="hint">${finView==='American'?'Every US account you have connected.':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.${kinds.length>1?' Filter by account, by Zelle or wire, or leave both open to see everything.':''}</div>
   ${cards.length>1||kinds.length>1?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
     ${cards.length>1?`<select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
       <option${FINTXCARD?'':' selected'}>All accounts</option>
