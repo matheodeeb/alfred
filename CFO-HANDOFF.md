@@ -1,5 +1,16 @@
 # Alfred CFO — project handoff
 
+> **Status, 25 Sep 2026 — the standalone site is gone.** Alfred CFO is not a separate app
+> any more. It is a room inside the monitor at `matheodeeb.github.io/alfred/`, reached from
+> the wordmark, behind its own account password. `cfo/index.html` and `cfo/sw.js` were
+> deleted once every page had been shown to render identically to the standalone from the
+> same data, and every section with live rows shown to be visible in the room.
+>
+> Two things below are history and should not be acted on: the **vault** (passphrase and
+> row encryption) was replaced by Supabase Auth at Matheo's request — the trade is written
+> up in the code — and **Plaid is built**, not pending. Everything else about scope and
+> ground rules still holds.
+
 For any session picking up the **Alfred CFO** workstream cold. This is a separate
 project from the Alfred life monitor; keep them apart. Architecture, decisions and
 plan only — **no figures live in this repo, ever** (see Ground rules).
@@ -28,8 +39,8 @@ not in the site. Do not add tools he did not ask for.
 
 | | Alfred monitor | Alfred CFO |
 |---|---|---|
-| URL | `matheodeeb.github.io/alfred/` | `matheodeeb.github.io/alfred/cfo/` |
-| File | `index.html` | `cfo/index.html` |
+| URL | `matheodeeb.github.io/alfred/` | the same address, CFO room |
+| File | `index.html` | `index.html` — one file now |
 | Table | `public.items` | `public.cfo_items` |
 | Storage keys | `alfred_*` | `cfo_*` |
 | At rest | plaintext | **encrypted** |
@@ -49,13 +60,13 @@ not wired *to* it. The two will drift, and that is accepted.
 
 **Built and live:**
 
-- `cfo/index.html` — six pages lifted from the monitor's Finances tab: CFO
+- The CFO room — six pages lifted from the monitor's Finances tab: CFO
   dashboard, Cash, Statements, Transfers, Subscriptions, Investments.
 - The vault: AES-GCM row encryption, PBKDF2 key derivation, passphrase gate.
 - Dark identity: obsidian ground, indigo primary, mint/rose for gains and losses,
   Sora over IBM Plex Mono. Alfred's CSS is entirely token-driven, so this was a
   palette swap, not a rewrite — keep it that way.
-- `cfo/sw.js` — caches the shell, never the data.
+- The service worker caches the shell, never the data.
 
 **Not done yet:**
 
