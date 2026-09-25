@@ -49,13 +49,17 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* Geo reads as the earth seen at night: deep ocean blue for the ground, landmass green
      for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
-    --bg:#14140e; --bg2:#191911; --panel:#1d1e15; --panel2:#26261b;
-    --line:#27281c; --line2:#3e3f2e;
-    --txt:#eaeae1; --muted:#9f9f8a; --faint:#6c6d5b;
-    --acc:#9a9872; --gold:#c2a768; --blue:#6d8ea0; --green:#9a9872; --orange:#b0793f;
-    --purple:#95959f; --red:#bd6254;
-    --ok:#9a9872; --bad:#bd6254; --warn:#c2a768;
-    --glow:rgba(154,152,114,.08);
+    /* The paint chip is the page, not a highlight on a near-black one — which is what it
+       was, and why it kept looking like the wrong colour. #9a9872 is a mid tone, so the
+       room reads light the way the monitor does: khaki ground, panels a shade above it,
+       dark ink, and a deep field green for anything that has to stand out. */
+    --bg:#9a9872; --bg2:#91906a; --panel:#a8a682; --panel2:#9e9c78;
+    --line:#8a8965; --line2:#70704f;
+    --txt:#1c1c12; --muted:#474733; --faint:#6a6a4e;
+    --acc:#35543a; --gold:#7d6115; --blue:#2c5470; --green:#35543a; --orange:#8a4a1c;
+    --purple:#5a4a70; --red:#8c3527;
+    --ok:#35543a; --bad:#8c3527; --warn:#7d6115;
+    --glow:rgba(53,84,58,.07);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -458,8 +462,8 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* The highlight on a looked-up word is a gold wash, which is a cream-page colour. On the
      desk it takes the room's own khaki so it reads as a mark rather than a stain, and the
      chip that floats over a selection takes dark text on that same khaki. */
-  :root[data-site="geo"] .wtMark{background:rgba(154,152,114,.26)}
-  :root[data-site="geo"] .wtChip{color:#14140e}
+  :root[data-site="geo"] .wtMark{background:rgba(125,97,21,.26)}
+  :root[data-site="geo"] .wtChip{color:#f0efe2}
   .wtBack{position:fixed;inset:0;z-index:1490;background:rgba(30,26,18,.28);opacity:0;pointer-events:none;transition:opacity .2s}
   .wtBack.on{opacity:1;pointer-events:auto}
   .wtSheet{position:fixed;left:0;right:0;bottom:0;z-index:1500;background:var(--panel);border-top:1px solid var(--line2);border-radius:18px 18px 0 0;box-shadow:0 -12px 44px rgba(41,36,24,.22);padding:10px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .24s cubic-bezier(.22,.8,.3,1);max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -720,7 +724,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · shut means shut';
+const BUILD='2026-09-25 · khaki ground';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -765,21 +769,56 @@ function writeStore(){
   localStorage.alfred_state=JSON.stringify({items:main,lastPull:S.lastPull,lastSyncAt:S.lastSyncAt});
   localStorage.alfred_bulk=JSON.stringify(bulk);
 }
-function trimLocal(){                          // drop the oldest already-synced briefs and stale tombstones
-  const cut=Date.now()-30*864e5;
-  Object.values(S.items).forEach(i=>{if(i.del&&!i.dirty&&(i.up||0)<cut)delete S.items[i.id]});
+const SHED_STEPS=8;                            // 0-2 are the one-offs, 3+ halve the briefs
+function trimLocal(){shed(0);shed(1)}          // the routine tidy, before anything is tight
+/* Making room, cheapest thing first. Every step here drops something the cloud still has,
+   and nothing dirty is ever touched — an edit of yours is never traded for space. The
+   order is deliberate: rubbish, then a copy, then a cache, then history.
+     0  tombstones that have already synced
+     1  the salvaged copy of a store that failed to parse once, months ago
+     2  the lexicon — a definitions cache, three rows and the largest of them 411 kB,
+        and the one thing here that rebuilds itself from the cloud without being missed
+     3+ briefs, newest kept, halving what is kept on each further pass
+   Returns false when a step found nothing to give, so the caller stops asking. */
+function shed(n){
+  let did=false;
+  if(n===0){
+    const cut=Date.now()-30*864e5;
+    Object.values(S.items).forEach(i=>{if(i.del&&!i.dirty&&(i.up||0)<cut){delete S.items[i.id];did=true}});
+    return did;
+  }
+  if(n===1){
+    try{if(localStorage.alfred_state_broken){delete localStorage.alfred_state_broken;did=true}}catch(e){}
+    return did;
+  }
+  if(n===2){
+    Object.values(S.items).forEach(i=>{if(i.sec==='lexicon'&&!i.dirty){delete S.items[i.id];did=true}});
+    return did;
+  }
+  const keep=Math.max(4,Math.round(KEEP_BRIEFS/Math.pow(2,n-2)));
   const briefs=Object.values(S.items).filter(i=>i.sec==='brief'&&!i.dirty)
     .sort((a,b)=>(b.d?.date||'').localeCompare(a.d?.date||''));
-  briefs.slice(KEEP_BRIEFS).forEach(i=>delete S.items[i.id]);
+  if(briefs.length<=keep)return false;
+  briefs.slice(keep).forEach(i=>delete S.items[i.id]);
+  return true;
 }
 let saveT=null,savePending=false;
+/* One retry was not enough. The briefs and the lexicon come to some three megabytes of
+   JSON against a five megabyte allowance on iOS, so a single tidy could fall short — and
+   when it did, the save failed for good and every edit after it stayed in memory only,
+   reaching the cloud but never the disk. It now keeps shedding until the write lands. */
 function flushSave(){
   if(!savePending)return; savePending=false;
-  try{writeStore();storeErr=''}
-  catch(e){                                    // out of room — shed history and try once more
-    try{trimLocal();writeStore();storeErr=''}
-    catch(e2){storeErr=e2.message||'storage full';console.warn('save failed:',e2)}
+  let last=null;
+  // Every step is tried, even when an earlier one had nothing to give — stopping at the
+  // first empty step meant a device with no stale tombstones never reached the lexicon or
+  // the briefs, which are the two things actually taking the room.
+  for(let step=0;step<=SHED_STEPS;step++){
+    try{writeStore();storeErr='';try{setPill()}catch(e){}return}
+    catch(e){last=e;shed(step)}
   }
+  storeErr=last?.message||'storage full';
+  console.warn('save failed after shedding everything expendable:',last);
   try{setPill()}catch(e){}
 }
 function save(now){
