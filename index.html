@@ -50,12 +50,14 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
      for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
     /* The chip darkened along its own hue until white sits on it comfortably. Lighter than
-       this and the text has to go dark, which is the version before last; darker and it
-       stops reading as khaki at all. #4e4d3a clears AA for the body text and for the muted
-       line under it, and panels lift a shade above the ground the way paper does. */
-    --bg:#4e4d3a; --bg2:#474634; --panel:#575643; --panel2:#605f4b;
-    --line:#605f4a; --line2:#7b7a61;
-    --txt:#f2f1e6; --muted:#c3c2ac; --faint:#9a9983;
+       this and the text has to go dark, which is the version before last; far darker and
+       it stops reading as khaki at all. #3e3d2b sits well inside that: 9.7:1 for the body
+       text, 6.1:1 for the muted line under it, and a luminance fifteen times the CFO
+       room's, so the two dark rooms do not read as the same room. Panels lift a shade
+       above the ground the way paper does. */
+    --bg:#3e3d2b; --bg2:#383726; --panel:#474634; --panel2:#504f3c;
+    --line:#4d4c39; --line2:#67664f;
+    --txt:#f2f1e6; --muted:#c3c2ac; --faint:#94937d;
     --acc:#b9c77f; --gold:#e0c06a; --blue:#8ab4cf; --green:#b9c77f; --orange:#d79a5e;
     --purple:#b3a8cc; --red:#e08878;
     --ok:#b9c77f; --bad:#e08878; --warn:#e0c06a;
@@ -724,7 +726,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · khaki white ink';
+const BUILD='2026-09-25 · khaki darker';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
