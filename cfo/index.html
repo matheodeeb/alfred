@@ -1905,27 +1905,43 @@ const fintxCardOf=i=>{
 function fintxCards(view){
   return [...new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxCardOf))].sort();
 }
+/* Rows pulled from here on carry their kind. Ones already saved, and ones you type in
+   yourself, are read from their description instead -- so the filter works on everything
+   on the page rather than only on what arrives after this was written. */
+const FINTX_KINDS=['Zelle','Wire'];
+const fintxKindOf=i=>{
+  const k=String(i.d.kind||'').trim(); if(k)return k;
+  return txTfrKind(i.d)||'Other';
+};
+function fintxKinds(view){
+  const seen=new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxKindOf));
+  return [...FINTX_KINDS.filter(k=>seen.has(k)),...[...seen].filter(k=>!FINTX_KINDS.includes(k)).sort()];
+}
+let FINTXKIND='';
+function fintxSetKind(n){const ks=fintxKinds(finView);FINTXKIND=(n<0||n>=ks.length)?'':ks[n];renderActive()}
 // Chosen by index rather than by name: a name goes through esc() for HTML, but the parser
 // decodes the entity before the JS is parsed, so an apostrophe would break out of the call.
 let FINTXCARD='';
 function fintxSetCard(n){const cs=fintxCards(finView);FINTXCARD=(n<0||n>=cs.length)?'':cs[n];renderActive()}
 function fintxPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
-  const cards=fintxCards(finView);
+  const cards=fintxCards(finView), kinds=fintxKinds(finView);
   if(FINTXCARD&&!cards.includes(FINTXCARD))FINTXCARD='';   // the view changed under the filter
+  if(FINTXKIND&&!kinds.includes(FINTXKIND))FINTXKIND='';
   const its=list('fintx').filter(i=>(i.d.acct||'American')===finView)
-    .filter(i=>!FINTXCARD||fintxCardOf(i)===FINTXCARD);
+    .filter(i=>!FINTXCARD||fintxCardOf(i)===FINTXCARD)
+    .filter(i=>!FINTXKIND||fintxKindOf(i)===FINTXKIND);
   const usdVal=i=>i.d.cur==='HTG'?(+i.d.amt||0)/rate:(+i.d.amt||0);
   const by={};its.forEach(i=>{(by[i.d.month]=by[i.d.month]||[]).push(i)});
   const months=MONTHS.filter(m=>by[m]);
   const txdate=i=>i.d.date?fdate(i.d.date).replace(/^\w+, /,'').replace(/, \d{4}$/,''):'';
-  const txrow=i=>{const dt=txdate(i);
-    return `<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}</span>${dt?`<span class="v2" style="margin-left:auto">${dt}</span>`:''}${i.d.cur==='HTG'?`<span class="v2" style="margin-left:${dt?'12px':'auto'}">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}" style="margin-left:${dt?'12px':'auto'}">${money2(i.d.amt)}</span>`}</div>`};
+  const txrow=i=>{const dt=txdate(i);const kd=fintxKindOf(i);
+    return `<div class="finRow" onclick="openForm('fintx','${i.id}')"><span class="n">${esc(i.d.desc||'Transfer')}${kd&&kd!=='Other'&&!FINTXKIND?`<span class="sub"> \u00b7 ${esc(kd)}</span>`:''}</span>${dt?`<span class="v2" style="margin-left:auto">${dt}</span>`:''}${i.d.cur==='HTG'?`<span class="v2" style="margin-left:${dt?'12px':'auto'}">= ${money2(usdVal(i))}</span><span class="v ${signCls(i.d.amt)}" style="margin-left:0">${(+i.d.amt||0).toLocaleString('en-US')} HTG</span>`:`<span class="v ${signCls(i.d.amt)}" style="margin-left:${dt?'12px':'auto'}">${money2(i.d.amt)}</span>`}</div>`};
   // The year at a glance, before the months. Money between your own accounts shows up on
   // both sides and nets to nothing, which is the honest answer and worth being able to see.
   const yIn =its.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
   const yOut=its.filter(i=>usdVal(i)<0).reduce((s,i)=>s+usdVal(i),0);
-  const scope=FINTXCARD||'all accounts';
+  const scope=[FINTXKIND?FINTXKIND+'s':'',FINTXCARD||'all accounts'].filter(Boolean).join(' \u00b7 ');
   let h=finSeg();
   h+=`<div class="grid stats">
     <div class="stat" style="--accent:var(--green)"><div class="k">Transfers in</div>
@@ -1938,11 +1954,17 @@ function fintxPage(){
   </div>`;
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
   <div class="hint">${finView==='American'?'Your US banks together (Citi, Wells Fargo, Amex).':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.</div>
-  ${cards.length>1?`<div style="margin-top:10px"><select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
-    <option${FINTXCARD?'':' selected'}>All cards</option>
-    ${cards.map(c=>`<option${c===FINTXCARD?' selected':''}>${esc(c)}</option>`).join('')}
-  </select></div>`:''}
-  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' transfers'+(FINTXCARD?' on '+esc(FINTXCARD):' logged yet')+'.</div>'}</div>`;
+  ${cards.length>1||kinds.length>1?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+    ${cards.length>1?`<select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
+      <option${FINTXCARD?'':' selected'}>All accounts</option>
+      ${cards.map(c=>`<option${c===FINTXCARD?' selected':''}>${esc(c)}</option>`).join('')}
+    </select>`:''}
+    ${kinds.length>1?`<select class="cfoIn" style="max-width:200px" onchange="fintxSetKind(this.selectedIndex-1)">
+      <option${FINTXKIND?'':' selected'}>All kinds</option>
+      ${kinds.map(k=>`<option${k===FINTXKIND?' selected':''}>${esc(k)}</option>`).join('')}
+    </select>`:''}
+  </div>`:''}
+  ${months.length?'':'<div class="empty">No '+finView.toLowerCase()+' '+(FINTXKIND?esc(FINTXKIND).toLowerCase()+' transfers':'transfers')+(FINTXCARD?' on '+esc(FINTXCARD):' logged yet')+'.</div>'}</div>`;
   [...months].reverse().forEach(mn=>{
     const rows=by[mn].slice().sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||(b.up-a.up));
     const inn=rows.filter(i=>usdVal(i)>0).reduce((s,i)=>s+usdVal(i),0);
@@ -2520,12 +2542,27 @@ function plaidStmtSync(){
    it belongs on the Transfers page as well as in the ledger. Matched on the word itself,
    which every bank puts on the line. Money out of the account is money out of the
    transfer, so the sign flips to the convention that page uses. */
-function plaidZelleSync(){
+/* What kind of movement a ledger row is, or nothing if it is not a transfer at all.
+   Plaid's own category is trusted first and the wording second, because banks disagree
+   about categories -- Citi files half its Zelles as card payments -- but they all spell
+   "ZELLE" and "WIRE" the same way.
+
+   A wire fee is deliberately not a transfer. It is a charge for moving the money, not the
+   money moving, and it already counts as spending on Transactions; carrying it here as
+   well would net it off the amount that actually arrived. */
+function txTfrKind(d){
+  const desc=String(d.desc||''), det=String(d.det||'');
+  if(/\bzelle\b/i.test(desc))return'Zelle';
+  if(/\bfee\b/i.test(desc))return'';
+  if(/TRANSFER_(IN|OUT)_WIRE/.test(det)||/\bwires?\b/i.test(desc))return'Wire';
+  return'';
+}
+function plaidTfrSync(){
   let n=0;
   list('tx').forEach(x=>{
-    if(!/zelle/i.test(String(x.d.desc||'')))return;
+    const kind=txTfrKind(x.d); if(!kind)return;
     const d=String(x.d.date||''); if(!d)return;
-    put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',desc:x.d.desc||'Zelle',
+    put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',desc:x.d.desc||kind,kind,
       acct:'American',card:x.d.card||'',cur:x.d.cur||'USD',amt:-(+x.d.amt||0),src2:'Plaid'},
       'fintx:plaid:'+x.id.replace(/^tx:plaid:/,''));n++;
   });
@@ -2606,7 +2643,7 @@ async function plaidTxSync(){
 async function plaidLive(){
   const tx=await plaidTxSync();
   const bal=await plaidBalSync();
-  const stmts=plaidStmtSync(), zelle=plaidZelleSync();
+  const stmts=plaidStmtSync(), zelle=plaidTfrSync();
   return{...tx,accts:bal.filled,inv:bal.inv,stmts,zelle};
 }
 async function plaidSyncAll(){
@@ -2615,7 +2652,7 @@ async function plaidSyncAll(){
   const tx=await plaidTxSync();
   const bal=await plaidBalSync();               // balances first: the rest hang off those rows
   const liab=await plaidLiabSync();
-  const stmts=plaidStmtSync(), zelle=plaidZelleSync();
+  const stmts=plaidStmtSync(), zelle=plaidTfrSync();
   return{...tx,debts:liab.filled,accts:bal.filled,inv:bal.inv,stmts,zelle};
 }
 async function plaidConnect(){
@@ -3613,6 +3650,8 @@ const NAV=[
   {t:'Transactions',p:'tx'},
   {t:'Accounts',g:[['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
   {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
+  // Top level, as it was on the monitor: the whole picture, and the only door to Assets.
+  {t:'Net worth',p:'networth'},
   {t:'Service',p:'service'},
 ];
 const SPECIAL={
@@ -3621,6 +3660,7 @@ const SPECIAL={
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
   tx:{render:txPage,fab:'tx'},
+  networth:{render:networthPage,fab:'assets'},
   service:{render:servicePage},        // nothing here is added with +, so no button
   cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV}};
 // Opens on the Brief every time rather than wherever you were last: the question the app
