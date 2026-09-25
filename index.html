@@ -144,6 +144,9 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .rgForm input:focus{outline:none;border-color:var(--acc)}
   .rgForm .btn{margin-top:3px;justify-content:center}
   .cfoMsg{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);min-height:16px;letter-spacing:.03em}
+  .rgLink{background:none;border:0;color:var(--muted);font-family:"IBM Plex Mono";font-size:10.5px;
+    letter-spacing:.05em;cursor:pointer;padding:4px;text-decoration:underline;text-underline-offset:3px}
+  .rgLink:hover{color:var(--acc)}
   .cfoMsg.bad{color:var(--bad)}
   .gear{background:none;border:1px solid var(--line2);border-radius:999px;color:var(--muted);width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .gear:hover{color:var(--txt);border-color:var(--acc)}
@@ -726,7 +729,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · khaki darker';
+const BUILD='2026-09-25 · recovery';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -4414,6 +4417,7 @@ async function cfoSignIn(){
   go.disabled=true;msg.textContent='Checking…';msg.className='cfoMsg';
   try{
     cfoAuthSave(await cfoAuthPost('token?grant_type=password',{email:CFO_EMAIL,password:p}));
+    clearReset();                               // signed in: whatever link brought us here is done
     markSite();cfoSync();renderActive();        // the door swings and the room is just there
   }catch(err){
     msg.textContent=err.message||'That did not work.';msg.className='cfoMsg bad';
@@ -4429,7 +4433,74 @@ function cfoSignOut(){
 }
 // One field. The account is a constant because there is only ever one of them, and knowing
 // the address gets nobody in — the password is the whole of the lock.
+/* Password recovery. Supabase mails a link carrying a one-time token in the URL fragment,
+   which browsers never send to a server; a page that reads it is the whole of the feature,
+   and without one a forgotten password means the Supabase dashboard or nothing. The
+   standalone page had this and the room did not, so the room could not have replaced it.
+   The token is lifted out and the fragment wiped at once, so it is not left sitting in
+   history or in a screenshot. */
+/* The token has to outlive a reload, because it meets one. A first load on a device
+   registers the service worker, the worker takes over, and the page reloads itself to be
+   sure you are on the version that just arrived — which drops the fragment and, with it,
+   the one thing the email was carrying. So the token is put somewhere that survives a
+   reload in this tab and nowhere else: sessionStorage goes when the tab closes, which is
+   shorter-lived than the URL bar and shorter-lived than history. */
+const RESET_KEY='alfred_reset';
+function recoveryToken(){
+  const h=new URLSearchParams((location.hash||'').replace(/^#/,''));
+  if(h.get('type')==='recovery'&&h.get('access_token')){
+    const t=h.get('access_token');
+    try{sessionStorage[RESET_KEY]=t}catch(e){}
+    return t;
+  }
+  try{return sessionStorage[RESET_KEY]||null}catch(e){return null}
+}
+function clearReset(){RESET_TOK=null;try{delete sessionStorage[RESET_KEY]}catch(e){}}
+let RESET_TOK=null;
+function clearHash(){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}}
+// Ask for the mail. redirect_to names this page, so the link comes back to wherever this
+// app is actually served from rather than to whatever address was configured years ago —
+// that address still has to be on the project's allow-list for it to be honoured.
+async function cfoForgot(){
+  const msg=$('#cfoMsg');
+  msg.textContent='Sending…';msg.className='cfoMsg';
+  try{
+    const r=await fetch(CFO_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),
+      {method:'POST',headers:{apikey:CFO_KEY,'Content-Type':'application/json'},
+       body:JSON.stringify({email:CFO_EMAIL})});
+    if(!r.ok)throw new Error('could not send ('+r.status+')');
+    msg.textContent='Check your email — the link opens here.';msg.className='cfoMsg';
+  }catch(e){msg.textContent=e.message||'could not send';msg.className='cfoMsg bad'}
+}
+async function cfoSetPassword(){
+  const a=$('#pwNew').value,b=$('#pwNew2').value,msg=$('#cfoMsg'),go=$('#pwGo');
+  if(a.length<10){msg.textContent='At least 10 characters.';msg.className='cfoMsg bad';return}
+  if(a!==b){msg.textContent='Those do not match.';msg.className='cfoMsg bad';return}
+  go.disabled=true;msg.textContent='Saving…';msg.className='cfoMsg';
+  try{
+    const r=await fetch(CFO_URL+'/auth/v1/user',{method:'PUT',
+      headers:{apikey:CFO_KEY,Authorization:'Bearer '+RESET_TOK,'Content-Type':'application/json'},
+      body:JSON.stringify({password:a})});
+    const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch(e){}
+    if(!r.ok)throw new Error(j.error_description||j.msg||j.error||('could not set it ('+r.status+')'));
+    clearReset();clearHash();
+    renderActive();
+    const m=$('#cfoMsg');if(m){m.textContent='Password changed — sign in with it now.';m.className='cfoMsg'}
+  }catch(e){msg.textContent=e.message||'could not set it';msg.className='cfoMsg bad';go.disabled=false}
+}
 function cfoGateHtml(){
+  if(RESET_TOK)return`<div class="roomGate">
+    <div class="rgMark">CFO</div>
+    <h2>Choose a new password</h2>
+    <p>This link came from your email and works once. Save the new password somewhere you
+       trust before you go on.</p>
+    <form class="rgForm" onsubmit="event.preventDefault();cfoSetPassword()">
+      <input id="pwNew" type="password" autocomplete="new-password" placeholder="new password">
+      <input id="pwNew2" type="password" autocomplete="new-password" placeholder="repeat it">
+      <button class="btn primary" id="pwGo" type="submit">Set password</button>
+      <div class="cfoMsg" id="cfoMsg"></div>
+    </form>
+  </div>`;
   return`<div class="roomGate">
     <div class="rgMark">CFO</div>
     <h2>This room is locked</h2>
@@ -4439,6 +4510,7 @@ function cfoGateHtml(){
       <input id="cfoPass" type="password" autocomplete="current-password" placeholder="password">
       <button class="btn primary" id="cfoGo" type="submit">Open the room</button>
       <div class="cfoMsg" id="cfoMsg"></div>
+      <button type="button" class="rgLink" onclick="cfoForgot()">Forgotten it? Email me a link</button>
     </form>
   </div>`;
 }
@@ -5191,7 +5263,9 @@ function renderActive(){
   // it behaves with no second argument at all. So the monitor and the desk were turning the
   // locked-room styling on and off with every redraw, and hiding their own nav on the odd
   // ones. A real false is the difference.
-  const shut=!!(SITES[SITE].gate&&!cfoAuthed());
+  // A reset link outranks an open session: you are here to change the password, so the
+  // room steps back behind the door until you have.
+  const shut=!!(SITES[SITE].gate&&(!cfoAuthed()||RESET_TOK));
   document.documentElement.classList.toggle('roomShut',shut);
   if(shut){
     el.innerHTML=cfoGateHtml();el.classList.add('active');markNav();
@@ -5309,6 +5383,10 @@ $('#impFile').onchange=e=>{
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
   load();seed();seedJerseys();
+  // A reset link lands on the house, but it is the ledger's password it is for — so it
+  // opens that room and puts the new-password screen where the door would be.
+  RESET_TOK=recoveryToken();
+  if(RESET_TOK){clearHash();SITE='cfo';try{localStorage.alfred_site='cfo'}catch(e){}}
   document.documentElement.dataset.site=SITE;   // the room's palette, before anything paints
   initNav();markSite();initPad();
   if(joining){dropLocalPin();S.lastPull=0;save(1)}
