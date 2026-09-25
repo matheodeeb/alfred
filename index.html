@@ -700,7 +700,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · cfo moved in';
+const BUILD='2026-09-25 · cfo moved in b';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5116,8 +5116,15 @@ function seedJerseys(){
 $('#gearBtn').onclick=()=>{
   $('#setSync').textContent=cfg?'configured':'not set up';
   $('#setLast').textContent=S.lastSyncAt?new Date(S.lastSyncAt).toLocaleString():'never';
-  $('#setPend').textContent=Object.values(S.items).filter(i=>i.dirty).length;
-  $('#setCount').textContent=Object.values(S.items).filter(i=>!i.del).length;
+  // Both stores, or the panel says nothing is pending while the ledger still has edits to
+  // push. The ledger's figures only appear once the room is open — there is nothing to
+  // count before that, and no number here should hint at what is behind the door.
+  const cPend=cfoAuthed()?Object.values(SC.items).filter(i=>i.dirty).length:0;
+  const cRows=cfoAuthed()?Object.values(SC.items).filter(i=>!i.del).length:0;
+  const pend=Object.values(S.items).filter(i=>i.dirty).length;
+  const rows=Object.values(S.items).filter(i=>!i.del).length;
+  $('#setPend').textContent=cfoAuthed()?`${pend} · ${cPend} ledger`:pend;
+  $('#setCount').textContent=cfoAuthed()?`${rows} · ${cRows} ledger`:rows;
   const kb=((localStorage.alfred_state||'').length+(localStorage.alfred_bulk||'').length)/1024;
   $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
   $('#setErr').textContent=storeErr||syncErr||'none';
