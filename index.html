@@ -49,13 +49,13 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   /* Geo reads as the earth seen at night: deep ocean blue for the ground, landmass green
      for what is live, and the browns of a printed atlas for everything else. */
   :root[data-site="geo"]{
-    --bg:#0a1219; --bg2:#0e1822; --panel:#12202b; --panel2:#182a37;
-    --line:#1b2e3c; --line2:#2d4658;
-    --txt:#e4e9e6; --muted:#8fa3a4; --faint:#5c7076;
-    --acc:#5f9e72; --gold:#c9a25c; --blue:#4a7fa5; --green:#5f9e72; --orange:#b5793f;
-    --purple:#7d8fb3; --red:#b4574a;
-    --ok:#5f9e72; --bad:#b4574a; --warn:#c9a25c;
-    --glow:rgba(95,158,114,.10);
+    --bg:#0a1510; --bg2:#0d1a14; --panel:#11231a; --panel2:#172e22;
+    --line:#1a3125; --line2:#2b4a37;
+    --txt:#e6eae5; --muted:#93a698; --faint:#5f7468;
+    --acc:#78bb8c; --gold:#c9a25c; --blue:#5a91b8; --green:#78bb8c; --orange:#b5793f;
+    --purple:#8a9db5; --red:#c06152;
+    --ok:#78bb8c; --bad:#c06152; --warn:#c9a25c;
+    --glow:rgba(120,187,140,.09);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:"Public Sans",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
@@ -700,7 +700,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · cfo moved in b';
+const BUILD='2026-09-25 · geo green';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
