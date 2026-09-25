@@ -1523,11 +1523,14 @@ fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
   },
   formOut:d=>{if((d.grp==='Credit'||d.grp==='Haiti credit')&&d.amt!==''&&d.amt!=null)d.amt=-Math.abs(+d.amt);return d}},
 finstmt:{title:'Monthly statement',color:'var(--blue)',hint:'',
-  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'src',l:'Card / source',t:'sel',opt:['Citibank CC','Amex CC','Wells Fargo CC','BUH'],def:()=>finView==='Haitian'?'BUH':'Citibank CC'},{k:'amt',l:'Amount paid',t:'money'}]},
+  fields:[{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'year',l:'Year',t:'num',req:1,def:()=>FINYEAR},{k:'src',l:'Card / source',t:'sel',opt:['Citibank CC','Amex CC','Wells Fargo CC','BUH'],def:()=>finView==='Haitian'?'BUH':'Citibank CC'},{k:'amt',l:'Amount paid',t:'money'}]},
 fintx:{title:'Transfer',color:'var(--purple)',hint:'',
-  fields:[{k:'date',l:'Date',t:'date',def:()=>today()},{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'desc',l:'What / who',t:'text',ph:'optional'},{k:'acct',l:'Bank side',t:'sel',opt:['American','Haitian'],def:()=>finView},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},{k:'dir',l:'Direction',t:'sel',opt:['Out','In'],def:'Out'},{k:'amt',l:'Amount',t:'money',req:1}],
+  fields:[{k:'date',l:'Date',t:'date',def:()=>today()},{k:'month',l:'Month',t:'sel',opt:MONTHS,req:1,def:()=>MONTHS[new Date().getMonth()]},{k:'year',l:'Year',t:'num',req:1,def:()=>FINYEAR},{k:'desc',l:'What / who',t:'text',ph:'optional'},{k:'acct',l:'Bank side',t:'sel',opt:['American','Haitian'],def:()=>finView},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG'],def:'USD'},{k:'dir',l:'Direction',t:'sel',opt:['Out','In'],def:'Out'},{k:'amt',l:'Amount',t:'money',req:1}],
   formIn:(it,k,v)=>k==='amt'?Math.abs(+v||0):k==='dir'?((+it.d.amt||0)>=0?'In':'Out'):v,
-  formOut:d=>{d.amt=(d.dir==='In'?1:-1)*Math.abs(+d.amt||0);delete d.dir;if(d.acct!=='Haitian')d.cur='USD';if(d.date)d.month=MONTHS[+d.date.slice(5,7)-1];return d}},
+  formOut:d=>{d.amt=(d.dir==='In'?1:-1)*Math.abs(+d.amt||0);delete d.dir;if(d.acct!=='Haitian')d.cur='USD';
+    if(d.date){d.month=MONTHS[+d.date.slice(5,7)-1];d.year=+String(d.date).slice(0,4)}   // the date wins
+    else d.year=+d.year||FINYEAR;
+    return d}},
 finsub:{title:'Subscriptions',color:'var(--orange)',hint:'Tap a subscription to edit it — totals update themselves.',
   fields:[{k:'name',l:'Subscription',t:'text',req:1},{k:'cycle',l:'Billing',t:'sel',opt:['Monthly','Yearly']},{k:'cost',l:'Cost',t:'money',req:1},{k:'bank',l:'Paid from',t:'text',ph:'Wells Fargo CC…'},{k:'notes',l:'Concerns / notes',t:'ta',full:1}],
   group:i=>i.d.cycle||'Monthly',
@@ -1838,16 +1841,44 @@ function fincashPage(){
   }
   return h;
 }
-function stmtCell(src,mn){const it=list('finstmt').find(i=>i.d.src===src&&i.d.month===mn);openForm('finstmt',it?.id,{src,month:mn})}
+/* Statements and transfers were filed by month alone, under a heading that said 2026
+   because that was the only year there was. The first payment of January 2027 would have
+   landed on January 2026's cell and overwritten it.
+
+   Every row carries its year now. Rows written before this change have none, and they are
+   all 2026 -- the app has never held anything else -- so that is what they are read as,
+   rather than guessing or dropping them. */
+const FIN_LEGACY_YEAR=2026;
+const stmtYearOf=i=>+i.d.year||FIN_LEGACY_YEAR;
+const fintxYearOf=i=>+i.d.year||(/^\d{4}/.test(String(i.d.date||''))?+String(i.d.date).slice(0,4):FIN_LEGACY_YEAR);
+let FINYEAR=new Date().getFullYear();
+function finSetYear(v){FINYEAR=+v||new Date().getFullYear();renderActive()}
+/* Every year the data actually covers, plus this one -- so a year you have rows for is
+   always reachable, and the current year is offered before anything has been filed in it. */
+function finYears(){
+  const ys=new Set([new Date().getFullYear(),FINYEAR]);
+  list('finstmt').forEach(i=>ys.add(stmtYearOf(i)));
+  list('fintx').forEach(i=>ys.add(fintxYearOf(i)));
+  return[...ys].sort((a,b)=>b-a);
+}
+function finYearSel(){
+  const ys=finYears(); if(ys.length<2&&ys[0]===new Date().getFullYear())return'';
+  return`<select class="totSel" onchange="finSetYear(this.value)">`+
+    ys.map(y=>`<option${y===FINYEAR?' selected':''}>${y}</option>`).join('')+`</select>`;
+}
+function stmtCell(src,mn){
+  const it=list('finstmt').find(i=>i.d.src===src&&i.d.month===mn&&stmtYearOf(i)===FINYEAR);
+  openForm('finstmt',it?.id,{src,month:mn,year:FINYEAR});
+}
 function finstmtPage(){
   const rateItem=finBy('Setting')[0];const rate=(+rateItem?.d?.amt)||131;
   let h=finSeg();
   if(finView==='American'){
-    const its=list('finstmt').filter(i=>i.d.src!=='BUH');
+    const its=list('finstmt').filter(i=>i.d.src!=='BUH'&&stmtYearOf(i)===FINYEAR);
     const srcs=['Citibank CC','Amex CC','Wells Fargo CC'];
     const byKey={};its.forEach(i=>{byKey[i.d.src+'|'+i.d.month]=i});
-    const txm={},txn={};list('fintx').filter(i=>(i.d.acct||'American')==='American').forEach(i=>{txm[i.d.month]=(txm[i.d.month]||0)+(+i.d.amt||0);txn[i.d.month]=(txn[i.d.month]||0)+1});
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — 2026 (US)</h2>
+    const txm={},txn={};list('fintx').filter(i=>(i.d.acct||'American')==='American'&&fintxYearOf(i)===FINYEAR).forEach(i=>{txm[i.d.month]=(txm[i.d.month]||0)+(+i.d.amt||0);txn[i.d.month]=(txn[i.d.month]||0)+1});
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — ${FINYEAR} (US) ${finYearSel()}</h2>
     <div class="hint">What each card's statement cost. Tap a cell to enter a number; the Transfers column and every total fill themselves.</div>
     <div class="ftWrap"><table class="ft"><tr><th>Month</th>${srcs.map(s=>`<th>${esc(s.replace(' CC',''))}</th>`).join('')}<th>Transfers</th><th>Total paid</th></tr>`;
     let grand=0;
@@ -1865,12 +1896,12 @@ function finstmtPage(){
     h+=`<tr class="tot"><td>Year</td>${srcs.map(s=>{const t=its.filter(i=>i.d.src===s).reduce((x,i)=>x+(+i.d.amt||0),0);return`<td>${t?money2(t):'·'}</td>`}).join('')}<td class="${signCls(-txYear)}">${txAny?money2(txYear):'·'}</td><td>${money2(grand)}</td></tr>`;
     h+=`</table></div></div>`;
   }else{
-    const its=list('finstmt').filter(i=>i.d.src==='BUH');
+    const its=list('finstmt').filter(i=>i.d.src==='BUH'&&stmtYearOf(i)===FINYEAR);
     const byKey={};its.forEach(i=>{byKey[i.d.month]=i});
     const txU={},txH={},txUn={},txHn={};
-    list('fintx').filter(i=>(i.d.acct||'American')==='Haitian').forEach(i=>{const htg=i.d.cur==='HTG';const t=htg?txH:txU,n=htg?txHn:txUn;t[i.d.month]=(t[i.d.month]||0)+(+i.d.amt||0);n[i.d.month]=(n[i.d.month]||0)+1});
+    list('fintx').filter(i=>(i.d.acct||'American')==='Haitian'&&fintxYearOf(i)===FINYEAR).forEach(i=>{const htg=i.d.cur==='HTG';const t=htg?txH:txU,n=htg?txHn:txUn;t[i.d.month]=(t[i.d.month]||0)+(+i.d.amt||0);n[i.d.month]=(n[i.d.month]||0)+1});
     const fmtTot=t=>htTotCur==='HTG'?(t*rate).toLocaleString('en-US',{maximumFractionDigits:0})+' HTG':money2(t);
-    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — 2026 (Haiti)</h2>
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>Monthly statements — ${FINYEAR} (Haiti) ${finYearSel()}</h2>
     <div class="hint">BUH card payments entered in HTG; your transfers split by currency. Total converts at ${rate} HTG / USD — pick its currency in the header.</div>
     <div class="ftWrap"><table class="ft"><tr><th>Month</th><th>BUH card (HTG)</th><th>Transfers ($)</th><th>Transfers (HTG)</th><th>Total <select class="totSel" onchange="htTotCur=this.value;renderActive()"><option ${htTotCur==='USD'?'selected':''}>USD</option><option ${htTotCur==='HTG'?'selected':''}>HTG</option></select></th></tr>`;
     let grand=0;
@@ -1902,8 +1933,9 @@ const fintxCardOf=i=>{
   if(m){const t=one('tx:plaid:'+m[1]); if(t&&t.d.card)return String(t.d.card)}
   return 'Unassigned';
 };
+const fintxIn=view=>list('fintx').filter(i=>(i.d.acct||'American')===view&&fintxYearOf(i)===FINYEAR);
 function fintxCards(view){
-  return [...new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxCardOf))].sort();
+  return [...new Set(fintxIn(view).map(fintxCardOf))].sort();
 }
 /* Rows pulled from here on carry their kind. Ones already saved, and ones you type in
    yourself, are read from their description instead -- so the filter works on everything
@@ -1914,7 +1946,7 @@ const fintxKindOf=i=>{
   return txTfrKind(i.d)||'Other';
 };
 function fintxKinds(view){
-  const seen=new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxKindOf));
+  const seen=new Set(fintxIn(view).map(fintxKindOf));
   return [...FINTX_KINDS.filter(k=>seen.has(k)),...[...seen].filter(k=>!FINTX_KINDS.includes(k)).sort()];
 }
 let FINTXKIND='';
@@ -1925,7 +1957,7 @@ function fintxSetKind(n){const ks=fintxKinds(finView);FINTXKIND=(n<0||n>=ks.leng
 const FINTX_DIRS=['In','Out'];
 const fintxDirOf=i=>{const v=+i.d.amt||0;return v>0?'In':v<0?'Out':''};
 function fintxDirs(view){
-  const seen=new Set(list('fintx').filter(i=>(i.d.acct||'American')===view).map(fintxDirOf));
+  const seen=new Set(fintxIn(view).map(fintxDirOf));
   return FINTX_DIRS.filter(d=>seen.has(d));
 }
 let FINTXDIR='';
@@ -1940,7 +1972,7 @@ function fintxPage(){
   if(FINTXCARD&&!cards.includes(FINTXCARD))FINTXCARD='';   // the view changed under the filter
   if(FINTXKIND&&!kinds.includes(FINTXKIND))FINTXKIND='';
   if(FINTXDIR&&!dirs.includes(FINTXDIR))FINTXDIR='';
-  const its=list('fintx').filter(i=>(i.d.acct||'American')===finView)
+  const its=list('fintx').filter(i=>(i.d.acct||'American')===finView&&fintxYearOf(i)===FINYEAR)
     .filter(i=>!FINTXCARD||fintxCardOf(i)===FINTXCARD)
     .filter(i=>!FINTXKIND||fintxKindOf(i)===FINTXKIND)
     .filter(i=>!FINTXDIR||fintxDirOf(i)===FINTXDIR);
@@ -1966,7 +1998,7 @@ function fintxPage(){
       <div class="v ${signCls(yIn+yOut)}">${money2(yIn+yOut)}</div>
       <div class="u">${yIn+yOut>=0?'more in than out':'more out than in'}</div></div>
   </div>`;
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — 2026 (${finView==='American'?'US':'Haiti'})</h2>
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Transfers — ${FINYEAR} (${finView==='American'?'US':'Haiti'}) ${finYearSel()}</h2>
   <div class="hint">${finView==='American'?'Every US account you have connected.':'BUH — USD and HTG separated; HTG converts at '+rate+' HTG / USD.'} In / Out / Net compute themselves; + logs a transfer.${kinds.length>1||dirs.length>1?' Narrow by account, by Zelle or wire, or by money in against money out \u2014 leave one open to see all of it.':''}</div>
   ${cards.length>1||kinds.length>1||dirs.length>1?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
     ${cards.length>1?`<select class="cfoIn" style="max-width:320px" onchange="fintxSetCard(this.selectedIndex-1)">
@@ -2538,20 +2570,27 @@ function plaidStmtSync(){
     if(f.d.grp==='Credit'&&f.d.acct&&f.d.card)col.set(f.d.acct,{src:f.d.card,day:stmtDayOf(f.d)});
   });
   if(!col.size)return 0;
-  const yr=new Date().getFullYear(), tot=new Map();
+  // Every year the payments cover, not just this one -- so a deeper history backfills the
+  // years behind it instead of being silently dropped on the way in.
+  const tot=new Map();
   list('tx').forEach(x=>{
     const c=col.get(x.d.acct); if(!c||!plaidIsCardPayment(x))return;
     const when=plaidStmtMonth(x.d.date,c.day);
-    if(!when||when.y!==yr)return;          // one row per month per card, with no year on it
-    const k=c.src+'|'+when.month;
+    if(!when)return;
+    const k=c.src+'|'+when.y+'|'+when.month;
     tot.set(k,(tot.get(k)||0)+Math.abs(+x.d.amt||0));
   });
   let n=0;
   tot.forEach((amt,k)=>{
-    const [src,month]=k.split('|'); if(!month)return;
-    // One canonical row per card per month, whoever filled it in: a figure carried over
-    // from the old site and a figure Plaid works out are the same cell, not two.
-    put('finstmt',{src,month,amt:Math.round(amt*100)/100,src2:'Plaid'},'finstmt:'+src+':'+month);n++;
+    const [src,ys,month]=k.split('|'); if(!month)return;
+    const year=+ys;
+    /* One canonical row per card per month, whoever filled it in: a figure carried over
+       from the old site and a figure Plaid works out are the same cell, not two. An
+       existing row is reused by its own id, so rows written before the year existed are
+       updated in place rather than duplicated beside a new year-shaped id. */
+    const had=list('finstmt').find(i=>i.d.src===src&&i.d.month===month&&stmtYearOf(i)===year);
+    put('finstmt',{src,month,year,amt:Math.round(amt*100)/100,src2:'Plaid'},
+      had?had.id:'finstmt:'+src+':'+year+':'+month);n++;
   });
   return n;
 }
@@ -2580,7 +2619,7 @@ function plaidTfrSync(){
   list('tx').forEach(x=>{
     const kind=txTfrKind(x.d); if(!kind)return;
     const d=String(x.d.date||''); if(!d)return;
-    put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',desc:x.d.desc||kind,kind,
+    put('fintx',{date:d,month:MONTHS[+d.slice(5,7)-1]||'',year:+d.slice(0,4),desc:x.d.desc||kind,kind,
       acct:'American',card:x.d.card||'',cur:x.d.cur||'USD',amt:-(+x.d.amt||0),src2:'Plaid'},
       'fintx:plaid:'+x.id.replace(/^tx:plaid:/,''));n++;
   });
