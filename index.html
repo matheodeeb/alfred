@@ -729,7 +729,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · recovery';
+const BUILD='2026-09-25 · recovery b';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -4465,7 +4465,11 @@ async function cfoForgot(){
   const msg=$('#cfoMsg');
   msg.textContent='Sending…';msg.className='cfoMsg';
   try{
-    const r=await fetch(CFO_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),
+    // The directory, not the file. Supabase matches the allow-list entry exactly, and the
+    // entry is the folder — so /alfred/index.html, which is what pathname says when the app
+    // is opened that way, would be refused and the mail would fall back to the Site URL.
+    const here=location.origin+location.pathname.replace(/index\.html$/,'');
+    const r=await fetch(CFO_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(here),
       {method:'POST',headers:{apikey:CFO_KEY,'Content-Type':'application/json'},
        body:JSON.stringify({email:CFO_EMAIL})});
     if(!r.ok)throw new Error('could not send ('+r.status+')');
