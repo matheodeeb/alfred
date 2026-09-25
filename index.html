@@ -700,7 +700,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · parity';
+const BUILD='2026-09-25 · front hall';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -945,7 +945,19 @@ $('#pill').onclick=()=>{                             // tap the badge to pull no
 async function hash(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('alfred:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 let pinBuf='',pinMode='enter',pinFirst='',hiddenAt=0;
 function pinHash(){return one('cfg:pin')?.d?.h||localStorage.alfred_pin||''}
+/* Back to the front hall. The PIN is the door into the house, so the door is always the
+   house's own — not whichever room you happened to be standing in when it shut. That also
+   settles where you are when you come back in: the monitor, every time, and a room is
+   somewhere you then choose to walk into. It does NOT touch the ledger's own lock; that one
+   is yours to turn, and it stays as you left it. */
+function toFrontHall(){
+  if(SITE==='main')return;
+  SITE='main'; try{localStorage.alfred_site='main'}catch(e){}
+  document.documentElement.dataset.site='main';
+  markSite(); initNav(); activePage=homePage(); renderActive();
+}
 function showLock(mode){pinMode=mode;pinBuf='';pinFirst='';
+  if(mode==='enter')toFrontHall();
   $('#lockMsg').textContent=mode==='set'?'CHOOSE A 4-DIGIT PIN':'ENTER PIN';
   drawDots();$('#lock').classList.add('show');
   try{document.activeElement?.blur?.()}catch(e){}   // so typed digits reach the PIN, not a field underneath
@@ -3846,7 +3858,19 @@ function plaidPullOnce(){
    own tab it has room, and Transactions is left to the transactions. */
 function servicePage(){
   plaidPullOnce();
-  return plaidPanel();
+  return plaidPanel()+cfoLockPanel();
+}
+/* The ledger's lock is turned by hand and never on a timer. Locking the house does not
+   shut it, and neither does leaving the room -- it stays open until you say otherwise, and
+   then it wants the password again. */
+function cfoLockPanel(){
+  return`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>This room</h2>
+    <div class="hint">Open. It stays open &mdash; locking Alfred or walking back to the monitor
+      leaves it as it is. Lock it here when you want the password asked for again.</div>
+    <div class="foot" style="margin-top:14px">
+      <button class="btn sm danger ghost" onclick="cfoSignOut()">Lock the ledger</button>
+    </div>
+  </div>`;
 }
 function plaidPanel(){
   const items=plaidItems();
@@ -4349,7 +4373,9 @@ async function cfoSignIn(){
 function cfoSignOut(){
   CFOAUTH=null;try{delete localStorage.cfo_auth}catch(e){}
   SC={items:{},lastPull:0,lastSyncAt:0};        // the figures leave the tab with the session
-  markSite();renderActive();
+  markSite();
+  activePage=SITES.cfo.home;                    // back to the door, not a page behind it
+  renderActive();
 }
 // One field. The account is a constant because there is only ever one of them, and knowing
 // the address gets nobody in — the password is the whole of the lock.
