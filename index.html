@@ -3750,8 +3750,39 @@ function plaidAutoSync(){
 
    It is cheap to repeat: the cursor lives on the server, so a bank with nothing new
    answers with an empty delta rather than resending its history. */
-async function plaidTxSync(){
-  const items=plaidItems();
+/* Ask every bank to go and look, before reading what they have.
+
+   /transactions/sync serves Plaid's own copy, which Plaid updates on its own schedule --
+   for some banks only a few times a day. Without this, "Sync now" could faithfully report
+   nothing new while the bank itself had moved on hours ago, which is exactly what "it
+   never goes through" feels like from the outside.
+
+   Deliberately best-effort and never fatal: a bank that will not be pushed answers
+   PRODUCT_NOT_READY, which is no reason to abandon the sync. Plaid fetches in the
+   background, so the read that follows may still be a moment behind and the one after it
+   carries the rows. */
+async function plaidAskBanks(){
+  let asked=0;
+  await Promise.all(plaidItems().map(async it=>{
+    try{const r=await plaidFn('refresh',{item_id:it.d.item}); if(r&&r.asked)asked++}
+    catch(e){}
+  }));
+  return asked;
+}
+/* reset throws away the cursor and asks each bank from the beginning.
+
+   A cursor is a promise that everything before it has already been handed over. A bank
+   linked before its history was ready can make that promise over an empty first page --
+   the connection then reports itself fully synced forever, with no error and no rows, and
+   no amount of ordinary syncing will shift it.
+
+   Nothing can be duplicated by this: every row is stored under the transaction id the
+   bank gives it, so a row arriving twice is the same row written twice.
+
+   onlyId narrows it to a single connection, because re-pulling one stuck bank is no
+   reason to make the others hand over their history again. */
+async function plaidTxSync(reset,onlyId){
+  const items=plaidItems().filter(it=>!onlyId||it.id===onlyId);
   let added=0,updated=0,removed=0,failed=0;
   for(const it of items){
     const accts=it.d.accts||[];
@@ -3761,7 +3792,7 @@ async function plaidTxSync(){
        a bad morning -- used to throw out of the loop and silently strip every bank after
        it of its sync, which looks exactly like a bank with no transactions. */
     let out;
-    try{ out=await plaidFn('sync',{item_id:it.d.item}) }
+    try{ out=await plaidFn('sync',{item_id:it.d.item,...(reset?{reset:true}:{})}) }
     catch(e){ put('plaid',{err:String(e.message||e),last:new Date().toISOString()},it.id);
               failed++; continue }
     // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
@@ -3869,9 +3900,27 @@ async function plaidReconnect(id){
   }catch(e){alert(e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
-async function plaidSyncNow(){
-  PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
+/* Everything this bank has, from the beginning, ignoring what we think we already hold.
+   The remedy for a connection that answers without error and without rows. */
+async function plaidRepull(id){
+  const it=one(id); if(!it)return;
+  if(!confirm('Ask '+(it.d.inst||'this bank')+' for its whole history again?\n\nNothing can be duplicated — every transaction is stored under the id the bank gives it, so anything already here is simply rewritten.'))return;
+  PLAIDBUSY=1;PLAIDMSG='asking '+(it.d.inst||'the bank')+' for everything…';renderActive();
   try{
+    await plaidFn('refresh',{item_id:it.d.item}).catch(()=>{});   // this bank only
+    await plaidTxSync(true,id);
+    plaidStmtSync();plaidTfrSync();
+    const got=plaidRowsOf(it).length;
+    alert(got?got+' transaction'+(got===1?'':'s')+' now held for this bank.'
+             :'This bank still returned nothing.\n\nIts balance works, so the connection itself is fine — the bank is not releasing transaction history. Reconnecting it is the next thing to try.');
+  }catch(e){alert('Could not re-pull: '+e.message)}
+  PLAIDBUSY=0;PLAIDMSG='';renderActive();
+}
+async function plaidSyncNow(){
+  PLAIDBUSY=1;PLAIDMSG='asking your banks…';renderActive();
+  try{
+    await plaidAskBanks();
+    PLAIDMSG='reading what they sent…';renderActive();
     const r=await plaidSyncAll();
     alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
       r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
@@ -3936,12 +3985,24 @@ function plaidPanel(){
   h+=items.map(i=>{
     const n=(i.d.accts||[]).length;
     const last=i.d.last?new Date(i.d.last).toLocaleString():'never';
-    const note=i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
+    /* Two failures look alike from here and are not alike at all. A login the bank has
+       invalidated can only be fixed by you, signing in once; a bank that answers cleanly
+       and sends nothing is a connection worth asking again. Saying which is which, and
+       putting the button that helps beside it, is the difference between a warning and an
+       instruction. The bank's own words stay on hover, so a new kind of failure can still
+       be reported exactly rather than paraphrased. */
+    const stale=/ITEM_LOGIN_REQUIRED|login details/i.test(String(i.d.err||'')+String(i.d.balErr||''));
+    const empty=!stale&&i.d.last&&!i.d.rows;
+    const raw=esc(String(i.d.err||i.d.balErr||''));
+    const note=stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
+      :i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
       :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
-      :(i.d.last&&!i.d.rows?' · <b style="color:var(--orange)">no transactions yet — a bank can take a while to hand over its history</b>':'');
+      :(empty?' · <b style="color:var(--orange)">connects fine but sends no transactions — try Re-pull history</b>':'');
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
       '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span></span>'+
       '<span style="margin-left:auto;display:inline-flex;gap:8px">'+
+      (empty?'<button class="btn sm ghost" onclick="plaidRepull(\''+esc(i.id)+'\')" '+
+        'title="Ask this bank for its whole history again, ignoring what we already hold">Re-pull history</button>':'')+
       '<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
         'title="Re-authorise this bank without using another connection">Reconnect</button>'+
       '<button class="btn sm ghost" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></span></div>';

@@ -243,7 +243,16 @@ Deno.serve(async (req: Request) => {
         const row = rows?.[0];
         if (!row) return json({ error: "no such connection" }, 404);
 
-        let cursor: string | undefined = row.cursor || undefined;
+        /* A cursor is a promise that everything before it has already been handed over.
+         * When a bank is linked before its history is ready, that promise can be made over
+         * an empty first page -- the item then reports itself fully synced forever and no
+         * amount of asking produces the transactions, because from Plaid's side there is
+         * nothing new since the cursor.
+         *
+         * reset drops the cursor and asks from the beginning. It cannot duplicate anything:
+         * rows are stored under the transaction id the bank gives them, so a row arriving
+         * twice is the same row written twice. */
+        let cursor: string | undefined = body.reset ? undefined : (row.cursor || undefined);
         const added: any[] = [], modified: any[] = [], removed: string[] = [];
         let more = true, guard = 0;
         while (more && guard++ < 25) {
@@ -272,6 +281,31 @@ Deno.serve(async (req: Request) => {
           pending: !!t.pending,
         });
         return json({ added: added.map(trim), modified: modified.map(trim), removed });
+      }
+
+      /* /transactions/sync hands back Plaid's own copy of the account, which Plaid updates
+       * on its own schedule -- for some banks only a few times a day. So "Sync now" could
+       * faithfully return nothing new while the bank itself had moved on hours ago.
+       *
+       * This asks Plaid to go to the bank now. It answers immediately and fetches in the
+       * background, so the sync that follows it may still be a moment behind; the one after
+       * that carries the new rows. Worth doing anyway: it is the difference between asking
+       * the bank and asking a cache.
+       *
+       * An institution that will not be pushed answers PRODUCT_NOT_READY or
+       * TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION. Neither is a failure worth stopping
+       * for, so this reports what happened and lets the sync carry on regardless. */
+      case "refresh": {
+        if (typeof body.item_id !== "string" || !body.item_id) return json({ error: "item_id required" }, 400);
+        const rows = await db(`plaid_items?item_id=eq.${qs(body.item_id)}&owner=eq.${qs(user)}&select=access_token`);
+        const row = rows?.[0];
+        if (!row) return json({ error: "no such connection" }, 404);
+        try {
+          await plaid("/transactions/refresh", { access_token: row.access_token });
+          return json({ asked: true });
+        } catch (e) {
+          return json({ asked: false, why: String((e as Error).message || e).slice(0, 200) });
+        }
       }
 
       /* What a card actually costs: the APR, the minimum and the due date, which the payoff
