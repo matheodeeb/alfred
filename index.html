@@ -619,6 +619,127 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   :root[data-site="cfo"] .cfoIn{font-family:"IBM Plex Mono";font-size:13px;padding:7px 10px;border:1px solid var(--line2);border-radius:9px;background:var(--panel);color:var(--txt);width:132px}
   :root[data-site="cfo"] .cfoDebtBal{margin-left:14px}
   @media(max-width:560px){:root[data-site="cfo"] .cfoDebtMin{display:none}:root[data-site="cfo"] .cfoDebtBal{margin-left:auto}}
+  /* ---- Geo: the atlas pages ---- */
+  .gIntro{margin:6px 2px 12px}
+  .gIntro h1,.gHero h1{font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:28px;letter-spacing:-.01em;line-height:1.1}
+  .gIntro p{color:var(--muted);font-size:14px;line-height:1.55;margin-top:6px;max-width:680px}
+  .gFoot{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.04em;color:var(--faint);margin:18px 2px 0;line-height:1.6}
+  .gEmpty{color:var(--faint);font-size:13px;padding:12px 2px;line-height:1.55}
+  .gDim{color:var(--faint);font-weight:400;font-size:.9em}
+  .gFlag{font-size:15px;line-height:1}
+  .gPill{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap;border:1px solid var(--line2);color:var(--muted)}
+  .gPill.ok{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
+  .gPill.warn{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 50%,transparent)}
+  .gPill.bad{color:var(--red);border-color:color-mix(in srgb,var(--red) 50%,transparent)}
+  .gCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .gCard{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;color:var(--txt);font:inherit;display:flex;flex-direction:column;gap:12px;transition:.15s}
+  .gCard:hover{border-color:var(--acc);transform:translateY(-1px)}
+  .gCardH{display:flex;gap:10px;align-items:center}
+  .gCardH b{font-family:"Fraunces",Georgia,serif;font-size:16px;display:block}
+  .gCardH small{color:var(--muted);font-size:11.5px}
+  .gBig{font-size:30px;line-height:1}
+  .gMini{display:flex;align-items:flex-end;gap:3px;height:34px}
+  .gMini i{flex:1;border-radius:2px 2px 0 0;min-height:2px;opacity:.9}
+  .gCardF{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted)}
+  .gHero{display:flex;gap:14px;align-items:center;margin:14px 2px 8px}
+  .gHuge{font-size:48px;line-height:1}
+  .gSub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .gWhy{font-family:"Fraunces",Georgia,serif;font-size:17px;line-height:1.55;margin:4px 2px 14px;max-width:760px}
+  .gWk{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;line-height:1.6}
+  .gWk:last-child{border-bottom:0}
+  .gWk b{font-family:"Fraunces",Georgia,serif;display:block;margin-bottom:3px}
+  .gMore summary{cursor:pointer;color:var(--muted);font-size:12.5px;margin-top:8px}
+  .gSecs{display:grid;gap:7px;margin-top:4px}
+  .gSec{display:grid;grid-template-columns:96px 1fr 22px;gap:10px;align-items:center;font-size:13px}
+  .gSecL{color:var(--muted)}
+  .gSecT{height:9px;background:var(--panel2);border-radius:99px;overflow:hidden}
+  .gSecT i{display:block;height:100%;border-radius:99px}
+  .gSecV{font-family:"IBM Plex Mono";font-size:12px;text-align:right}
+  .gSW{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+  @media(max-width:640px){.gSW{grid-template-columns:1fr}}
+  .gSW h3{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  .gSW h3.ok{color:var(--acc)} .gSW h3.bad{color:var(--red)}
+  .gSW ul{padding-left:17px;font-size:13.5px;line-height:1.55;display:grid;gap:4px}
+  .gSvg{width:100%;height:auto;display:block;margin-top:6px}
+  .gAx{font-family:"IBM Plex Mono";font-size:9.5px;fill:var(--faint)}
+  .gEnd{font-family:"IBM Plex Mono";font-size:12px;font-weight:600}
+  .gLeg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .gLeg span{display:inline-flex;align-items:center;gap:6px}
+  .gLeg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .gLeg b{color:var(--txt);font-family:"IBM Plex Mono";font-weight:600}
+  .gBtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .gSeat{margin-top:14px}
+  .gSeatH{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:6px}
+  .gSeatH span{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint)}
+  .gSeatBar{position:relative;display:flex;height:16px;border-radius:5px;overflow:hidden;gap:2px}
+  .gSeatBar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--txt);transform:translateX(-1px)}
+  .gPol{padding:12px 0;border-bottom:1px solid var(--line)}
+  .gPol:last-of-type{border-bottom:0}
+  .gPol.mine{cursor:pointer}
+  .gPolH{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .gPolH b{font-size:14px}
+  .gPolS{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px}
+  .gSteps{display:flex;gap:3px;margin-top:8px}
+  .gSteps span{flex:1;font-family:"IBM Plex Mono";font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);border-top:3px solid var(--line2);padding-top:4px}
+  .gSteps span.on{border-color:var(--acc);color:var(--txt)}
+  .gSteps span.x{border-color:var(--red);color:var(--red)}
+  .gRel{padding:11px 0;border-bottom:1px solid var(--line)}
+  .gRel:last-child{border-bottom:0}
+  .gRelH{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .gPair{font-size:14px}
+  .gScore{font-family:"IBM Plex Mono";font-size:12px;font-weight:600;min-width:34px;text-align:center;padding:3px 7px;border-radius:7px;color:var(--txt)}
+  .gRelT{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-top:5px}
+  .gRelD{font-size:13px;color:var(--muted);line-height:1.55;margin-top:3px}
+  .gPick{margin-top:12px;padding:4px 14px;border:1px solid var(--acc);border-radius:12px;background:var(--panel2)}
+  .gChips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+  .gChips button,.gSeg button,.gTag{font:inherit;font-size:12.5px;background:var(--panel);color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:6px 12px;cursor:pointer;transition:.12s}
+  .gChips button:hover,.gSeg button:hover,.gTag:hover{color:var(--txt);border-color:var(--acc)}
+  .gChips button.on,.gSeg button.on{background:var(--acc);border-color:var(--acc);color:var(--bg);font-weight:600}
+  .gTag.dim{border-style:dashed}
+  .gTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .gMetG{display:flex;gap:10px;align-items:baseline;margin-bottom:8px;flex-wrap:wrap}
+  .gMetG>span{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);min-width:120px}
+  .gSeg{display:flex;flex-wrap:wrap;gap:5px}
+  .gSeg button{font-size:12px;padding:5px 11px}
+  .gCmpR{display:grid;grid-template-columns:150px 1fr 120px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .gCmpR:last-of-type{border-bottom:0}
+  @media(max-width:560px){.gCmpR{grid-template-columns:1fr 96px}.gCmpT{grid-column:1/-1;grid-row:2}}
+  .gCmpN{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gCmpT{height:14px;background:var(--panel2);border-radius:4px;overflow:hidden}
+  .gCmpT i{display:block;height:100%;border-radius:4px}
+  .gCmpV{font-family:"IBM Plex Mono";font-size:13px;font-weight:600;text-align:right}
+  .gCmpV small{display:block;font-size:9.5px;font-weight:400;color:var(--faint)}
+  .gRead{margin-top:12px;padding:10px 12px;background:var(--panel2);border-radius:10px;font-size:13.5px;line-height:1.5}
+  .gTblW,.gMatW{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .gTbl{border-collapse:separate;border-spacing:3px;width:100%;font-size:12.5px}
+  .gTbl th{font-weight:400}
+  .gTbl th button{background:none;border:0;color:var(--muted);font:inherit;font-size:11px;cursor:pointer;padding:2px}
+  .gTbl td{text-align:center;font-family:"IBM Plex Mono";padding:8px 4px;border-radius:5px;min-width:38px}
+  .gTbl td:first-child{text-align:left;font-family:inherit;white-space:nowrap;background:none}
+  .gMat{border-collapse:separate;border-spacing:2px;margin:0 auto}
+  .gMat th{font-weight:400;font-size:15px;padding:2px}
+  .gMat td{width:30px;height:30px;min-width:30px;text-align:center;font-family:"IBM Plex Mono";font-size:10.5px;border-radius:5px;cursor:pointer}
+  .gMat td.self{background:none;cursor:default}
+  .gMat td.none{border:1px dashed var(--line);cursor:default}
+  .gMat td.on{outline:2px solid var(--txt)}
+  .gMem td{cursor:default;font-size:13px;color:var(--acc);width:34px}
+  .gMem th{font-size:13px;text-align:left;white-space:nowrap}
+  .gMem th span{font-size:12px;color:var(--muted)}
+  .gMem th.rot button{background:none;border:0;color:var(--muted);font-family:"IBM Plex Mono";font-size:9.5px;cursor:pointer;writing-mode:vertical-rl;transform:rotate(180deg);padding:4px 0}
+  .gMem tr:nth-child(even) td{background:color-mix(in srgb,var(--panel2) 55%,transparent)}
+  .gOrgH{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .gOrgH h2{font-size:18px}
+  .gOrg.hl{border-color:var(--acc)}
+  .gOrg p{font-size:13.5px;line-height:1.6;margin-top:8px}
+  .gOrgM{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint);margin-top:6px}
+  .gOrgMem{font-size:12.5px;color:var(--muted);margin-top:10px}
+  .gRoles{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:8px}
+  .gRole{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .gRoleT{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+  .gRoleP{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:17px;margin-top:5px}
+  .gRoleP .gDim{font-family:"Public Sans",sans-serif;font-size:11.5px}
+  .gRoleD{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px}
+  .gLink{background:none;border:0;color:var(--acc);font:inherit;font-size:12px;cursor:pointer;padding:0;margin-top:8px}
 </style>
 </head>
 <body>
@@ -729,7 +850,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-25 · one site';
+const BUILD='2026-09-27 · geo atlas';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5134,6 +5255,511 @@ function overviewPage(){
   return h;
 }
 
+/* ---------------- Geo: the atlas ----------------
+   The reference figures live here, in the code, because they are public facts rather than
+   anything personal. What gets added by hand or by the agent — a country's weekly brief, an
+   approval reading, a law being tracked — is stored as ordinary rows and layered on top, so
+   the pages fill in over time without a deploy. The scores out of ten are an editorial
+   reading, not a statistic, and the page says so. */
+const GEO_ASOF='Figures: IMF, SIPRI and UNDP 2024–25 estimates. People in office as of mid-2026. Scores out of 10 are Alfred\'s assessment.';
+const GEO_SECT=[['eco','Economy'],['mil','Military'],['tech','Technology'],['nrg','Energy'],['agr','Agriculture'],['ind','Industry'],['edu','Education'],['dip','Diplomacy']];
+const GEO_SECT_HINT={eco:'Size, wealth and financial clout',mil:'Forces, spending, reach and nuclear weapons',tech:'Chips, AI, aerospace and research',nrg:'Oil, gas and power: self-sufficiency and exports',agr:'Food security and farm exports',ind:'Manufacturing and production capacity',edu:'Schools, universities and human capital',dip:'Alliances, soft power and seats at the table'};
+// s = scores in GEO_SECT order. st: gdp $tn · gdppc $k · pop m · mil $bn · milpct % of GDP · nuk warheads · armsx % of world arms exports (2020–24) · hdi
+const GEO_C=[
+ {c:'US',n:'United States',f:'🇺🇸',reg:'North America',cap:'Washington, D.C.',gov:'Federal presidential republic',lead:'Donald Trump',leadT:'President',
+  s:[10,10,10,9,9,8,9,9],st:{gdp:30.5,gdppc:89.1,pop:342,mil:997,milpct:3.4,nuk:5177,armsx:43,hdi:.938},
+  why:'The largest economy and military, issuer of the dollar most trade and debt is priced in, and the hub of the Western alliance network. Almost every relationship on these pages is shaped by where a country stands with Washington.',
+  strong:['The dollar and deep capital markets give it sanctions power no one else has','Unmatched military reach: hundreds of overseas bases, 11 aircraft carriers','Leads the world in AI, chip design, software and universities','Energy independent: the largest oil and gas producer','A top food exporter (soybeans, corn, wheat)'],
+  weak:['Deep polarisation; policy swings with each administration','Federal debt above 120% of GDP','Allies unsettled by tariffs and "America First" diplomacy','Relies on Taiwan and Asia to manufacture advanced chips'],
+  leg:{name:'Congress',note:'The President\'s party (Republican) controls both chambers. Every House seat and a third of the Senate are up in the midterms on 3 November 2026.',
+   ch:[{n:'House of Representatives',total:435,parts:[['Republicans',219,'var(--red)'],['Democrats',213,'var(--blue)'],['Vacant',3,'var(--line2)']]},
+       {n:'Senate',total:100,parts:[['Republicans',53,'var(--red)'],['Democrats',45,'var(--blue)'],['Independents (vote with Democrats)',2,'var(--purple)']]}]}},
+ {c:'CN',n:'China',f:'🇨🇳',reg:'Asia',cap:'Beijing',gov:'One-party state (Communist Party)',lead:'Xi Jinping',leadT:'President & Party General Secretary',
+  s:[9,8,9,5,7,10,8,8],st:{gdp:19.2,gdppc:13.7,pop:1408,mil:314,milpct:1.7,nuk:600,armsx:5.9,hdi:.797},
+  why:'The world\'s factory and second-largest economy, and the only country with the scale to challenge the US across trade, technology and military power. Its choices on Taiwan, Russia and supply chains move markets everywhere.',
+  strong:['Roughly 30% of world manufacturing output','Dominates rare-earth refining and battery, solar and EV supply chains','Largest navy by number of ships; nuclear arsenal growing fast','Biggest trading partner of over 120 countries'],
+  weak:['Property slump, deflation and heavy local-government debt','Shrinking, ageing population','Depends on imported oil, food and the most advanced chips','Tense ties with most neighbours: Japan, India, the Philippines, Taiwan']},
+ {c:'RU',n:'Russia',f:'🇷🇺',reg:'Europe / Asia',cap:'Moscow',gov:'Presidential federation (authoritarian)',lead:'Vladimir Putin',leadT:'President',
+  s:[5,8,5,9,7,5,6,6],st:{gdp:2.1,gdppc:14.3,pop:144,mil:149,milpct:7.1,nuk:5459,armsx:7.8,hdi:.832},
+  why:'A nuclear superpower with a mid-sized economy, at war with Ukraine since 2022. Energy exports, weapons and a Security Council veto give it far more weight than its GDP suggests.',
+  strong:['The largest nuclear arsenal in the world','Huge oil, gas, grain and fertiliser exports','Veto at the UN Security Council','A mobilised, battle-hardened war economy'],
+  weak:['Economy strained by sanctions, high interest rates and war spending','Lost its European energy customers; leans on China and India','Shrinking population and labour shortages','Heavy battlefield losses']},
+ {c:'IN',n:'India',f:'🇮🇳',reg:'Asia',cap:'New Delhi',gov:'Federal parliamentary republic',lead:'Narendra Modi',leadT:'Prime Minister',
+  s:[7,6,6,4,7,6,5,7],st:{gdp:4.1,gdppc:2.8,pop:1464,mil:86.1,milpct:2.3,nuk:180,armsx:.1,hdi:.685},
+  why:'The most populous country and fastest-growing major economy. A swing state of geopolitics: US partner in the Quad, buyer of Russian arms and oil, rival of China, and a leading voice of the Global South.',
+  strong:['Young, enormous workforce; growth of 6–7% a year','IT services and pharmaceutical powerhouse','Nuclear-armed, with one of the largest militaries','Strategic autonomy: courted by every side'],
+  weak:['Low income per person; manufacturing still small','Imports most of its oil and many of its weapons','Border disputes with China and Pakistan','Uneven education and skills gaps']},
+ {c:'GB',n:'United Kingdom',f:'🇬🇧',reg:'Europe',cap:'London',gov:'Parliamentary constitutional monarchy',lead:'Keir Starmer',leadT:'Prime Minister',
+  s:[7,6,7,5,4,5,9,8],st:{gdp:3.8,gdppc:55,pop:69.5,mil:81.8,milpct:2.3,nuk:225,armsx:3.6,hdi:.946},
+  why:'A mid-sized economy that punches above its weight: nuclear weapons, a permanent Security Council seat, London\'s financial centre, and Washington\'s closest intelligence partner.',
+  strong:['London: one of the two leading financial centres','Nuclear deterrent and a UN veto','Five Eyes intelligence and the "special relationship" with the US','World-class universities and soft power'],
+  weak:['Slow growth and stretched public finances','Post-Brexit trade friction with the EU','Small armed forces for its ambitions','Imports much of its energy and food']},
+ {c:'FR',n:'France',f:'🇫🇷',reg:'Europe',cap:'Paris',gov:'Semi-presidential republic',lead:'Emmanuel Macron',leadT:'President',
+  s:[7,7,7,6,7,5,7,8],st:{gdp:3.3,gdppc:48,pop:68.6,mil:64.7,milpct:2.1,nuk:290,armsx:9.6,hdi:.920},
+  why:'The EU\'s only nuclear power and permanent Security Council member since Brexit, and the loudest advocate of European "strategic autonomy". Political deadlock at home limits what it can deliver.',
+  strong:['Independent nuclear deterrent','World\'s second-largest arms exporter (Rafale jets, submarines)','Nuclear power supplies about two-thirds of its electricity','Global military footprint and a UN veto'],
+  weak:['Hung parliament; governments keep falling','High public debt and deficits','Influence in Africa\'s Sahel has collapsed','Social unrest over pensions and living costs']},
+ {c:'DE',n:'Germany',f:'🇩🇪',reg:'Europe',cap:'Berlin',gov:'Federal parliamentary republic',lead:'Friedrich Merz',leadT:'Chancellor',
+  s:[8,5,7,3,5,8,8,7],st:{gdp:4.7,gdppc:55.9,pop:83.5,mil:88.5,milpct:1.9,nuk:0,armsx:5.6,hdi:.959},
+  why:'Europe\'s largest economy and industrial engine, now rearming after decades of restraint. Its money and decisions set the pace of EU policy on Russia, China and defence.',
+  strong:['Export powerhouse: cars, machinery, chemicals','Low debt, so it has room to borrow','2025 constitutional change frees defence spending from the debt brake','Second-largest supplier of aid to Ukraine'],
+  weak:['Energy-hungry industry hit by the loss of Russian gas','Economy has barely grown since 2023','Car makers squeezed by Chinese EVs','Army still rebuilding; no nuclear weapons of its own'],
+  leg:{name:'Bundestag',note:'A coalition of the conservative CDU/CSU and the centre-left SPD governs with a slim majority. The far-right AfD is the largest opposition party.',
+   ch:[{n:'Bundestag',total:630,parts:[['CDU/CSU (govt)',208,'var(--acc)'],['SPD (govt)',120,'var(--green)'],['AfD',152,'var(--blue)'],['Greens',85,'var(--line2)'],['The Left',64,'var(--red)'],['SSW',1,'var(--faint)']]}]}},
+ {c:'JP',n:'Japan',f:'🇯🇵',reg:'Asia',cap:'Tokyo',gov:'Parliamentary constitutional monarchy',lead:'Sanae Takaichi',leadT:'Prime Minister',
+  s:[8,5,8,2,4,8,8,7],st:{gdp:4.2,gdppc:34,pop:123,mil:55.3,milpct:1.4,nuk:0,armsx:0,hdi:.925},
+  why:'America\'s anchor ally in Asia and the fourth-largest economy. It faces China, North Korea and Russia across the sea, and is steadily shedding its post-war military restraint.',
+  strong:['Advanced technology and manufacturing (robotics, chip materials)','The world\'s largest creditor nation','Alliance with the US, which bases some 55,000 troops there','Defence spending brought up to 2% of GDP'],
+  weak:['The oldest population in the world','Imports nearly all its energy and much of its food','Public debt around 230% of GDP','Weak yen and stagnant wages']},
+ {c:'UA',n:'Ukraine',f:'🇺🇦',reg:'Europe',cap:'Kyiv',gov:'Semi-presidential republic (under martial law)',lead:'Volodymyr Zelensky',leadT:'President',
+  s:[2,6,4,3,7,2,5,5],st:{gdp:.2,gdppc:5.5,pop:33,mil:64.7,milpct:34,nuk:0,armsx:.1,hdi:.779},
+  why:'The front line of Europe\'s largest war since 1945. The outcome decides whether borders in Europe can be redrawn by force, and how far NATO and the EU reach.',
+  strong:['Combat-proven army; world leader in drone warfare','Vast farmland and grain exports','Strong Western backing and EU candidacy','Large mineral reserves (lithium, titanium)'],
+  weak:['About a fifth of its territory occupied by Russia','Budget depends on foreign aid','Manpower shortages; power grid under constant attack','Population lost to war and emigration']},
+ {c:'IR',n:'Iran',f:'🇮🇷',reg:'Middle East',cap:'Tehran',gov:'Islamic republic (theocracy)',lead:'Mojtaba Khamenei',leadT:'Supreme Leader',
+  s:[3,5,4,7,4,3,5,3],st:{gdp:.35,gdppc:3.9,pop:92,mil:7.9,milpct:2,nuk:0,armsx:null,hdi:.799},
+  why:'A regional power at war with the US and Israel since early 2026. It holds one shore of the Strait of Hormuz, through which about a fifth of the world\'s oil passes.',
+  strong:['Leverage over the Strait of Hormuz','Large missile and drone arsenal','Huge oil and gas reserves','Network of allied militias (the "Axis of Resistance")'],
+  weak:['Crippling sanctions and high inflation','Nuclear and military sites heavily struck','Allies weakened: Hezbollah battered, Assad gone in Syria','Deep public discontent']},
+ {c:'IL',n:'Israel',f:'🇮🇱',reg:'Middle East',cap:'Jerusalem',gov:'Parliamentary republic',lead:'Benjamin Netanyahu',leadT:'Prime Minister',
+  s:[5,8,9,4,4,4,8,4],st:{gdp:.58,gdppc:58,pop:10,mil:46.5,milpct:8.8,nuk:90,armsx:3.1,hdi:.919},
+  why:'The strongest military in the Middle East and America\'s closest ally there. Its wars with Hamas, Hezbollah and Iran have reshaped the region since 2023.',
+  strong:['Military edge and an undeclared nuclear arsenal','Tech powerhouse: cyber and defence technology','Layered missile defence (Iron Dome and more)','Firm US backing'],
+  weak:['Isolated diplomatically over Gaza','Small population; a reservist army strains the economy','Deep domestic political divisions','Normalisation with Saudi Arabia stalled']},
+ {c:'SA',n:'Saudi Arabia',f:'🇸🇦',reg:'Middle East',cap:'Riyadh',gov:'Absolute monarchy',lead:'Mohammed bin Salman',leadT:'Crown Prince & Prime Minister',
+  s:[6,5,3,10,2,3,4,7],st:{gdp:1.1,gdppc:32,pop:35,mil:80.3,milpct:7.3,nuk:0,armsx:null,hdi:.900},
+  why:'The top oil exporter and leader of OPEC+, it sets the price of oil. Under Crown Prince Mohammed bin Salman it is trying to diversify beyond oil and play every side: the US, China and Russia.',
+  strong:['The largest spare oil capacity: it can swing prices','Huge sovereign wealth fund (PIF)','Custodian of Islam\'s holiest sites','Wealthy, and one of the biggest buyers of US arms'],
+  weak:['Economy still runs on oil','Vision 2030 megaprojects scaled back','Exposed to Iranian missiles and any Hormuz closure','Human-rights record strains Western ties']},
+ {c:'TR',n:'Türkiye',f:'🇹🇷',reg:'Europe / Middle East',cap:'Ankara',gov:'Presidential republic',lead:'Recep Tayyip Erdoğan',leadT:'President',
+  s:[5,6,4,3,6,6,5,7],st:{gdp:1.4,gdppc:16,pop:86,mil:25,milpct:1.9,nuk:0,armsx:1.7,hdi:.853},
+  why:'Controls the straits between the Black Sea and the Mediterranean and has NATO\'s second-largest army. A NATO member that buys Russian weapons and mediates between Russia and Ukraine.',
+  strong:['Controls the Bosphorus and Dardanelles','Large army and a booming drone industry','Bridge between Europe, the Middle East and Central Asia','Mediator role (grain deal, prisoner swaps)'],
+  weak:['High inflation and repeated currency crises','Strained ties with the US and the EU','Democratic backsliding','Imports most of its energy']},
+];
+const GEO_ACT=[...GEO_C,{c:'EU',n:'European Union',f:'🇪🇺'}];
+const gC=c=>GEO_ACT.find(x=>x.c===c);
+const gCode=name=>(GEO_ACT.find(x=>x.n===name)||{}).c||name;
+
+/* Relations: a = score from -5 (at war) to +5 (treaty allies). */
+const GEO_REL=[
+ ['US','CN',-3,'Strategic rivals','Competing for leadership in technology, trade and military power. Flashpoints: Taiwan, the South China Sea, chip export controls and tariffs. Still deeply interdependent; a trade truce has held since October 2025.'],
+ ['US','RU',-3,'Adversaries','Opposed over the war in Ukraine; US sanctions on Russian oil. The last nuclear arms-control treaty (New START) expired in February 2026. Washington has pushed for a peace deal.'],
+ ['US','GB',5,'Treaty allies','The "special relationship": NATO, Five Eyes intelligence, nuclear cooperation and the AUKUS submarine pact.'],
+ ['US','FR',3,'Allies','America\'s oldest ally and a NATO partner; friction over trade and France\'s push for European independence from the US.'],
+ ['US','DE',3,'Allies','NATO allies; about 35,000 US troops are based in Germany. Trade friction over tariffs and cars.'],
+ ['US','JP',5,'Treaty allies','A 1960 security treaty commits the US to Japan\'s defence; the largest US forces abroad are there. Both are in the Quad.'],
+ ['US','IN',1,'Partners, strained','Quad partners united by wariness of China, but 2025 tariffs of up to 50% (partly over Russian oil) chilled ties.'],
+ ['US','IL',5,'Close allies','Israel\'s main military backer (about $3.8 bn a year in aid). Fighting Iran together since 2026.'],
+ ['US','IR',-5,'At war','No diplomatic ties since 1980. At war since early 2026; Iran has sent a written ceasefire roadmap that Washington has not signed.'],
+ ['US','SA',3,'Security partners','Oil for security: huge arms sales and investment pledges, though the kingdom now also courts China.'],
+ ['US','UA',3,'Backer','Main supplier of weapons and intelligence; aid shifted to Europe paying for US arms. A 2025 minerals deal ties the two economies.'],
+ ['US','TR',1,'NATO allies, uneasy','Allies in NATO but at odds over Türkiye\'s purchase of Russian S-400 missiles and over Kurdish forces in Syria.'],
+ ['US','EU',2,'Allies, frayed','The core of the West, but shaken by tariffs (a July 2025 deal set 15% on most EU goods) and US pressure over Greenland.'],
+ ['CN','RU',4,'"No-limits" partners','Declared a partnership "without limits" in 2022. China buys Russian energy and supplies the parts its war industry needs. Not a formal alliance.'],
+ ['CN','IN',-2,'Rivals, thawing','A disputed Himalayan border (deadly clash in 2020); competing for influence in Asia. Relations thawed somewhat in 2025.'],
+ ['CN','JP',-3,'Rivals','Historical grievances, disputed islands in the East China Sea, and a sharp row over Japan\'s stance on Taiwan since late 2025.'],
+ ['CN','IR',3,'Partners','China buys most of Iran\'s sanctioned oil; a 25-year cooperation pact signed in 2021.'],
+ ['CN','SA',2,'Partners','China is the top buyer of Saudi oil, and Beijing brokered the 2023 Saudi–Iran détente.'],
+ ['CN','EU',-1,'"Partner, competitor, rival"','Huge trade ties, but clashes over EV subsidies, overcapacity and China\'s support for Russia.'],
+ ['CN','DE',1,'Trade partners','China is one of Germany\'s biggest trading partners; Berlin is trying to "de-risk" without cutting ties.'],
+ ['RU','UA',-5,'At war','Full-scale invasion since February 2022 (Crimea seized in 2014).'],
+ ['RU','IR',3,'Partners','Strategic partnership treaty (January 2025) with no mutual-defence clause; Iranian drone designs used by Russia.'],
+ ['RU','IN',3,'Old partners','India\'s longtime arms supplier and, since 2022, a major source of discounted oil.'],
+ ['RU','TR',1,'Transactional','Business partners (gas pipeline, a nuclear plant, S-400s) while backing opposite sides elsewhere.'],
+ ['RU','EU',-4,'Hostile','Sweeping EU sanctions, the cut-off of Russian gas, and sabotage and drone incursions blamed on Moscow.'],
+ ['RU','DE',-4,'Hostile','Germany ended its reliance on Russian gas and is Ukraine\'s second-largest backer.'],
+ ['RU','GB',-4,'Hostile','Among Ukraine\'s firmest backers; sanctions and spy cases.'],
+ ['RU','FR',-4,'Hostile','Paris leads talk of a European force to guarantee any Ukraine ceasefire.'],
+ ['RU','SA',2,'OPEC+ partners','Co-lead OPEC+, coordinating oil output to steer prices.'],
+ ['UA','EU',4,'Candidate & backer','EU candidate since 2022 and its largest financial backer.'],
+ ['UA','TR',2,'Partners','Supplies Bayraktar drones; mediator between Kyiv and Moscow.'],
+ ['GB','FR',4,'Allies','Europe\'s two nuclear powers; leading the "coalition of the willing" for Ukraine.'],
+ ['GB','DE',3,'Allies','A 2025 friendship and defence treaty.'],
+ ['FR','DE',4,'Allies','The "Franco-German engine" that drives EU decisions, though often at odds.'],
+ ['FR','IN',3,'Partners','Rafale jets and submarines; a strategic partnership since 1998.'],
+ ['JP','GB',3,'Partners','Building a next-generation fighter jet together (GCAP) with Italy.'],
+ ['IL','IR',-5,'At war','Shadow war turned open: a 12-day war in June 2025, and full war since 2026.'],
+ ['SA','IR',-2,'Rivals','Regional and sectarian rivals; a 2023 détente strained by Iranian strikes on Gulf neighbours.'],
+ ['SA','IL',-1,'No relations','Normalisation talks stalled by the Gaza war; quiet security contacts.'],
+ ['TR','IL',-3,'Hostile','Türkiye cut trade with Israel in 2024 over Gaza.'],
+];
+
+const GEO_ORG=[
+ {k:'UNSC',n:'UN Security Council',kind:'Global body',yr:1945,hq:'New York',head:'Rotating presidency',
+  mem:['US','CN','RU','GB','FR'],memTxt:'5 permanent members with a veto (US, China, Russia, UK, France) plus 10 elected for two-year terms',
+  what:'The only UN body whose decisions are legally binding: it can authorise force and impose sanctions.',
+  why:'Any one of the five permanent members can veto a resolution, which is why it is often paralysed on Ukraine and the Middle East.'},
+ {k:'NATO',n:'NATO',kind:'Military alliance',yr:1949,hq:'Brussels',head:'Mark Rutte',
+  mem:['US','GB','FR','DE','TR'],memTxt:'32 members across North America and Europe',
+  what:'A defence pact: under Article 5, an attack on one member is an attack on all.',
+  why:'The backbone of Western security. In 2025 members pledged to raise defence spending to 5% of GDP by 2035.'},
+ {k:'EU',n:'European Union',kind:'Political & economic union',yr:1993,hq:'Brussels',head:'Ursula von der Leyen (Commission)',
+  mem:['FR','DE'],cand:['UA','TR'],memTxt:'27 member states; 21 use the euro. Ukraine and Türkiye are candidates',
+  what:'A single market with shared laws, trade policy and, for most, a shared currency. Economically as large as China.',
+  why:'Sets rules and sanctions that reach far beyond Europe, but needs unanimity on foreign policy, so one member can block.'},
+ {k:'G7',n:'G7',kind:'Forum of rich democracies',yr:1975,hq:'None (rotating)',head:'2026 presidency: France',
+  mem:['US','JP','DE','GB','FR'],memTxt:'US, Japan, Germany, UK, France, Italy, Canada (plus the EU)',
+  what:'Leaders of the largest advanced democracies coordinating on economics, sanctions and security.',
+  why:'Where the West lines up sanctions on Russia and policy on China.'},
+ {k:'G20',n:'G20',kind:'Global economic forum',yr:1999,hq:'None (rotating)',head:'2026 presidency: United States',
+  mem:['US','CN','RU','IN','GB','FR','DE','JP','SA','TR'],memTxt:'19 countries plus the EU and the African Union, about 85% of world GDP',
+  what:'The main forum where the rich world and big emerging economies meet.',
+  why:'The one table where the US, China, Russia and India all sit together.'},
+ {k:'BRICS',n:'BRICS',kind:'Emerging-economy bloc',yr:2009,hq:'None',head:'2026 chair: India',
+  mem:['RU','CN','IN','IR'],memTxt:'Brazil, Russia, India, China, South Africa, plus Egypt, Ethiopia, Iran, UAE and Indonesia',
+  what:'A club of large non-Western economies seeking more say in a world order built by the West.',
+  why:'China and Russia want it as a counterweight to the G7; India and Brazil keep it from becoming anti-Western.'},
+ {k:'SCO',n:'Shanghai Cooperation Organisation',kind:'Security & political bloc',yr:2001,hq:'Beijing',head:'Rotating chair',
+  mem:['CN','RU','IN','IR'],memTxt:'China, Russia, India, Pakistan, Iran, Belarus and four Central Asian states',
+  what:'Eurasian cooperation on security, counter-terrorism and trade.',
+  why:'A China- and Russia-led forum showing that the West is not the only club in town.'},
+ {k:'OPEC+',n:'OPEC+',kind:'Oil producers\' cartel',yr:1960,hq:'Vienna',head:'Led by Saudi Arabia and Russia',
+  mem:['SA','IR','RU'],memTxt:'OPEC\'s members, led by Saudi Arabia, plus partners led by Russia (2016)',
+  what:'Oil producers coordinating how much to pump.',
+  why:'By raising or cutting output it moves the price of oil, and so inflation, worldwide.'},
+ {k:'GCC',n:'Gulf Cooperation Council',kind:'Regional bloc',yr:1981,hq:'Riyadh',head:'Secretary-General',
+  mem:['SA'],memTxt:'Saudi Arabia, UAE, Qatar, Kuwait, Bahrain, Oman',
+  what:'Political, economic and security cooperation among the Gulf monarchies.',
+  why:'The rich oil states on Iran\'s doorstep, directly exposed to the 2026 war.'},
+ {k:'AL',n:'Arab League',kind:'Regional organisation',yr:1945,hq:'Cairo',head:'Secretary-General',
+  mem:['SA'],memTxt:'22 Arab states',
+  what:'Coordinates policy among Arab states.',
+  why:'A barometer of Arab opinion (on Gaza, Syria, Iran), though often divided and slow to act.'},
+ {k:'ASEAN',n:'ASEAN',kind:'Regional bloc',yr:1967,hq:'Jakarta',head:'Rotating chair',
+  mem:[],memTxt:'11 Southeast Asian nations (Timor-Leste joined in 2025)',
+  what:'Economic and diplomatic cooperation in Southeast Asia.',
+  why:'Sits on the front line of the South China Sea disputes and the US–China rivalry.'},
+ {k:'Quad',n:'The Quad',kind:'Strategic dialogue',yr:2007,hq:'None',head:'Leaders\' summits',
+  mem:['US','JP','IN'],memTxt:'US, Japan, India, Australia',
+  what:'Four democracies cooperating on maritime security, technology and supply chains in the Indo-Pacific.',
+  why:'An informal counterweight to China, deliberately not a military alliance.'},
+ {k:'AUKUS',n:'AUKUS',kind:'Security pact',yr:2021,hq:'None',head:'Governments',
+  mem:['US','GB'],memTxt:'Australia, UK, US',
+  what:'Helps Australia acquire nuclear-powered submarines and shares advanced military technology.',
+  why:'A long-term bet on deterring China at sea.'},
+ {k:'AU',n:'African Union',kind:'Continental union',yr:2002,hq:'Addis Ababa',head:'Commission Chairperson',
+  mem:[],memTxt:'55 African states',
+  what:'Peace, security and economic integration across Africa.',
+  why:'A permanent G20 member since 2023 and the arena where China, Russia, the Gulf and the West compete for influence.'},
+];
+
+const GEO_ROLE_CAT=['Heads of state & government','Diplomacy & defence','Money & trade','International institutions'];
+// [category, role, holder, where (country code or organisation), since, what the role does]
+const GEO_ROLES=[
+ [0,'President of the United States','Donald Trump','US','2025-01-20','Head of state and of government and commander-in-chief. Sets foreign policy, signs or vetoes laws, and can act by executive order.'],
+ [0,'Vice President of the United States','JD Vance','US','2025-01-20','First in line to the presidency; presides over the Senate and breaks tied votes.'],
+ [0,'Speaker of the House','Mike Johnson','US','2023-10-25','Leads the House of Representatives, which must pass every spending bill. Second in line to the presidency.'],
+ [0,'Senate Majority Leader','John Thune','US','2025-01-03','Controls what the Senate votes on, including treaties and confirmation of officials.'],
+ [0,'President of China','Xi Jinping','CN','2013-03-14','Also General Secretary of the Communist Party (since 2012) and head of the military commission. The party post is where the real power lies.'],
+ [0,'Premier of China','Li Qiang','CN','2023-03-11','Head of the State Council (the cabinet); runs the economy day to day.'],
+ [0,'President of Russia','Vladimir Putin','RU','2012-05-07','Holds near-total power over foreign policy, the military and security services. Also president 2000–2008.'],
+ [0,'Prime Minister of Russia','Mikhail Mishustin','RU','2020-01-16','Runs the government and economy under the president.'],
+ [0,'President of Ukraine','Volodymyr Zelensky','UA','2019-05-20','Commander-in-chief leading Ukraine through the war; elections are suspended under martial law.'],
+ [0,'Prime Minister of the UK','Keir Starmer','GB','2024-07-05','Leads the government from Parliament. The King is head of state but does not govern.'],
+ [0,'President of France','Emmanuel Macron','FR','2017-05-14','Controls foreign and defence policy and France\'s nuclear weapons. Term ends in 2027 and he cannot run again.'],
+ [0,'Prime Minister of France','Sébastien Lecornu','FR','2025-09-09','Runs domestic policy and must survive a parliament with no majority.'],
+ [0,'Chancellor of Germany','Friedrich Merz','DE','2025-05-06','Head of government; Germany\'s president is largely ceremonial.'],
+ [0,'Prime Minister of Japan','Sanae Takaichi','JP','2025-10-21','Japan\'s first woman prime minister; a hawk on China and defence.'],
+ [0,'Prime Minister of India','Narendra Modi','IN','2014-05-26','Head of government, in his third term. India\'s president is ceremonial.'],
+ [0,'Supreme Leader of Iran','Mojtaba Khamenei','IR','2026-03','The highest authority in Iran, above the president: controls the armed forces, the Revolutionary Guards and the judiciary. Succeeded his father, Ali Khamenei, killed in the 2026 war.'],
+ [0,'President of Iran','Masoud Pezeshkian','IR','2024-07-28','Elected head of government; runs the economy and diplomacy within limits set by the Supreme Leader.'],
+ [0,'Prime Minister of Israel','Benjamin Netanyahu','IL','2022-12-29','Head of government and Israel\'s longest-serving leader. Elections are due by October 2026.'],
+ [0,'Crown Prince & PM of Saudi Arabia','Mohammed bin Salman','SA','2022-09-27','De facto ruler on behalf of his father, King Salman. Controls oil policy, defence and the sovereign wealth fund.'],
+ [0,'President of Türkiye','Recep Tayyip Erdoğan','TR','2014-08-28','Holds sweeping executive powers under the 2017 constitution; in power since 2003 (as PM until 2014).'],
+ [1,'US Secretary of State','Marco Rubio','US','2025-01-21','America\'s chief diplomat; also serving as National Security Adviser.'],
+ [1,'US Secretary of Defense ("of War")','Pete Hegseth','US','2025-01-25','Runs the Pentagon and the armed forces under the President.'],
+ [1,'US Ambassador to the UN','Mike Waltz','US','2025-09-19','Represents the US at the UN and casts its Security Council veto.'],
+ [1,'Foreign Minister of China','Wang Yi','CN','2022-12-30','China\'s top diplomat; also heads the Party\'s foreign affairs office.'],
+ [1,'Foreign Minister of Russia','Sergei Lavrov','RU','2004-03-09','The face of Russian diplomacy for over two decades.'],
+ [1,'Defence Minister of Russia','Andrei Belousov','RU','2024-05-14','An economist put in charge to run the war economy efficiently.'],
+ [1,'Foreign Minister of Ukraine','Andrii Sybiha','UA','2024-09-05','Leads Ukraine\'s diplomacy and peace talks.'],
+ [1,'UK Foreign Secretary','Yvette Cooper','GB','2025-09-05','Runs British diplomacy.'],
+ [1,'French Foreign Minister','Jean-Noël Barrot','FR','2024-09-21','Runs French diplomacy under the President.'],
+ [1,'German Foreign Minister','Johann Wadephul','DE','2025-05-06','Runs German diplomacy.'],
+ [1,'Indian External Affairs Minister','S. Jaishankar','IN','2019-05-30','India\'s foreign minister; architect of its "multi-alignment".'],
+ [1,'Iranian Foreign Minister','Abbas Araghchi','IR','2024-08-21','Iran\'s chief negotiator with the US, including over ceasefire terms.'],
+ [1,'Turkish Foreign Minister','Hakan Fidan','TR','2023-06-04','Former spy chief; a key mediator on Ukraine and Syria.'],
+ [2,'US Treasury Secretary','Scott Bessent','US','2025-01-28','Runs US financial policy, sanctions and much of the tariff negotiating.'],
+ [2,'President of the European Central Bank','Christine Lagarde','EU','2019-11-01','Sets interest rates for the euro.'],
+ [2,'OPEC Secretary General','Haitham al-Ghais','OPEC','2022-08-01','Runs the cartel\'s secretariat; the real decisions are taken by Saudi Arabia and Russia.'],
+ [3,'UN Secretary-General','António Guterres','UN','2017-01-01','The UN\'s chief diplomat and spokesperson; no power to enforce. His term ends on 31 December 2026 and a successor is being chosen this year.'],
+ [3,'NATO Secretary General','Mark Rutte','NATO','2024-10-01','Chairs the alliance and speaks for it; decisions are taken by consensus among members.'],
+ [3,'President of the European Commission','Ursula von der Leyen','EU','2019-12-01','Heads the EU\'s executive: proposes laws, negotiates trade deals, runs sanctions.'],
+ [3,'President of the European Council','António Costa','EU','2024-12-01','Chairs the summits of EU heads of government, where the big decisions are made.'],
+ [3,'EU High Representative for Foreign Affairs','Kaja Kallas','EU','2024-12-01','The EU\'s top diplomat; a hawk on Russia.'],
+ [3,'IMF Managing Director','Kristalina Georgieva','IMF','2019-10-01','Runs the lender of last resort to countries in crisis (Ukraine, Argentina, Pakistan…).'],
+ [3,'World Bank President','Ajay Banga','World Bank','2023-06-02','Leads the main lender for development in poorer countries.'],
+ [3,'WTO Director-General','Ngozi Okonjo-Iweala','WTO','2021-03-01','Heads the body that polices global trade rules, now strained by tariff wars.'],
+];
+
+/* Starting points, so the charts have a shape before anything is logged. New readings are
+   added with + on a country page, and the agent can write them too. Approximate polling
+   averages; the US line is the national job-approval average. */
+const GEO_POLL=[
+ ...[['2025-01',51],['2025-02',49],['2025-03',47],['2025-04',44],['2025-05',45],['2025-06',45],['2025-07',44],['2025-08',44],['2025-09',43],['2025-10',43],['2025-11',41],['2025-12',42],['2026-01',42]]
+   .map(([d,v])=>({c:'US',d,v,who:'All voters'})),
+ {c:'IN',d:'2025-12',v:70,who:'All voters'},{c:'GB',d:'2025-12',v:21,who:'All voters'},
+ {c:'FR',d:'2025-12',v:19,who:'All voters'},{c:'DE',d:'2025-12',v:30,who:'All voters'},
+ {c:'JP',d:'2025-12',v:68,who:'All voters'},
+];
+const GEO_STAGES=['Proposed','In legislature','Enacted','Executive action','In force','In court','Blocked','Abandoned'];
+const GEO_POL=[
+ {c:'US',n:'One Big Beautiful Bill Act',st:'Enacted',d:'2025-07-04',s:'Extends the 2017 tax cuts and adds new ones (on tips and overtime), cuts Medicaid and food aid, and funds border enforcement. Adds an estimated $3 tn+ to deficits over ten years.'},
+ {c:'US',n:'Emergency tariffs (IEEPA)',st:'Blocked',d:'2026-02-20',s:'The April 2025 "Liberation Day" tariffs on almost every trading partner were struck down by the Supreme Court; the administration turned to other trade laws to keep duties in place.'},
+ {c:'US',n:'Immigration crackdown',st:'In court',d:'2025-01-20',s:'Executive orders on the border, asylum and deportations, backed by large new enforcement funding. Many measures, like ending birthright citizenship, are being fought in court.'},
+ {c:'US',n:'Shrinking the federal government (DOGE)',st:'Executive action',d:'2025-01-20',s:'Deep cuts to agencies and staff; USAID folded into the State Department. Some firings reversed by courts.'},
+ {c:'US',n:'War with Iran',st:'Executive action',d:'2026-03',s:'US and Israeli strikes on Iran began in early 2026. Congress has debated limits under the War Powers Act. Iran has put a written ceasefire roadmap on the table.'},
+ {c:'US',n:'Ukraine peace plan',st:'Proposed',d:'2025-11',s:'A US-drafted framework, revised back and forth with Kyiv, Moscow and European capitals. No settlement so far.'},
+ {c:'CN',n:'15th Five-Year Plan (2026–30)',st:'Enacted',d:'2026-03',s:'Beijing\'s blueprint prioritising self-reliance in chips and AI, advanced manufacturing, and more domestic consumption.'},
+ {c:'CN',n:'Rare-earth export controls',st:'Executive action',d:'2025-10',s:'Licensing rules on rare earths and magnets, partly suspended for a year under the October 2025 US–China truce.'},
+ {c:'RU',n:'War budget and tax rise',st:'In force',d:'2026-01',s:'Defence and security take close to 40% of federal spending; VAT went up from 20% to 22% in 2026 to pay for it.'},
+ {c:'DE',n:'Debt-brake exemption for defence',st:'Enacted',d:'2025-03',s:'A constitutional change exempts defence spending above 1% of GDP from borrowing limits, plus a €500 bn infrastructure fund.'},
+ {c:'DE',n:'New military service law',st:'Enacted',d:'2025-12',s:'Voluntary service with mandatory screening of young men, to grow the armed forces.'},
+ {c:'FR',n:'Pension reform suspended',st:'Enacted',d:'2025-12',s:'The 2023 rise in the retirement age from 62 to 64 is paused until after the 2027 election, the price of keeping the government alive.'},
+ {c:'GB',n:'Defence to 2.5% of GDP by 2027',st:'In force',d:'2025-02',s:'Paid for by cutting foreign aid to 0.3% of national income.'},
+ {c:'JP',n:'Defence spending at 2% of GDP',st:'In force',d:'2025-10',s:'Target brought forward two years to fiscal 2025.'},
+ {c:'UA',n:'EU accession talks',st:'Proposed',d:'2024-06',s:'A candidate since 2022; opening the negotiating chapters has been blocked by Hungary.'},
+ {c:'SA',n:'Vision 2030',st:'In force',d:'2016-04',s:'The plan to diversify away from oil through tourism, industry and giga-projects, now being scaled back as oil revenue falls short.'},
+];
+
+/* Rows added by hand or by the agent. Defined here rather than in MODS itself because the
+   country list they pick from is declared above, further down the script than MODS. */
+Object.assign(MODS,{
+ geoWeek:{title:'Country weekly brief',color:'var(--acc)',
+  fields:[{k:'country',l:'Country',t:'sel',opt:GEO_ACT.map(x=>x.n),req:1},{k:'date',l:'Week of',t:'date',req:1,def:()=>today()},
+          {k:'title',l:'Headline',t:'text'},{k:'body',l:'What happened this week',t:'ta',full:1,req:1}],
+  fabDefs:()=>({country:gC(GEO.sel)?.n||'',date:today()})},
+ geoPoll:{title:'Approval reading',color:'var(--gold)',
+  fields:[{k:'country',l:'Country',t:'sel',opt:GEO_C.map(x=>x.n),req:1},{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
+          {k:'val',l:'Approval %',t:'num',req:1},{k:'who',l:'Among',t:'text',def:'All voters',ph:'All voters, Republicans…'},{k:'src',l:'Source',t:'text',ph:'Gallup, poll average…'}]},
+ geoPolicy:{title:'Law / policy',color:'var(--blue)',
+  fields:[{k:'country',l:'Country',t:'sel',opt:GEO_C.map(x=>x.n),req:1},{k:'name',l:'Name',t:'text',req:1},
+          {k:'stage',l:'Stage',t:'sel',opt:GEO_STAGES,def:'Proposed'},{k:'date',l:'Latest step',t:'date',def:()=>today()},
+          {k:'body',l:'What it does / where it stands',t:'ta',full:1}]},
+});
+
+const GEO={sel:null,rel:'',pair:null,role:-1,cmp:null,org:null};
+try{GEO.cmp=JSON.parse(localStorage.alfred_geo_cmp||'null')}catch(e){}
+if(!GEO.cmp||!Array.isArray(GEO.cmp.sel))GEO.cmp={sel:['US','CN'],m:'gdp'};
+const gSaveCmp=()=>{try{localStorage.alfred_geo_cmp=JSON.stringify(GEO.cmp)}catch(e){}};
+const gFlag=c=>{const x=gC(c);return x?`<span class="gFlag">${x.f}</span>`:''};
+const gName=c=>esc(gC(c)?.n||c);
+const gYears=since=>{if(!since)return'';const d=new Date(since.length===7?since+'-15':since);if(isNaN(d))return'';
+  const y=(Date.now()-d)/31557600000;return y<1?Math.max(1,Math.round(y*12))+' mo':(y<10?y.toFixed(1):Math.round(y))+' yr'};
+const gMonth=s=>{const d=new Date((s.length===7?s+'-15':s)+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-US',{month:'short',year:'numeric'})};
+
+const GEO_MET={
+ gdp:{l:'GDP',u:v=>'$'+(v<1?Math.round(v*1000)+' bn':v.toFixed(1)+' tn'),h:'Gross domestic product: the total value of everything the economy produces in a year. The simplest measure of economic weight.'},
+ gdppc:{l:'GDP per person',u:v=>'$'+v.toFixed(v<10?1:0)+'k',h:'GDP divided by population: roughly how rich the average person is.'},
+ pop:{l:'Population',u:v=>v>=1000?(v/1000).toFixed(2)+' bn':v+' m',h:'People living in the country. Large, young populations mean labour and markets; ageing ones mean slower growth.'},
+ mil:{l:'Military spending',u:v=>'$'+Math.round(v)+' bn',h:'What the state spends on its armed forces in a year (SIPRI, 2024).'},
+ milpct:{l:'Military % of GDP',u:v=>v+'%',h:'How much of the economy goes to the military. NATO\'s old target was 2%; the new one is 5% by 2035. Very high numbers usually mean a country at war.'},
+ nuk:{l:'Nuclear warheads',u:v=>v.toLocaleString('en-US'),h:'Estimated warheads held (SIPRI, 2025). Israel does not officially admit to its arsenal.'},
+ armsx:{l:'Arms exports',u:v=>v+'% of world',h:'Share of all major weapons sold abroad, 2020–24 (SIPRI). Selling arms buys influence over the buyer.'},
+ hdi:{l:'Human development',u:v=>v.toFixed(3),h:'The UN\'s Human Development Index (0–1), combining life expectancy, education and income. The best single proxy for education and living standards.'},
+};
+GEO_SECT.forEach(([k,l],i)=>{GEO_MET['s_'+k]={l:l+' score',u:v=>v+'/10',h:GEO_SECT_HINT[k]+'. Alfred\'s assessment, out of 10.',si:i}});
+const gVal=(c,m)=>{const x=gC(c);if(!x||!x.st)return null;const M=GEO_MET[m];return M.si!=null?x.s[M.si]:x.st[m]};
+
+/* ---- charts ---- */
+const GEO_COLS=['var(--acc)','var(--blue)','var(--gold)','var(--orange)','var(--purple)','var(--red)'];
+function gLine(series){
+  const all=series.flatMap(s=>s.pts);if(!all.length)return'';
+  const W=640,H=220,L=34,R=40,T=14,B=26;
+  const tt=p=>new Date((p.d.length===7?p.d+'-15':p.d)+'T12:00:00').getTime();
+  let t0=Math.min(...all.map(tt)),t1=Math.max(...all.map(tt));if(t1-t0<864e5*60){t0-=864e5*45;t1+=864e5*45}
+  const vs=all.map(p=>+p.v);
+  const lo=Math.max(0,Math.floor((Math.min(...vs)-8)/10)*10),hi=Math.min(100,Math.ceil((Math.max(...vs)+8)/10)*10);
+  const x=t=>L+(t-t0)/(t1-t0)*(W-L-R),y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let g='';
+  for(let v=lo;v<=hi;v+=10){const on=v===50;
+    g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line2)" stroke-width="${on?1.2:.6}" ${on?'':'stroke-dasharray="2 4"'}/>`
+     +`<text x="${L-6}" y="${y(v)+3}" text-anchor="end" class="gAx">${v}%</text>`}
+  const months=[];const d0=new Date(t0),d1=new Date(t1);
+  for(let d=new Date(d0.getFullYear(),d0.getMonth()+1,1);d<=d1;d.setMonth(d.getMonth()+1))months.push(new Date(d));
+  const step=Math.max(1,Math.ceil(months.length/6));
+  months.forEach((d,i)=>{if(i%step)return;g+=`<text x="${x(d.getTime())}" y="${H-8}" text-anchor="middle" class="gAx">${d.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</text>`});
+  series.forEach(s=>{
+    const p=[...s.pts].sort((a,b)=>tt(a)-tt(b));
+    if(p.length>1)g+=`<path d="${p.map((q,i)=>(i?'L':'M')+x(tt(q)).toFixed(1)+' '+y(q.v).toFixed(1)).join(' ')}" fill="none" stroke="${s.col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    p.forEach(q=>{g+=`<circle cx="${x(tt(q))}" cy="${y(q.v)}" r="${q.id?4:3}" fill="${q.id?'var(--bg)':s.col}" stroke="${s.col}" stroke-width="${q.id?2:0}" ${q.id?`onclick="openForm('geoPoll','${q.id}')" style="cursor:pointer"`:''}><title>${esc(s.name)} · ${gMonth(q.d)}: ${q.v}%${q.src?' ('+esc(q.src)+')':''}</title></circle>`});
+    const e=p[p.length-1];g+=`<text x="${x(tt(e))+7}" y="${y(e.v)+4}" class="gEnd" fill="${s.col}">${e.v}%</text>`;
+  });
+  return `<svg class="gSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Approval over time">${g}</svg>`
+    +(series.length>1?`<div class="gLeg">${series.map(s=>`<span><i style="background:${s.col}"></i>${esc(s.name)}</span>`).join('')}</div>`:'');
+}
+function gSeats(ch){
+  const maj=Math.floor(ch.total/2)+1;
+  return `<div class="gSeat"><div class="gSeatH"><b>${esc(ch.n)}</b><span>${ch.total} seats · majority ${maj}</span></div>
+    <div class="gSeatBar">${ch.parts.map(p=>`<span style="flex:${p[1]};background:${p[2]}" title="${esc(p[0])}: ${p[1]}"></span>`).join('')}<em style="left:${maj/ch.total*100}%"></em></div>
+    <div class="gLeg">${ch.parts.map(p=>`<span><i style="background:${p[2]}"></i>${esc(p[0])} <b>${p[1]}</b></span>`).join('')}</div></div>`;
+}
+function gPolicies(c){
+  const rows=[...GEO_POL.filter(p=>p.c===c).map(p=>({n:p.n,st:p.st,d:p.d,s:p.s})),
+    ...list('geoPolicy').filter(i=>gCode(i.d.country)===c).map(i=>({id:i.id,n:i.d.name,st:i.d.stage,d:i.d.date,s:i.d.body}))]
+    .sort((a,b)=>String(b.d||'').localeCompare(String(a.d||'')));
+  if(!rows.length)return '<div class="gEmpty">No laws or policies tracked yet. Use “+ Track a policy” to follow one.</div>';
+  const step={'Proposed':1,'In legislature':2,'Enacted':3,'Executive action':3,'In force':4,'In court':3,'Blocked':2,'Abandoned':1};
+  const bad=s=>s==='Blocked'||s==='Abandoned', hot=s=>s==='In court';
+  return rows.map(r=>`<div class="gPol${r.id?' mine':''}" ${r.id?`onclick="openForm('geoPolicy','${r.id}')"`:''}>
+    <div class="gPolH"><b>${esc(r.n)}</b><span class="gPill ${bad(r.st)?'bad':hot(r.st)?'warn':'ok'}">${esc(r.st||'')}</span></div>
+    <div class="gSteps">${['Proposed','Debated','Adopted','In force'].map((l,i)=>`<span class="${i<(step[r.st]||1)?(bad(r.st)?'x':'on'):''}">${l}</span>`).join('')}</div>
+    <div class="gPolS">${esc(r.s||'')}${r.d?` <span class="gDim">· ${gMonth(r.d)}</span>`:''}</div></div>`).join('');
+}
+function gSectorBars(x){
+  return GEO_SECT.map(([k,l],i)=>{const v=x.s[i];
+    return `<div class="gSec" title="${esc(GEO_SECT_HINT[k])}"><span class="gSecL">${l}</span><span class="gSecT"><i style="width:${v*10}%;background:${v>=8?'var(--acc)':v<=3?'var(--red)':'var(--gold)'}"></i></span><span class="gSecV">${v}</span></div>`}).join('');
+}
+
+/* ---- Countries ---- */
+function geoCountriesPage(){
+  if(GEO.sel&&gC(GEO.sel)&&GEO.sel!=='EU')return geoCountry(GEO.sel);
+  let h=`<div class="gIntro"><h1>Countries</h1><p>The players that shape world affairs. Tap a country for its strengths and weaknesses, its leader\'s standing, the laws it is pushing and who it is aligned with.</p></div>`;
+  h+=`<div class="gCards">`+[...GEO_C].sort((a,b)=>b.st.gdp-a.st.gdp).map(x=>{
+    const wk=list('geoWeek').filter(i=>gCode(i.d.country)===x.c).length;
+    return `<button class="gCard" onclick="GEO.sel='${x.c}';renderActive();scrollTo(0,0)">
+      <div class="gCardH"><span class="gBig">${x.f}</span><div><b>${esc(x.n)}</b><small>${esc(x.leadT)} · ${esc(x.lead)}</small></div></div>
+      <div class="gMini">${x.s.map((v,i)=>`<i title="${GEO_SECT[i][1]}: ${v}/10" style="height:${v*10}%;background:${v>=8?'var(--acc)':v<=3?'var(--red)':'var(--gold)'}"></i>`).join('')}</div>
+      <div class="gCardF"><span>${GEO_MET.gdp.u(x.st.gdp)} GDP</span><span>${GEO_MET.pop.u(x.st.pop)}</span>${wk?`<span class="gPill ok">${wk} brief${wk>1?'s':''}</span>`:''}</div></button>`}).join('')+`</div>`;
+  h+=`<div class="gFoot">The small bars read ${GEO_SECT.map(s=>s[1].toLowerCase()).join(', ')}, left to right. ${esc(GEO_ASOF)}</div>`;
+  return h;
+}
+function geoCountry(c){
+  const x=gC(c);
+  let h=`<button class="btn sm ghost" onclick="GEO.sel=null;renderActive();scrollTo(0,0)">‹ All countries</button>`;
+  h+=`<div class="gHero"><span class="gHuge">${x.f}</span><div><h1>${esc(x.n)}</h1><div class="gSub">${esc(x.gov)} · ${esc(x.cap)} · ${esc(x.reg)}</div></div></div>`;
+  h+=`<p class="gWhy">${esc(x.why)}</p>`;
+  h+=`<div class="grid stats">`+['gdp','gdppc','pop','mil','milpct','nuk'].map(m=>{const v=x.st[m];
+    return `<div class="stat"><div class="k">${GEO_MET[m].l}</div><div class="v">${v==null?'—':GEO_MET[m].u(v)}</div></div>`}).join('')+`</div>`;
+  // weekly brief
+  const wk=list('geoWeek').filter(i=>gCode(i.d.country)===c).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Weekly brief</h2>`;
+  if(wk.length){const w=wk[0];
+    h+=`<div class="hint">Week of ${fdate(w.d.date)}</div><div class="gWk" onclick="openForm('geoWeek','${w.id}')">${w.d.title?`<b>${esc(w.d.title)}</b>`:''}<div>${esc(w.d.body||'').replace(/\n/g,'<br>')}</div></div>`;
+    if(wk.length>1)h+=`<details class="gMore"><summary>Earlier weeks (${wk.length-1})</summary>${wk.slice(1).map(w=>`<div class="gWk" onclick="openForm('geoWeek','${w.id}')"><span class="gDim">${fdate(w.d.date)}</span> ${w.d.title?`<b>${esc(w.d.title)}</b>`:''}<div>${esc(w.d.body||'').replace(/\n/g,'<br>')}</div></div>`).join('')}</details>`;
+  }else h+=`<div class="gEmpty">No weekly brief for ${esc(x.n)} yet. Tap + to write one, or let the agent post it each week.</div>`;
+  h+=`</div>`;
+  // strengths & weaknesses
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Strengths & weaknesses by sector</h2><div class="hint">Out of 10. Green is a strength, red a weakness. Hover a sector for what it covers.</div>
+    <div class="gSecs">${gSectorBars(x)}</div>
+    <div class="gSW"><div><h3 class="ok">Strengths</h3><ul>${x.strong.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>
+    <div><h3 class="bad">Weaknesses</h3><ul>${x.weak.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div></div></div>`;
+  // leader
+  const pts=[...GEO_POLL.filter(p=>p.c===c).map(p=>({d:p.d,v:p.v,who:p.who})),
+    ...list('geoPoll').filter(i=>gCode(i.d.country)===c&&i.d.val!=='').map(i=>({id:i.id,d:i.d.date,v:+i.d.val,who:i.d.who||'All voters',src:i.d.src}))];
+  const by={};pts.forEach(p=>(by[p.who]=by[p.who]||[]).push(p));
+  const ser=Object.keys(by).sort((a,b)=>a==='All voters'?-1:b==='All voters'?1:a.localeCompare(b)).map((k,i)=>({name:k,col:GEO_COLS[i%GEO_COLS.length],pts:by[k]}));
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>${esc(x.leadT)}: ${esc(x.lead)}</h2>
+    <div class="hint">Approval rating over time.${pts.length?' Early points are approximate polling averages; your own readings show as hollow dots and can be tapped to edit.':''}</div>
+    ${pts.length?gLine(ser):`<div class="gEmpty">No approval readings yet.</div>`}
+    <div class="gBtns"><button class="btn sm" onclick="openForm('geoPoll',null,{country:'${esc(x.n)}',date:today(),who:'All voters'})">+ Log approval reading</button></div></div>`;
+  if(x.leg)h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>Support in ${esc(x.leg.name)}</h2><div class="hint">${esc(x.leg.note)}</div>${x.leg.ch.map(gSeats).join('')}</div>`;
+  // policies
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Laws & policies being pushed</h2><div class="hint">Where each one stands, from proposal to law. Tap one you added to update its stage.</div>
+    ${gPolicies(c)}<div class="gBtns"><button class="btn sm" onclick="openForm('geoPolicy',null,{country:'${esc(x.n)}',date:today(),stage:'Proposed'})">+ Track a policy</button></div></div>`;
+  // relations
+  const rel=GEO_REL.filter(r=>r[0]===c||r[1]===c).map(r=>({o:r[0]===c?r[1]:r[0],s:r[2],t:r[3],d:r[4]})).sort((a,b)=>b.s-a.s);
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Alliances & rivalries</h2><div class="hint">From closest ally to open enemy, and what binds or divides them.</div>
+    ${rel.map(r=>gRelRow(c,r.o,r.s,r.t,r.d)).join('')}</div>`;
+  // memberships
+  const orgs=GEO_ORG.filter(o=>o.mem.includes(c)||(o.cand||[]).includes(c));
+  if(orgs.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Member of</h2><div class="gTags">${orgs.map(o=>`<button class="gTag" onclick="GEO.org='${o.k}';go('geoOrgs')">${esc(o.n)}${(o.cand||[]).includes(c)?' (candidate)':''}</button>`).join('')}</div></div>`;
+  h+=`<div class="gFoot">${esc(GEO_ASOF)}</div>`;
+  return h;
+}
+function gScoreCol(s){return s>0?`color-mix(in srgb, var(--acc) ${30+s*14}%, var(--panel))`:s<0?`color-mix(in srgb, var(--red) ${30+(-s)*14}%, var(--panel))`:'var(--panel2)'}
+function gRelRow(a,b,s,t,d){
+  return `<div class="gRel"><div class="gRelH"><span class="gPair">${gFlag(a)}${gFlag(b)} <b>${gName(a)} – ${gName(b)}</b></span>
+    <span class="gScore" style="background:${gScoreCol(s)}">${s>0?'+':''}${s}</span></div>
+    <div class="gRelT">${esc(t)}</div><div class="gRelD">${esc(d)}</div></div>`;
+}
+
+/* ---- Compare ---- */
+function geoComparePage(){
+  const C=GEO.cmp,M=GEO_MET[C.m]?C.m:'gdp';
+  let h=`<div class="gIntro"><h1>Compare</h1><p>Pick countries, then what to compare them on.</p></div>`;
+  h+=`<div class="gChips">${GEO_C.map(x=>`<button class="${C.sel.includes(x.c)?'on':''}" onclick="gCmpTog('${x.c}')">${x.f} ${esc(x.n)}</button>`).join('')}</div>`;
+  const grp=[['Economy & people',['gdp','gdppc','pop','hdi']],['Hard power',['mil','milpct','nuk','armsx']],['Sector scores',GEO_SECT.map(s=>'s_'+s[0])],['Overview',['profile']]];
+  h+=grp.map(([g,ks])=>`<div class="gMetG"><span>${g}</span><div class="gSeg">${ks.map(k=>`<button class="${(k===C.m)?'on':''}" onclick="GEO.cmp.m='${k}';gSaveCmp();renderActive()">${k==='profile'?'All sectors':GEO_MET[k].l.replace(' score','')}</button>`).join('')}</div></div>`).join('');
+  const sel=C.sel.filter(c=>gC(c));
+  if(!sel.length)return h+`<div class="gEmpty">Choose at least one country above.</div>`;
+  if(C.m==='profile'){
+    h+=`<div class="panel"><h2>Sector profile</h2><div class="hint">Scores out of 10, darker is stronger. Tap a column heading to compare on that sector.</div>
+      <div class="gTblW"><table class="gTbl"><tr><th></th>${GEO_SECT.map(s=>`<th><button onclick="GEO.cmp.m='s_${s[0]}';gSaveCmp();renderActive()">${s[1]}</button></th>`).join('')}</tr>
+      ${sel.map(c=>{const x=gC(c);return `<tr><td>${x.f} ${esc(x.n)}</td>${x.s.map(v=>`<td style="background:color-mix(in srgb, var(--acc) ${v*9}%, var(--panel))">${v}</td>`).join('')}</tr>`}).join('')}</table></div></div>`;
+    return h;
+  }
+  const Mm=GEO_MET[C.m];
+  const rows=sel.map(c=>({c,v:gVal(c,C.m)})).sort((a,b)=>(b.v??-1)-(a.v??-1));
+  const top=Math.max(...rows.map(r=>r.v||0))||1;
+  h+=`<div class="panel"><h2>${Mm.l}</h2><div class="hint">${esc(Mm.h)}</div>`;
+  h+=rows.map((r,i)=>`<div class="gCmpR"><span class="gCmpN">${gFlag(r.c)} ${gName(r.c)}</span>
+    <span class="gCmpT"><i style="width:${r.v==null?0:Math.max(1.5,r.v/top*100)}%;background:${GEO_COLS[C.sel.indexOf(r.c)%GEO_COLS.length]}"></i></span>
+    <span class="gCmpV">${r.v==null?'no data':Mm.u(r.v)}${i&&r.v!=null&&top?`<small>${Math.round(r.v/top*100)}% of #1</small>`:''}</span></div>`).join('');
+  const ok=rows.filter(r=>r.v);
+  if(ok.length>=2){const a=ok[0],b=ok[ok.length-1],x=a.v/b.v;
+    h+=`<div class="gRead">${gName(a.c)} is <b>${x>=10?Math.round(x):x.toFixed(x<2?2:1)}×</b> ${gName(b.c)} on ${/^[A-Z]{2}/.test(Mm.l)?Mm.l:Mm.l.toLowerCase()}${ok.length>2?`, the widest gap among the ${ok.length} you picked`:''}.</div>`}
+  h+=`</div>`;
+  h+=`<div class="gFoot">${esc(GEO_ASOF)}</div>`;
+  return h;
+}
+function gCmpTog(c){const s=GEO.cmp.sel,i=s.indexOf(c);if(i>=0)s.splice(i,1);else s.push(c);gSaveCmp();renderActive()}
+
+/* ---- Relations ---- */
+function geoRelationsPage(){
+  const A=['US','CN','RU','EU','GB','FR','DE','JP','IN','UA','TR','IL','IR','SA'];
+  const key=(a,b)=>GEO_REL.find(r=>(r[0]===a&&r[1]===b)||(r[0]===b&&r[1]===a));
+  let h=`<div class="gIntro"><h1>Relations</h1><p>Who is aligned with whom, and why. Scores run from −5 (at war) to +5 (treaty allies). Tap a square to read that relationship.</p></div>`;
+  h+=`<div class="panel"><div class="gMatW"><table class="gMat"><tr><th></th>${A.map(c=>`<th title="${gName(c)}">${gC(c).f}</th>`).join('')}</tr>
+    ${A.map(a=>`<tr><th title="${gName(a)}">${gC(a).f}</th>${A.map(b=>{if(a===b)return '<td class="self"></td>';const r=key(a,b);
+      if(!r)return '<td class="none"></td>';
+      const on=GEO.pair===r[0]+'|'+r[1];
+      return `<td class="${on?'on':''}" style="background:${gScoreCol(r[2])}" onclick="GEO.pair='${r[0]}|${r[1]}';renderActive()" title="${gName(a)} – ${gName(b)}: ${esc(r[3])}">${r[2]>0?'+':''}${r[2]}</td>`}).join('')}</tr>`).join('')}</table></div>
+    <div class="gLeg"><span><i style="background:${gScoreCol(-5)}"></i>At war / hostile</span><span><i style="background:var(--panel2)"></i>Mixed</span><span><i style="background:${gScoreCol(5)}"></i>Allies</span><span><i style="background:transparent;border:1px dashed var(--line2)"></i>Not tracked</span></div>`;
+  if(GEO.pair){const [a,b]=GEO.pair.split('|'),r=key(a,b);if(r)h+=`<div class="gPick">${gRelRow(r[0],r[1],r[2],r[3],r[4])}</div>`}
+  h+=`</div>`;
+  h+=`<div class="gChips">${['',...A].map(c=>`<button class="${GEO.rel===c?'on':''}" onclick="GEO.rel='${c}';renderActive()">${c?gC(c).f+' '+gName(c):'All'}</button>`).join('')}</div>`;
+  const rows=GEO_REL.filter(r=>!GEO.rel||r[0]===GEO.rel||r[1]===GEO.rel);
+  const bands=[['At war',s=>s<=-5],['Hostile & rivals',s=>s<=-3&&s>-5],['Strained',s=>s<0&&s>-3],['Partners',s=>s>=0&&s<4],['Allies',s=>s>=4]];
+  h+=bands.map(([l,f])=>{const rs=rows.filter(r=>f(r[2])).sort((a,b)=>b[2]-a[2]);if(!rs.length)return '';
+    return `<div class="ghead">${l}<span class="gDim">${rs.length}</span></div>`+rs.map(r=>gRelRow(r[0],r[1],r[2],r[3],r[4])).join('')}).join('');
+  return h;
+}
+
+/* ---- Organisations ---- */
+function geoOrgsPage(){
+  const T=GEO_C.map(x=>x.c);
+  let h=`<div class="gIntro"><h1>Organisations</h1><p>The alliances and blocs countries act through. Knowing who sits where explains a lot of who backs whom.</p></div>`;
+  h+=`<div class="panel"><h2>Who belongs to what</h2><div class="hint">● member · ○ candidate. Tap an organisation to jump to it.</div><div class="gMatW"><table class="gMat gMem"><tr><th></th>${GEO_ORG.map(o=>`<th class="rot"><button onclick="gOrgJump('${o.k}')">${esc(o.k)}</button></th>`).join('')}</tr>
+    ${T.map(c=>`<tr><th>${gC(c).f} <span>${gName(c)}</span></th>${GEO_ORG.map(o=>`<td>${o.mem.includes(c)?'<b>●</b>':(o.cand||[]).includes(c)?'○':''}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
+  h+=GEO_ORG.map(o=>`<div class="panel gOrg${GEO.org===o.k?' hl':''}" id="org-${esc(o.k.replace(/\W/g,''))}">
+    <div class="gOrgH"><h2>${esc(o.n)}</h2><span class="gPill ok">${esc(o.kind)}</span></div>
+    <div class="gOrgM"><span>Founded ${o.yr}</span><span>HQ ${esc(o.hq)}</span><span>${esc(o.head)}</span></div>
+    <p><b>What it is.</b> ${esc(o.what)}</p><p><b>Why it matters.</b> ${esc(o.why)}</p>
+    <div class="gOrgMem">${esc(o.memTxt)}</div>
+    ${o.mem.length||o.cand?`<div class="gTags">${o.mem.map(c=>`<button class="gTag" onclick="GEO.sel='${c}';go('geoCountries')">${gC(c).f} ${gName(c)}</button>`).join('')}${(o.cand||[]).map(c=>`<button class="gTag dim" onclick="GEO.sel='${c}';go('geoCountries')">${gC(c).f} ${gName(c)} (candidate)</button>`).join('')}</div>`:''}
+  </div>`).join('');
+  if(GEO.org)setTimeout(()=>{const e=document.getElementById('org-'+GEO.org.replace(/\W/g,''));if(e)e.scrollIntoView({block:'start',behavior:'smooth'});GEO.org=null},60);
+  return h;
+}
+function gOrgJump(k){const e=document.getElementById('org-'+k.replace(/\W/g,''));if(e)e.scrollIntoView({block:'start',behavior:'smooth'})}
+
+/* ---- Roles ---- */
+function geoRolesPage(){
+  let h=`<div class="gIntro"><h1>Who's who</h1><p>The jobs that matter in world affairs, what each one actually does, and who holds it now.</p></div>`;
+  h+=`<div class="gChips">${['All',...GEO_ROLE_CAT].map((l,i)=>`<button class="${GEO.role===i-1?'on':''}" onclick="GEO.role=${i-1};renderActive()">${esc(l)}</button>`).join('')}</div>`;
+  h+=GEO_ROLE_CAT.map((cat,ci)=>{if(GEO.role>=0&&GEO.role!==ci)return '';
+    const rs=GEO_ROLES.filter(r=>r[0]===ci);
+    return `<div class="ghead">${esc(cat)}<span class="gDim">${rs.length}</span></div><div class="gRoles">`+rs.map(r=>{const x=gC(r[3]);
+      return `<div class="gRole"><div class="gRoleT">${x?x.f+' ':''}${esc(r[1])}</div>
+        <div class="gRoleP">${esc(r[2])}<span class="gDim"> · since ${gMonth(r[4])} (${gYears(r[4])})</span></div>
+        <div class="gRoleD">${esc(r[5])}</div>
+        ${x&&x.s?`<button class="gLink" onclick="GEO.sel='${r[3]}';go('geoCountries')">${esc(x.n)} →</button>`:''}</div>`}).join('')+`</div>`}).join('');
+  h+=`<div class="gFoot">${esc(GEO_ASOF)}</div>`;
+  return h;
+}
+
 /* ---------------- nav / pages ---------------- */
 /* ---------------- the house and its rooms ----------------
    One address, one front door. The PIN is the door into the house; the wordmark opens a
@@ -5148,7 +5774,14 @@ const SITES={
 };
 let SITE=SITES[localStorage.alfred_site]?localStorage.alfred_site:'main';
 const NAVS={
- geo:[{t:'Brief',p:'brief'}],
+ geo:[
+  {t:'Brief',p:'brief'},
+  {t:'Countries',p:'geoCountries'},
+  {t:'Compare',p:'geoCompare'},
+  {t:'Relations',p:'geoRelations'},
+  {t:'Organisations',p:'geoOrgs'},
+  {t:"Who's who",p:'geoRoles'},
+ ],
  // The CFO room's own nav, as it stood on the standalone page. What you actually came to
  // check — what is in the accounts and what is owed on the cards — leads; CFO is the
  // thinking, the Brief is the looking.
@@ -5190,7 +5823,13 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   tx:{render:txPage,fab:'tx'},
   networth:{render:networthPage,fab:'assets'},
   service:{render:servicePage},           // nothing here is added with +, so no button
-  cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV}};
+  cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV},
+  // The Geo desk. Only a country page takes +, and what it adds is that country's weekly brief.
+  geoCountries:{render:geoCountriesPage,fab:()=>GEO.sel?'geoWeek':null},
+  geoCompare:{render:geoComparePage},
+  geoRelations:{render:geoRelationsPage},
+  geoOrgs:{render:geoOrgsPage},
+  geoRoles:{render:geoRolesPage}};
 // Each room remembers its own last tab, so coming back lands where you left rather than at
 // the front of it. A remembered tab that no longer exists — a money page from before they
 // moved out, say — falls back to the room's own front page, because renderActive quietly
