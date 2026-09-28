@@ -738,6 +738,9 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .gRoleT{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
   .gRoleP{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:17px;margin-top:5px}
   .gRoleP .gDim{font-family:"Public Sans",sans-serif;font-size:11.5px}
+  .gRoleN{font-size:13px;color:var(--txt);margin-top:4px}
+  .gRoleSec{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:26px 2px -6px}
+  .gHeadLink{margin:0 0 0 auto;font-family:"Public Sans",sans-serif;font-weight:500}
   .gRoleD{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px}
   .gLink{background:none;border:0;color:var(--acc);font:inherit;font-size:12px;cursor:pointer;padding:0;margin-top:8px}
 </style>
@@ -850,7 +853,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-28 · geo keeps your place';
+const BUILD='2026-09-28 · who\'s who by country';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5550,7 +5553,7 @@ function gRedraw(){
   if(!el||!sp||!el.classList.contains('active')){renderActive();return}
   const y=scrollY;el.innerHTML=sp.render();if(sp.bind)sp.bind(el);scrollTo(0,y);
 }
-const GEO={sel:null,rel:'',pair:null,role:-1,cmp:null,org:null};
+const GEO={sel:null,rel:'',pair:null,role:'',cmp:null,org:null};
 try{GEO.cmp=JSON.parse(localStorage.alfred_geo_cmp||'null')}catch(e){}
 if(!GEO.cmp||!Array.isArray(GEO.cmp.sel))GEO.cmp={sel:['US','CN'],m:'gdp'};
 const gSaveCmp=()=>{try{localStorage.alfred_geo_cmp=JSON.stringify(GEO.cmp)}catch(e){}};
@@ -5675,7 +5678,7 @@ function geoCountry(c){
     ${rel.map(r=>gRelRow(c,r.o,r.s,r.t,r.d)).join('')}</div>`;
   // memberships
   const orgs=GEO_ORG.filter(o=>o.mem.includes(c)||(o.cand||[]).includes(c));
-  if(orgs.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Member of</h2><div class="gTags">${orgs.map(o=>`<button class="gTag" onclick="GEO.org='${o.k}';go('geoOrgs')">${esc(o.n)}${(o.cand||[]).includes(c)?' (candidate)':''}</button>`).join('')}</div></div>`;
+  if(orgs.length)h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Member of</h2><div class="gTags">${orgs.map(o=>`<button class="gTag" onclick="GEO.org='${o.k}';go('geoOrgs');window.scrollTo(0,0)\">${esc(o.n)}${(o.cand||[]).includes(c)?' (candidate)':''}</button>`).join('')}</div></div>`;
   h+=`<div class="gFoot">${esc(GEO_ASOF)}</div>`;
   return h;
 }
@@ -5749,7 +5752,7 @@ function geoOrgsPage(){
     <div class="gOrgM"><span>Founded ${o.yr}</span><span>HQ ${esc(o.hq)}</span><span>${esc(o.head)}</span></div>
     <p><b>What it is.</b> ${esc(o.what)}</p><p><b>Why it matters.</b> ${esc(o.why)}</p>
     <div class="gOrgMem">${esc(o.memTxt)}</div>
-    ${o.mem.length||o.cand?`<div class="gTags">${o.mem.map(c=>`<button class="gTag" onclick="GEO.sel='${c}';go('geoCountries')">${gC(c).f} ${gName(c)}</button>`).join('')}${(o.cand||[]).map(c=>`<button class="gTag dim" onclick="GEO.sel='${c}';go('geoCountries')">${gC(c).f} ${gName(c)} (candidate)</button>`).join('')}</div>`:''}
+    ${o.mem.length||o.cand?`<div class="gTags">${o.mem.map(c=>`<button class="gTag" onclick="GEO.sel='${c}';go('geoCountries');window.scrollTo(0,0)\">${gC(c).f} ${gName(c)}</button>`).join('')}${(o.cand||[]).map(c=>`<button class="gTag dim" onclick="GEO.sel='${c}';go('geoCountries');window.scrollTo(0,0)\">${gC(c).f} ${gName(c)} (candidate)</button>`).join('')}</div>`:''}
   </div>`).join('');
   if(GEO.org)setTimeout(()=>{const e=document.getElementById('org-'+GEO.org.replace(/\W/g,''));if(e)e.scrollIntoView({block:'start',behavior:'smooth'});GEO.org=null},60);
   return h;
@@ -5757,16 +5760,35 @@ function geoOrgsPage(){
 function gOrgJump(k){const e=document.getElementById('org-'+k.replace(/\W/g,''));if(e)e.scrollIntoView({block:'start',behavior:'smooth'})}
 
 /* ---- Roles ---- */
+/* Who's who is read by who, not by what: every role sits under the country or the body it
+   belongs to, so a country's president, ministers and speaker read together. Countries come
+   first in the same order as elsewhere on the desk, then the international bodies. The kind
+   of role still shows, in small caps on each card. */
+const GEO_ORG_NAMES={UN:'United Nations',NATO:'NATO',EU:'European Union',IMF:'International Monetary Fund','World Bank':'World Bank',WTO:'World Trade Organization',OPEC:'OPEC'};
+function gRoleGroups(){
+  const keys=[...new Set(GEO_ROLES.map(r=>r[3]))];
+  const cs=GEO_C.map(x=>x.c).filter(c=>keys.includes(c));
+  const os=Object.keys(GEO_ORG_NAMES).filter(k=>keys.includes(k));
+  return [...cs,...os,...keys.filter(k=>!cs.includes(k)&&!os.includes(k))];
+}
+const gRoleLabel=k=>{const x=gC(k);return x&&x.s?x.f+' '+esc(x.n):(x?x.f+' ':'')+esc(GEO_ORG_NAMES[k]||k)};
 function geoRolesPage(){
-  let h=`<div class="gIntro"><h1>Who's who</h1><p>The jobs that matter in world affairs, what each one actually does, and who holds it now.</p></div>`;
-  h+=`<div class="gChips">${['All',...GEO_ROLE_CAT].map((l,i)=>`<button class="${GEO.role===i-1?'on':''}" onclick="GEO.role=${i-1};gRedraw()">${esc(l)}</button>`).join('')}</div>`;
-  h+=GEO_ROLE_CAT.map((cat,ci)=>{if(GEO.role>=0&&GEO.role!==ci)return '';
-    const rs=GEO_ROLES.filter(r=>r[0]===ci);
-    return `<div class="ghead">${esc(cat)}<span class="gDim">${rs.length}</span></div><div class="gRoles">`+rs.map(r=>{const x=gC(r[3]);
-      return `<div class="gRole"><div class="gRoleT">${x?x.f+' ':''}${esc(r[1])}</div>
-        <div class="gRoleP">${esc(r[2])}<span class="gDim"> · since ${gMonth(r[4])} (${gYears(r[4])})</span></div>
-        <div class="gRoleD">${esc(r[5])}</div>
-        ${x&&x.s?`<button class="gLink" onclick="GEO.sel='${r[3]}';go('geoCountries')">${esc(x.n)} →</button>`:''}</div>`}).join('')+`</div>`}).join('');
+  const groups=gRoleGroups(), cur=groups.includes(GEO.role)?GEO.role:'';
+  const nC=groups.filter(k=>gC(k)?.s).length;
+  let h=`<div class="gIntro"><h1>Who's who</h1><p>The jobs that matter in world affairs, what each one actually does, and who holds it now: country by country, then the international bodies.</p></div>`;
+  const chip=k=>`<button class="${cur===k?'on':''}" onclick="GEO.role='${esc(k)}';gRedraw()">${k?gRoleLabel(k):'All'}</button>`;
+  h+=`<div class="gMetG"><span>Countries</span><div class="gSeg">${chip('')}${groups.slice(0,nC).map(chip).join('')}</div></div>`;
+  h+=`<div class="gMetG"><span>Organisations</span><div class="gSeg">${groups.slice(nC).map(chip).join('')}</div></div>`;
+  const card=r=>`<div class="gRole"><div class="gRoleT">${esc(GEO_ROLE_CAT[r[0]])}</div>
+      <div class="gRoleN">${esc(r[1])}</div>
+      <div class="gRoleP">${esc(r[2])}<span class="gDim"> · since ${gMonth(r[4])} (${gYears(r[4])})</span></div>
+      <div class="gRoleD">${esc(r[5])}</div></div>`;
+  const sec=(title,ks)=>{const shown=ks.filter(k=>!cur||k===cur);if(!shown.length)return '';
+    return (cur?'':`<div class="gRoleSec">${title}</div>`)+shown.map(k=>{
+      const rs=GEO_ROLES.filter(r=>r[3]===k).sort((a,b)=>a[0]-b[0]);const x=gC(k);
+      return `<div class="ghead">${gRoleLabel(k)}<span class="gDim">${rs.length}</span>${x&&x.s?`<button class="gLink gHeadLink" onclick="GEO.sel='${k}';go('geoCountries');window.scrollTo(0,0)\">Country page →</button>`:''}</div>
+        <div class="gRoles">${rs.map(card).join('')}</div>`}).join('')};
+  h+=sec('Countries',groups.slice(0,nC))+sec('International organisations',groups.slice(nC));
   h+=`<div class="gFoot">${esc(GEO_ASOF)}</div>`;
   return h;
 }
