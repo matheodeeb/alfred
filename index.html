@@ -3703,8 +3703,16 @@ async function plaidBalSync(){
        apart from an account that does not exist. The reason is kept on the connection now
        and shown on the Service page beside it. */
     try{ out=await plaidFn('balances',{item_id:it.d.item}) }
-    catch(e){ put('plaid',{balErr:String(e.message||e)},it.id); failed++; continue }
-    put('plaid',{balErr:''},it.id);
+    catch(e){ put('plaid',{balErr:String(e.message||e)},it.id); failed++;
+      /* A refused balance is the moment to ask Plaid what it makes of this connection,
+         while the refusal is fresh. It is the difference between repeating the error back
+         and knowing whether the bank holds a token at all. Never fatal: a diagnosis that
+         cannot be fetched must not cost us the rest of the sync. */
+      plaidFn('item_status',{item_id:it.d.item})
+        .then(d=>put('plaid',{diag:d,diagAt:new Date().toISOString()},it.id))
+        .catch(()=>{});
+      continue }
+    put('plaid',{balErr:'',diag:null,diagAt:''},it.id);
     (out.balances||[]).forEach(a=>{
       // A brokerage is not cash and not a card. It is the Investment log's, collected here
       // and written once at the end so the log holds one figure rather than several.
@@ -4116,6 +4124,18 @@ function plaidPanel(){
        instruction. The bank's own words stay on hover, so a new kind of failure can still
        be reported exactly rather than paraphrased. */
     const stale=/ITEM_LOGIN_REQUIRED|login details/i.test(String(i.d.err||'')+String(i.d.balErr||''));
+    /* What Plaid itself says about this connection. `oauth` is the line that decides how
+       much to expect of it: a bank that signs you in on its own site issues a token it
+       honours, while one that does not is Plaid logging in as you -- and that session can
+       be ended by the bank, or by you signing in yourself. */
+    const d=i.d.diag||null;
+    const diag=d?'<div class="hint" style="margin:6px 0 0 2px">Plaid says: '
+      +esc(d.itemError||'no error stored against the connection itself')
+      +(d.oauth===false?' · this bank does not use OAuth, so Plaid signs in as you and that session can be ended by the bank':'')
+      +(d.oauth===true?' · signs in through the bank’s own site':'')
+      +(d.loginHealth?' · logins at this bank are '+esc(d.loginHealth)+' for everyone right now':'')
+      +(d.consentExpires?' · consent expires '+esc(String(d.consentExpires).slice(0,10)):'')
+      +'</div>':'';
     const empty=!stale&&i.d.last&&!i.d.rows;
     const raw=esc(String(i.d.err||i.d.balErr||''));
     const note=stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
@@ -4123,7 +4143,7 @@ function plaidPanel(){
       :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
       :(empty?' · <b style="color:var(--orange)">connects fine but sends no transactions — try Re-pull history</b>':'');
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
-      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span></span>'+
+      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span>'+diag+'</span>'+
       '<span style="margin-left:auto;display:inline-flex;gap:8px">'+
       (empty?'<button class="btn sm ghost" onclick="plaidRepull(\''+esc(i.id)+'\')" '+
         'title="Ask this bank for its whole history again, ignoring what we already hold">Re-pull history</button>':'')+

@@ -93,6 +93,7 @@ const LIMITS: Record<string, { max: number; windowMs: number }> = {
   // Asking a bank to go and fetch is the one call here that makes the bank do work, and
   // the one a plan may bill for. A handful a minute is far above pressing Sync now.
   refresh:     { max: 10, windowMs: 60_000 },
+  item_status: { max: 20, windowMs: 60_000 },
   liabilities: { max: 30, windowMs: 60_000 },
   balances:    { max: 30, windowMs: 60_000 },
   items:       { max: 60, windowMs: 60_000 },
@@ -189,6 +190,23 @@ Deno.serve(async (req: Request) => {
          * anything listed under products filters the institution picker down to banks
          * offering it, which would hide a plain checking account for want of a credit line.
          * This way a card brings its APR along and a bank simply does not. */
+        /* Update mode -- an access_token is present -- is a request to REPAIR an existing
+         * Item, not to set one up. The products belong to the Item already; naming them
+         * again turns the call into something other than a repair, and the shape of that
+         * failure is the worst kind: Link opens, the login succeeds, and the Item is still
+         * broken afterwards, with nothing to say why.
+         *
+         * So a repair sends who is asking and which Item, and nothing else. */
+        if (access_token) {
+          const out = await plaid("/link/token/create", {
+            user: { client_user_id: user },
+            client_name: "Alfred CFO",
+            country_codes: ["US"],
+            language: "en",
+            access_token,
+          });
+          return json({ link_token: out.link_token, expiration: out.expiration, env: mode });
+        }
         const base = {
           user: { client_user_id: user },
           client_name: "Alfred CFO",
@@ -200,7 +218,6 @@ Deno.serve(async (req: Request) => {
           transactions: { days_requested: 730 },
           country_codes: ["US"],
           language: "en",
-          ...(access_token ? { access_token } : {}),
         };
         /* If the plan does not carry liabilities or investments, Plaid rejects the whole
          * request rather than dropping the part it cannot honour -- which would leave no
@@ -309,6 +326,45 @@ Deno.serve(async (req: Request) => {
         } catch (e) {
           return json({ asked: false, why: String((e as Error).message || e).slice(0, 200) });
         }
+      }
+
+      /* Plaid's own record of the connection, rather than our inference from a call that
+       * failed. /item/get carries the Item's stored error, when consent lapses, and whether
+       * a repair needs the user present; the institution behind it says whether the bank
+       * signs in through OAuth -- which decides whether a login can be expected to last --
+       * and how that bank is behaving for everyone right now.
+       *
+       * This is the difference between "it says login required again" and knowing whether
+       * the bank holds a token at all. */
+      case "item_status": {
+        if (typeof body.item_id !== "string" || !body.item_id) return json({ error: "item_id required" }, 400);
+        const rows = await db(`plaid_items?item_id=eq.${qs(body.item_id)}&owner=eq.${qs(user)}&select=access_token`);
+        const row = rows?.[0];
+        if (!row) return json({ error: "no such connection" }, 404);
+        const got = await plaid("/item/get", { access_token: row.access_token });
+        const item = got.item ?? {};
+        let inst: any = null;
+        if (item.institution_id) {
+          inst = await plaid("/institutions/get_by_id", {
+            institution_id: item.institution_id,
+            country_codes: ["US"],
+            options: { include_status: true },
+          }).catch(() => null);
+        }
+        const st = inst?.institution?.status?.item_logins ?? null;
+        return json({
+          itemError: item.error ? `${item.error.error_code}: ${item.error.error_message}` : "",
+          errorType: item.error?.error_type ?? "",
+          consentExpires: item.consent_expiration_time ?? null,
+          updateType: item.update_type ?? "",
+          products: item.products ?? [],
+          billed: item.billed_products ?? [],
+          institutionId: item.institution_id ?? "",
+          institution: inst?.institution?.name ?? "",
+          oauth: inst?.institution?.oauth ?? null,
+          loginHealth: st?.status ?? "",
+          loginHealthAt: st?.last_status_change ?? "",
+        });
       }
 
       /* What a card actually costs: the APR, the minimum and the due date, which the payoff
