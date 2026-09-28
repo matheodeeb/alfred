@@ -90,6 +90,9 @@ const LIMITS: Record<string, { max: number; windowMs: number }> = {
   link_token:  { max: 10, windowMs: 60_000 },
   exchange:    { max: 10, windowMs: 60_000 },
   sync:        { max: 30, windowMs: 60_000 },
+  // Asking a bank to go and fetch is the one call here that makes the bank do work, and
+  // the one a plan may bill for. A handful a minute is far above pressing Sync now.
+  refresh:     { max: 10, windowMs: 60_000 },
   liabilities: { max: 30, windowMs: 60_000 },
   balances:    { max: 30, windowMs: 60_000 },
   items:       { max: 60, windowMs: 60_000 },
