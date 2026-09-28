@@ -185,11 +185,6 @@ Deno.serve(async (req: Request) => {
           const rows = await db(`plaid_items?item_id=eq.${qs(body.item_id)}&owner=eq.${qs(user)}&select=access_token`);
           access_token = rows?.[0]?.access_token;
         }
-        /* Transactions is the one product every connection must have. Liabilities and
-         * investments go in required_if_supported_products instead of products on purpose:
-         * anything listed under products filters the institution picker down to banks
-         * offering it, which would hide a plain checking account for want of a credit line.
-         * This way a card brings its APR along and a bank simply does not. */
         /* Update mode -- an access_token is present -- is a request to REPAIR an existing
          * Item, not to set one up. The products belong to the Item already; naming them
          * again turns the call into something other than a repair, and the shape of that
@@ -207,6 +202,11 @@ Deno.serve(async (req: Request) => {
           });
           return json({ link_token: out.link_token, expiration: out.expiration, env: mode });
         }
+        /* Transactions is the one product every connection must have. Liabilities and
+         * investments go in required_if_supported_products instead of products on purpose:
+         * anything listed under products filters the institution picker down to banks
+         * offering it, which would hide a plain checking account for want of a credit line.
+         * This way a card brings its APR along and a bank simply does not. */
         const base = {
           user: { client_user_id: user },
           client_name: "Alfred CFO",
