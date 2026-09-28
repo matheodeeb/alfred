@@ -850,7 +850,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-27 · geo atlas';
+const BUILD='2026-09-28 · geo keeps your place';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -4893,7 +4893,7 @@ function briefPick(day){
   if(briefEd&&day[briefEd])return day[briefEd];
   return day.local||day.cloud;
 }
-function setBriefEd(k){briefEd=k;renderActive();scrollTo(0,0)}
+function setBriefEd(k){briefEd=k;renderActive();window.scrollTo(0,0)}
 function briefEdBar(day,cur){
   if(!day||!day.cloud||!day.local)return '';        // nothing to switch between
   const U=bUI();
@@ -4948,7 +4948,7 @@ function briefArticle(b){
   const older=all[idx+1],newer=all[idx-1];
   let h=`<div class="bkWrap" data-brief="${b.d.date}" data-brief-id="${esc(b.id)}">
     ${briefLangBar(day,ed)}
-    <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive()">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
+    <div class="bkTop"><button class="btn sm ghost" onclick="briefSel='archive';renderActive();window.scrollTo(0,0)">‹ ${esc(U.all)}</button><span style="flex:1"></span><button class="btn sm ghost" onclick="openForm('brief','${b.id}')">✎</button></div>
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
     <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
     ${briefNative(b)?'':`<div class="bkFallback">${esc(U.fb)}</div>`}`;
@@ -4964,7 +4964,7 @@ function briefArticle(b){
       h+=`<div class="bkPara ${rd?'bkRead':''}"><div class="${cls}" data-bi="${i}">${bl.h}</div><button class="bkChk ${rd?'on':''}" onclick="briefMark('${b.d.date}',${id},'${ed}')">${rd?esc(U.read):esc(U.mark)}</button></div>`;
     }else h+=`<div class="${cls}" data-bi="${i}">${bl.h}</div>`;
   });
-  h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();scrollTo(0,0)">‹ ${fdateL(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();scrollTo(0,0)">${fdateL(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
+  h+=`<div class="bkNav">${older?`<button class="btn sm" onclick="briefSel='${older.d.date}';renderActive();window.scrollTo(0,0)">‹ ${fdateL(older.d.date)}</button>`:'<span></span>'}${newer?`<button class="btn sm" onclick="briefSel='${newer.d.date}';renderActive();window.scrollTo(0,0)">${fdateL(newer.d.date)} ›</button>`:'<span></span>'}</div></div>`;
   return h;
 }
 /* ---------- tap-to-understand ----------
@@ -5211,7 +5211,7 @@ function briefArchive(){
   <div class="hint">${esc(U.hint)}</div>
   ${all.length?'':`<div class="empty">${esc(U.empty)}</div>`}</div>`;
   all.forEach(b=>{
-    h+=`<div class="rowBox"><div class="row" onclick="briefSel='${b.d.date}';renderActive();scrollTo(0,0)">
+    h+=`<div class="rowBox"><div class="row" onclick="briefSel='${b.d.date}';renderActive();window.scrollTo(0,0)">
       <div class="rinfo"><div class="t">${esc(briefTxt(b,'title')||fdate(b.d.date))}</div><div class="s">${fdateL(b.d.date)} · ${esc(mdStrip(briefTxt(b,'body'),80))}…</div></div>
       <div class="rright">${b.d.date===today()?`<span class="pill acc">${esc(U.today)}</span>`:''}<span class="chev" style="transform:rotate(-90deg)">▾</span></div></div></div>`;
   });
@@ -5539,6 +5539,17 @@ Object.assign(MODS,{
           {k:'body',l:'What it does / where it stands',t:'ta',full:1}]},
 });
 
+/* Choosing an option redraws the tab where it stands. renderActive hides every page before
+   showing the active one again, and for that instant the document is too short for where you
+   had scrolled, so the browser snapped you to the top on every tap. Swapping only this
+   page's contents keeps the height, and the scroll is put back in case the new content is
+   shorter. Moving to a different page — a country, or back to the list — still starts at
+   the top, because that is arriving somewhere new. */
+function gRedraw(){
+  const el=$('#pg-'+activePage),sp=SPECIAL[activePage];
+  if(!el||!sp||!el.classList.contains('active')){renderActive();return}
+  const y=scrollY;el.innerHTML=sp.render();if(sp.bind)sp.bind(el);scrollTo(0,y);
+}
 const GEO={sel:null,rel:'',pair:null,role:-1,cmp:null,org:null};
 try{GEO.cmp=JSON.parse(localStorage.alfred_geo_cmp||'null')}catch(e){}
 if(!GEO.cmp||!Array.isArray(GEO.cmp.sel))GEO.cmp={sel:['US','CN'],m:'gdp'};
@@ -5618,7 +5629,7 @@ function geoCountriesPage(){
   let h=`<div class="gIntro"><h1>Countries</h1><p>The players that shape world affairs. Tap a country for its strengths and weaknesses, its leader\'s standing, the laws it is pushing and who it is aligned with.</p></div>`;
   h+=`<div class="gCards">`+[...GEO_C].sort((a,b)=>b.st.gdp-a.st.gdp).map(x=>{
     const wk=list('geoWeek').filter(i=>gCode(i.d.country)===x.c).length;
-    return `<button class="gCard" onclick="GEO.sel='${x.c}';renderActive();scrollTo(0,0)">
+    return `<button class="gCard" onclick="GEO.sel='${x.c}';renderActive();window.scrollTo(0,0)">
       <div class="gCardH"><span class="gBig">${x.f}</span><div><b>${esc(x.n)}</b><small>${esc(x.leadT)} · ${esc(x.lead)}</small></div></div>
       <div class="gMini">${x.s.map((v,i)=>`<i title="${GEO_SECT[i][1]}: ${v}/10" style="height:${v*10}%;background:${v>=8?'var(--acc)':v<=3?'var(--red)':'var(--gold)'}"></i>`).join('')}</div>
       <div class="gCardF"><span>${GEO_MET.gdp.u(x.st.gdp)} GDP</span><span>${GEO_MET.pop.u(x.st.pop)}</span>${wk?`<span class="gPill ok">${wk} brief${wk>1?'s':''}</span>`:''}</div></button>`}).join('')+`</div>`;
@@ -5627,7 +5638,7 @@ function geoCountriesPage(){
 }
 function geoCountry(c){
   const x=gC(c);
-  let h=`<button class="btn sm ghost" onclick="GEO.sel=null;renderActive();scrollTo(0,0)">‹ All countries</button>`;
+  let h=`<button class="btn sm ghost" onclick="GEO.sel=null;renderActive();window.scrollTo(0,0)">‹ All countries</button>`;
   h+=`<div class="gHero"><span class="gHuge">${x.f}</span><div><h1>${esc(x.n)}</h1><div class="gSub">${esc(x.gov)} · ${esc(x.cap)} · ${esc(x.reg)}</div></div></div>`;
   h+=`<p class="gWhy">${esc(x.why)}</p>`;
   h+=`<div class="grid stats">`+['gdp','gdppc','pop','mil','milpct','nuk'].map(m=>{const v=x.st[m];
@@ -5681,12 +5692,12 @@ function geoComparePage(){
   let h=`<div class="gIntro"><h1>Compare</h1><p>Pick countries, then what to compare them on.</p></div>`;
   h+=`<div class="gChips">${GEO_C.map(x=>`<button class="${C.sel.includes(x.c)?'on':''}" onclick="gCmpTog('${x.c}')">${x.f} ${esc(x.n)}</button>`).join('')}</div>`;
   const grp=[['Economy & people',['gdp','gdppc','pop','hdi']],['Hard power',['mil','milpct','nuk','armsx']],['Sector scores',GEO_SECT.map(s=>'s_'+s[0])],['Overview',['profile']]];
-  h+=grp.map(([g,ks])=>`<div class="gMetG"><span>${g}</span><div class="gSeg">${ks.map(k=>`<button class="${(k===C.m)?'on':''}" onclick="GEO.cmp.m='${k}';gSaveCmp();renderActive()">${k==='profile'?'All sectors':GEO_MET[k].l.replace(' score','')}</button>`).join('')}</div></div>`).join('');
+  h+=grp.map(([g,ks])=>`<div class="gMetG"><span>${g}</span><div class="gSeg">${ks.map(k=>`<button class="${(k===C.m)?'on':''}" onclick="GEO.cmp.m='${k}';gSaveCmp();gRedraw()">${k==='profile'?'All sectors':GEO_MET[k].l.replace(' score','')}</button>`).join('')}</div></div>`).join('');
   const sel=C.sel.filter(c=>gC(c));
   if(!sel.length)return h+`<div class="gEmpty">Choose at least one country above.</div>`;
   if(C.m==='profile'){
     h+=`<div class="panel"><h2>Sector profile</h2><div class="hint">Scores out of 10, darker is stronger. Tap a column heading to compare on that sector.</div>
-      <div class="gTblW"><table class="gTbl"><tr><th></th>${GEO_SECT.map(s=>`<th><button onclick="GEO.cmp.m='s_${s[0]}';gSaveCmp();renderActive()">${s[1]}</button></th>`).join('')}</tr>
+      <div class="gTblW"><table class="gTbl"><tr><th></th>${GEO_SECT.map(s=>`<th><button onclick="GEO.cmp.m='s_${s[0]}';gSaveCmp();gRedraw()">${s[1]}</button></th>`).join('')}</tr>
       ${sel.map(c=>{const x=gC(c);return `<tr><td>${x.f} ${esc(x.n)}</td>${x.s.map(v=>`<td style="background:color-mix(in srgb, var(--acc) ${v*9}%, var(--panel))">${v}</td>`).join('')}</tr>`}).join('')}</table></div></div>`;
     return h;
   }
@@ -5704,7 +5715,7 @@ function geoComparePage(){
   h+=`<div class="gFoot">${esc(GEO_ASOF)}</div>`;
   return h;
 }
-function gCmpTog(c){const s=GEO.cmp.sel,i=s.indexOf(c);if(i>=0)s.splice(i,1);else s.push(c);gSaveCmp();renderActive()}
+function gCmpTog(c){const s=GEO.cmp.sel,i=s.indexOf(c);if(i>=0)s.splice(i,1);else s.push(c);gSaveCmp();gRedraw()}
 
 /* ---- Relations ---- */
 function geoRelationsPage(){
@@ -5715,11 +5726,11 @@ function geoRelationsPage(){
     ${A.map(a=>`<tr><th title="${gName(a)}">${gC(a).f}</th>${A.map(b=>{if(a===b)return '<td class="self"></td>';const r=key(a,b);
       if(!r)return '<td class="none"></td>';
       const on=GEO.pair===r[0]+'|'+r[1];
-      return `<td class="${on?'on':''}" style="background:${gScoreCol(r[2])}" onclick="GEO.pair='${r[0]}|${r[1]}';renderActive()" title="${gName(a)} – ${gName(b)}: ${esc(r[3])}">${r[2]>0?'+':''}${r[2]}</td>`}).join('')}</tr>`).join('')}</table></div>
+      return `<td class="${on?'on':''}" style="background:${gScoreCol(r[2])}" onclick="GEO.pair='${r[0]}|${r[1]}';gRedraw()" title="${gName(a)} – ${gName(b)}: ${esc(r[3])}">${r[2]>0?'+':''}${r[2]}</td>`}).join('')}</tr>`).join('')}</table></div>
     <div class="gLeg"><span><i style="background:${gScoreCol(-5)}"></i>At war / hostile</span><span><i style="background:var(--panel2)"></i>Mixed</span><span><i style="background:${gScoreCol(5)}"></i>Allies</span><span><i style="background:transparent;border:1px dashed var(--line2)"></i>Not tracked</span></div>`;
   if(GEO.pair){const [a,b]=GEO.pair.split('|'),r=key(a,b);if(r)h+=`<div class="gPick">${gRelRow(r[0],r[1],r[2],r[3],r[4])}</div>`}
   h+=`</div>`;
-  h+=`<div class="gChips">${['',...A].map(c=>`<button class="${GEO.rel===c?'on':''}" onclick="GEO.rel='${c}';renderActive()">${c?gC(c).f+' '+gName(c):'All'}</button>`).join('')}</div>`;
+  h+=`<div class="gChips">${['',...A].map(c=>`<button class="${GEO.rel===c?'on':''}" onclick="GEO.rel='${c}';gRedraw()">${c?gC(c).f+' '+gName(c):'All'}</button>`).join('')}</div>`;
   const rows=GEO_REL.filter(r=>!GEO.rel||r[0]===GEO.rel||r[1]===GEO.rel);
   const bands=[['At war',s=>s<=-5],['Hostile & rivals',s=>s<=-3&&s>-5],['Strained',s=>s<0&&s>-3],['Partners',s=>s>=0&&s<4],['Allies',s=>s>=4]];
   h+=bands.map(([l,f])=>{const rs=rows.filter(r=>f(r[2])).sort((a,b)=>b[2]-a[2]);if(!rs.length)return '';
@@ -5748,7 +5759,7 @@ function gOrgJump(k){const e=document.getElementById('org-'+k.replace(/\W/g,''))
 /* ---- Roles ---- */
 function geoRolesPage(){
   let h=`<div class="gIntro"><h1>Who's who</h1><p>The jobs that matter in world affairs, what each one actually does, and who holds it now.</p></div>`;
-  h+=`<div class="gChips">${['All',...GEO_ROLE_CAT].map((l,i)=>`<button class="${GEO.role===i-1?'on':''}" onclick="GEO.role=${i-1};renderActive()">${esc(l)}</button>`).join('')}</div>`;
+  h+=`<div class="gChips">${['All',...GEO_ROLE_CAT].map((l,i)=>`<button class="${GEO.role===i-1?'on':''}" onclick="GEO.role=${i-1};gRedraw()">${esc(l)}</button>`).join('')}</div>`;
   h+=GEO_ROLE_CAT.map((cat,ci)=>{if(GEO.role>=0&&GEO.role!==ci)return '';
     const rs=GEO_ROLES.filter(r=>r[0]===ci);
     return `<div class="ghead">${esc(cat)}<span class="gDim">${rs.length}</span></div><div class="gRoles">`+rs.map(r=>{const x=gC(r[3]);
@@ -5951,7 +5962,9 @@ function go(p){
   try{localStorage[pageKey()]=p}catch(e){}       // each room keeps its own place
   renderActive()}
 let pendingPage=null;
+let lastDrawn=null;
 function renderActive(){
+  const keepY=SITE==='geo'&&activePage===lastDrawn?scrollY:null;
   syncAutoOrders();syncRecurTodos();
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
@@ -5981,6 +5994,10 @@ function renderActive(){
   el.innerHTML=sp?sp.render():genList(activePage);
   if(sp?.bind)sp.bind(el);
   el.classList.add('active');
+  // In the Geo room, redrawing the tab you are already on — after saving a form, or when a
+  // sync lands — leaves you where you were rather than back at the top.
+  if(keepY!=null)scrollTo(0,keepY);
+  lastDrawn=activePage;
   markNav();
   const fabSec=sp?(typeof sp.fab==='function'?sp.fab():sp.fab):(MODS[activePage]?.fields?activePage:null);
   $('#fab').style.display=fabSec?'flex':'none';
