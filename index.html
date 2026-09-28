@@ -3986,7 +3986,12 @@ async function plaidTxSync(reset,onlyId){
    is a wrong figure about a debt. */
 function plaidDeriveBalances(){
   let n=0;
-  plaidItems().filter(plaidManual).forEach(it=>{
+  /* The condition is "the bank did not give us a balance", not "a switch is on". Gating
+     this on manual mode meant the one connection it was built for never used it: the bank
+     refuses its balance whether or not anybody has flipped anything, and that refusal is
+     the whole reason to add the ledger up instead. Manual mode counts too, since it stops
+     the call being made at all. */
+  plaidItems().filter(it=>plaidManual(it)||it.d.balErr).forEach(it=>{
     (it.d.accts||[]).forEach(a=>{
       if(!a.id)return;
       if(plaidFinGrp(a)!=='Banking')return;
@@ -4200,16 +4205,25 @@ function plaidPanel(){
     /* What a manual connection is actually doing depends on whether a balance has been
        worked out from its ledger yet. Saying "kept by hand" when the app is in fact adding
        it up would be describing the wrong thing. */
-    const der=manual?(i.d.accts||[]).map(a=>one('fin:plaid:'+a.id)).find(r=>r&&r.d.derived!=null):null;
-    const note=der?' · <b style="color:var(--blue)">balance added up from '+(+der.d.derivedN||0)+' transaction'+((+der.d.derivedN||0)===1?'':'s')+' since '+esc(String(der.d.derivedFrom||'').slice(0,10))+' — it moves when a reconnect brings new ones, and you can type over it</b>'
-      :manual?' · <b style="color:var(--blue)">balance kept by hand — tap the account on Brief to set it; transactions still sync on their own</b>'
+    // Shown whenever a balance was worked out this way, for the same reason it is computed
+    // that way: what matters is where the figure came from, not which switches are set.
+    const der=(i.d.accts||[]).map(a=>one('fin:plaid:'+a.id)).find(r=>r&&r.d.derived!=null);
+    /* Where the balance came from is a second line, never a replacement for the first. A
+       connection that has signed Plaid out is the more important news, and letting a
+       cheerful note about the ledger stand in its place would hide a broken bank behind a
+       number that happens to be right. */
+    const derNote=der?'<div class="hint" style="margin:6px 0 0 2px">Balance added up from '
+      +(+der.d.derivedN||0)+' transaction'+((+der.d.derivedN||0)===1?'':'s')+' since '
+      +esc(String(der.d.derivedFrom||'').slice(0,10))
+      +' — it moves when a reconnect brings new ones, and you can type over it.</div>':'';
+    const note=manual?' · <b style="color:var(--blue)">balance kept by hand — tap the account on Brief to set it; transactions still sync on their own</b>'
       :stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
       :i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
       :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
       :lastKnown?' · <b style="color:var(--gold)">this bank wants a one-time code for every login, so the balance is the last one Plaid collected rather than this second — transactions are current</b>'
       :(empty?' · <b style="color:var(--orange)">connects fine but sends no transactions — try Re-pull history</b>':'');
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
-      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span>'+diag+'</span>'+
+      '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span>'+diag+derNote+'</span>'+
       '<span style="margin-left:auto;display:inline-flex;gap:8px">'+
       '<button class="btn sm ghost" onclick="plaidSetManual(\''+esc(i.id)+'\','+(manual?'false':'true')+')" '+
         'title="'+(manual?'Go back to fetching this bank\u2019s balance':'Stop fetching this balance and type it yourself')+'">'+
