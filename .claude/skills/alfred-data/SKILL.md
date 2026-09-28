@@ -93,7 +93,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 |---|---|---|
 | `todo` | To-do list | task, grp, gord, due, ord, notes |
 | `tlspoils` | Timeline → Spoils | date, name, cost, notes |
-| `travels` | Timeline → Travels / Past | place, trip, start, end, notes |
+| `travels` | Timeline → Travels / Past | place, trip, start, end, notes, lat, lon, cc |
 | `wants` | Wants | name, grp, spec, price, lines, paid, link, notes |
 | `needs` | To order | name, src, qty, price, link, notes |
 | `stock` | Bathroom | name, count, min, par, place |
@@ -129,6 +129,25 @@ still in the table — they were left alone, not deleted — but they are histor
 to write. If he asks for something financial recorded, say it belongs in Alfred CFO rather
 than filing it here. Payroll is the exception and stays: it lives under **Staff**, because
 it is about the people, not the money.
+
+**A travel row carries its own pin.** Past has a map beside the list, and the map reads
+`lat`, `lon` and `cc` (ISO-3166 alpha-2) off the row. The app never geocodes — `index.html`
+is public and knows only where countries are, not where he has been — so a place ticked off
+without those three lands at the middle of whatever country its name ends with, and a place
+whose name says no country at all does not land anywhere. Put them on whenever a `travels`
+row is created or its `place` changes:
+
+```sql
+update items
+   set data = data || '{"lat":38.7223,"lon":-9.1393,"cc":"PT"}'::jsonb,
+       up   = (extract(epoch from now()) * 1000)::bigint
+ where id = 'travel:past:2024-05:lisbon-portugal';
+```
+
+Pin the town, not the country, whenever the name names one — "Lisbon, Portugal" is Lisbon.
+A row that really is a whole country (`place: 'Iceland'`) takes the country's own middle.
+Where a row names two towns, pin the first and say so; one row is one point. Four decimal places is
+plenty. Look coordinates up rather than recalling them where the place is small.
 
 **Received means in his hands.** A `wants` row moves open → ordered → received, and the
 last step is not the courier's word for it. A parcel marked delivered, sitting at a

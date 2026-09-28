@@ -526,6 +526,74 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     .pkey{height:64px}
   }
 
+  /* ======== Timeline — past: the atlas ========
+     A screen set into the paper. The rest of the console is a cream notebook, so the map
+     does not try to be one: it is an instrument inset, dark glass with the land drawn as a
+     lit dot matrix, and it carries its own small palette rather than the room's. The tokens
+     sit here so a room that wants a different glass can override the five of them. */
+  :root{
+    --mapInk:#0c1310; --mapInk2:#050807;
+    --mapDot:#31513f;            /* land nobody has been to */
+    --mapLit:#e3b355;            /* a country he has */
+    --mapBeam:#6fe3c0;           /* a place, in city mode */
+    --mapGrid:rgba(139,196,169,.085);
+  }
+  :root[data-site="geo"]{--mapInk:#181a12;--mapInk2:#0d0f09;--mapDot:#4a5237;--mapLit:#d9c06a;--mapBeam:#b9c77f;--mapGrid:rgba(185,199,127,.09)}
+  /* The List ⇄ Visual switch. The thumb is a real element that slides, rather than a class
+     that moves between two buttons, so the travel between them is visible. */
+  .vsw{position:relative;display:inline-flex;background:var(--panel2);border:1px solid var(--line2);
+    border-radius:999px;padding:3px;margin:2px 0 0;isolation:isolate}
+  .vsw .vthumb{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);
+    border-radius:999px;background:var(--acc);box-shadow:0 2px 8px rgba(0,0,0,.14);
+    transition:transform .34s cubic-bezier(.34,1.3,.5,1)}
+  .vsw[data-v="map"] .vthumb{transform:translateX(100%)}
+  .vsw button{position:relative;z-index:1;background:none;border:none;color:var(--muted);
+    font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:12px;padding:6px 20px;
+    border-radius:999px;cursor:pointer;transition:color .2s;white-space:nowrap;min-width:84px}
+  .vsw button.on{color:#faf6ec}
+  .atBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 11px}
+  .atSel{position:relative;display:inline-flex;align-items:center}
+  .atSel select{-webkit-appearance:none;appearance:none;background:var(--panel2);
+    border:1px solid var(--line2);border-radius:999px;color:var(--txt);
+    font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    padding:7px 30px 7px 13px;cursor:pointer}
+  .atSel::after{content:"▾";position:absolute;right:12px;font-size:9px;color:var(--faint);pointer-events:none}
+  .atSel select:focus{outline:none;border-color:var(--acc)}
+  /* The glass itself. object-fit is not in play — the canvas is sized to its box in JS at
+     device resolution, so everything below is only the frame around it. */
+  .atGlass{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line2);
+    background:radial-gradient(120% 120% at 50% 0%,var(--mapInk),var(--mapInk2) 70%);
+    aspect-ratio:16/10;touch-action:none;cursor:grab}
+  .atGlass.drag{cursor:grabbing}
+  .atGlass canvas{display:block;width:100%;height:100%}
+  /* Corner ticks, the way an instrument frames its own screen. */
+  .atGlass::before,.atGlass::after{content:"";position:absolute;width:22px;height:22px;
+    border:1px solid var(--mapGrid);pointer-events:none}
+  .atGlass::before{left:10px;top:10px;border-right:0;border-bottom:0;border-radius:4px 0 0 0}
+  .atGlass::after{right:10px;bottom:10px;border-left:0;border-top:0;border-radius:0 0 4px 0}
+  .atTip{position:absolute;z-index:3;pointer-events:none;opacity:0;transform:translate(-50%,-125%);
+    background:rgba(8,14,11,.93);border:1px solid rgba(139,196,169,.28);border-radius:9px;
+    padding:7px 10px;max-width:210px;transition:opacity .14s}
+  .atTip.on{opacity:1}
+  .atTip .t{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:12.5px;color:#f2ede0}
+  .atTip .s{font-family:"IBM Plex Mono";font-size:10px;color:#9fb8ab;margin-top:3px;letter-spacing:.03em}
+  .atHud{position:absolute;z-index:2;left:14px;bottom:12px;display:flex;gap:14px;pointer-events:none}
+  .atHud span{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(200,216,207,.5);display:inline-flex;align-items:center;gap:6px}
+  .atHud i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .atBtns{position:absolute;z-index:3;right:12px;top:12px;display:flex;flex-direction:column;gap:6px}
+  .atBtns button{width:30px;height:30px;border-radius:9px;border:1px solid rgba(139,196,169,.22);
+    background:rgba(8,14,11,.6);color:#cfe2d8;font-family:"IBM Plex Mono";font-size:13px;
+    cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center}
+  .atBtns button:hover{border-color:var(--mapBeam);color:var(--mapBeam)}
+  .atBtns button.on{border-color:var(--mapLit);color:var(--mapLit)}
+  .atNote{font-size:11px;color:var(--faint);margin-top:9px;line-height:1.6}
+  .atLeg{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .atLeg button{background:var(--panel2);border:1px solid var(--line2);border-radius:999px;
+    color:var(--muted);font-family:"IBM Plex Mono";font-size:10.5px;padding:4px 10px;cursor:pointer;transition:.13s}
+  .atLeg button:hover{border-color:var(--acc);color:var(--acc)}
+  @media(max-width:560px){.atGlass{aspect-ratio:1/1}.vsw button{min-width:74px;padding:6px 14px}}
+
   /* ======== the CFO room's own look ========
      Everything here is scoped to the room. The palette above already carries most of
      it — the stylesheet is token-driven — and what is left is what a money screen
@@ -853,7 +921,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-28 · haiti';
+const BUILD='2026-09-28 · atlas';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5972,6 +6040,631 @@ const NAVS={
   {t:'Projects',p:'projects'},
  ],
 };
+/* ---------------- Timeline — past: the atlas ----------------
+   The written list answers "when did I go there"; it is no good at all at "where have I
+   been". So Past carries a second view of exactly the same rows — no new section, no second
+   place to keep things — and a switch between them.
+
+   The land is a dot matrix rather than an outline. That is not only a look: the whole world
+   below is 12 kB, because a grid of equal-area cells with a country id each run-length
+   encodes almost to nothing, where the same coastlines as polygons run to hundreds. It also
+   means lighting a country is lighting its cells, with no fill rule and no winding order to
+   get wrong, and the globe needs no horizon clipping — a point is either facing you or it
+   is not.
+
+   Coordinates live on the rows, in the private store, not here. This file knows only where
+   countries are; where HE has been is data, and the repo is public. A row with no pin of
+   its own falls back to the middle of whatever country its name ends with. */
+const REDUCED=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const MAPROWS=300;
+const MAPD="A64JfBAyKfEGCAzKfEGCA5KfBABfDGBA-KfCABfBGBAjLfFApLfDGDAI2BBAB2BBAiLfDGEAK2BBAnLfDGDA3LfCGFA7LfCGHAzE4ECApHfDGGA1E4EBAtHfDGHAnMfDGHAsMfCGHAvMfEGFAuI4DCAmEfEGFAvI4DFAnEfDGGAyI4DEAoEfEGHAzI4DFAqEfCGHA4I4DEArEfCGIA-HIBAc4DDAqEfBABfBGJAhIIDAc4DDAsEfBGLAhIIEAc4DDAsEfDGIAmIIEAd4DDAsEfDGIACGBAlIIEAe4DBAB4DDAsEfCGMAtJ4DCAsEfCGMAvJ4DDAuEfCGMAwJ4DEAvEfDGPAnIIBACICAkB4DFAuEfDGRAlIIEABIEAjB4DFAvEfDGSAlIINAhB4DCA0EfCGTAmIIOA4FfDGTAoIIOAgB4DBA4EfDGSApIIQAf4DCA6EfDGRApIIBABIRAe4DCA8EfDGQAClFEAkDuFCAjEIEAXIBACISA+FfCGQlFHAjDuFGACuFBABuFBA7DIIABIDAQICABITA-FfCGQlFHTBAjDuFMA7DIMAPIXAgGfCGRlFHTBAjDuFOA7DINANIZAgGfCGRlFGTDAjDuFPA6DIRAIIbAhGfCGSlFETFAjDuFQA6DI2BAhGfCGSlFDTHAiDuFSA5DI3BAiGfCGSlFBTKAhDuFO+CCuFDA6DI2BAkGfCGTTKAhDuFP+CDuFCA6DI3BAlGfCGUTKAgDuFQ+CCuFEA5DI4BAmGfDGUTKA-CwDBuFBwDEuFSA4DI5BAnGfDGVTJA-CwDGuFTA4DI6BApGfDGQjEDGCTJA+CwDHuFTA4DI6BArGfDGPjEFGCTIA-CwDHuFBWBuFO2ECvDBA4DI7BAsGfDGQjEFGBTIA-CwDHuFCWCuFN2EBvDBA7DI6BAtGfDGQjEFTJA-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-HjBTnFGTHjCFyEBTJAkD-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-EBAC-EDAC-EB1EHsCFtCV9EFCJ+DGhB8BAI3CEAJyCGAiEkF+BA6CiEBAByBGALsBCAB+EEAEvCBAJgCCAG-EQ1EDsCEtCIADtCJ9EGCN+DChB+BAG3CEAJyCGAgEkF9BA5CiECyBIATvCDAIgCDAF-EXtCHAF9ECtCE9ELmFC7ECCD7EEhB6BAChBCAG3CEAMyCDA-DkF8BABkFBA3CiEDyBIARvCBACvCBAIgCEAD-EXtCGAG9ERmFD7ECCB7EFhB5BAJ2CC3CDAOyCCA8DkF-BA2CiEDyBJAVvCBAFgCDAF-EXtCFJBAG9EOmFF7EHhB5BAK2CEAPyCCA6DkFgCA0CiEDyBJALvCBAIvCCAEgCEAE-EXtCBJBEBJBtCBJCAE9EOmFF7EF0CB7EChB6BAEhBBAE2CCAQyCDA5DkF-BAzCiEDyBJALvCBAIvCBAFgCDAF-EXEBJFAF9EMmFI7EB0CFhB7BAChBE2CEAQyCCA3DkFgCAzCiECyBKAKvCBAHvCEACDBgCEAD-EBAD-ESEDJFAE9EMmFJ7EBmFD0CDhBB0CBhB4BAChBD2CFAOyCDA2DkFgCAxCiECyBLAJvCBAFvCEADDCnDCgCF-EDAB-EKAE-EEECJFAG9EKmFH5CCmFE0CGhB9B2CFANyCCA1DkFkCAsCiEDyBLAI3BBADvCFAEDCnDDODgCB-ECAF-EFAH6BFJBnECJBAE9EBAB9EC5CBmFB9EEmFI5CEmFB0CKhBgBqDBhBc2CCANyCCA1DkFzBZCkFNAsCyBPAH3BBACvCEAFlDBDBrFCnDBOGAR6BFnEDAG5CEmFD9ECmFH5CH0CLhBbqDGhBb2CCALyCCACyCBAxDkFzBZFkFJAsCyBK3BFAH3BBABvCEAElCBKBlDCrFBmECOGAQ6BDnEFAG5CEmFN5CJ0CC5CB0CD5CChBUqDRhBZnEBABnEBAIyCFAvDkFzBZEkFLAqCyBFAD3BLAEvCEADlCBKDmEEOHAOnEJAE5CGmFL5CThBSqDThBYnEFAHyCFAtDkFyBZHkFJADZCAsC3BLACvCEADlCBKEmEDOBlEHAMnEKAE5CGmFH5CXhBSqDThBYnEFAHyCDAByCBArDkFxBZJkFJACZDApC3BKvCHADlCBKEmEDlEIAGnEBADnELAG5CFmFF5CYhBQqDVhBXnEGAHyCBAuDkFwBZOkFEZIAmC3BJvCGAClCHmEClEKADnESAE5CHmFC5CbhBLqDbhBWnEFAFyCBAtDkFvBZPkFDZFADZCAkC3BJdBvCHtEClCDnCBmEClEJiFCAEnEBiFBADnENAF5CiBhBJqDehBUnEFAxDkFtBZRkFDZDABZBAnC3BIdFvCEHBtEClCBnCFlEIkDCiFBABiFEADnEM5CBAE5CjBhBJqDehBTnEFAEnEBAqDkFsBZRABkFCZEAKZBABZBA5B3BKdEHInCGlEHkDBiFKABnEL5CnBhBC5CBhBGqDhBhBQnEFAEnEBAoDkFCABkFoBZSABZFAGZIA3B3BMoBBdBoBFHDnCHlEGkDCiFKnEL5CqBhBFqDgBhBSnEFADnEBAnDkFBACkFhBZfAGZHA1B3BOoBGHEuEEnCCiFFkDBiFOnEH5CsBhBDqDehBQnEEhBBnEGACnEBAkDZDABkFeZdACZCAHZFA5B3BLoBGnBBHBnBDuEEiFUnEH5CsBhBBqDfhBQnEKACnECAiDZCABZ9BAEZBAFZDA6B3BIgDBoBHnBG-DEiFTnEI5CrBnECqDVnEFqDEhBOnEMACnECA+CZDABZ+BAFZBAEZCA1B5BBAH3BDMCoBHnBF-DGiFQnEK5CpBnEFqDFnEDqDKnEHqDCnEEhBJnEOACnECA8CZBABZnCACZCA2B5BEAD3BBMDoBInBD-DIiFMnEP5ClBnEIqDBnEFqDFnEShBInEOACnECA8CZpCABZCA1B5BGAC1DBMB1DBoBJ-DJiFLnER5CDnEJ5CSnEB5CBnESqDEnEShBInEOABnECA7CZxBACZXAwBpCCAD5BGAD1DDoBI-DJXIiFDnEb5CTnEUqDBnEWhBGnEPABnEBAOnECAqCZwBADZXAvBpCDAC5BGAD1DDoBH-DJXJnEd5CSnErBhBFnESANnECAlCZBADZvBADZXAvBpCDAB5BFAF1DCoBH-DKXHnEf5CQnErBhBEnEQABnEBANnEDAjCZBADZuBAEZWAuBpCDAE5BCAJoBF-DKXInEd5CMnEB5CDnE+BAPnEEAkCZvBADZVAvBpCC5BBAD5BDAIoBDABoBBAC-DH-CDXFnEhB5CGnEF5CBnE6BAFnEBAMnEFAiBkFCAekFBZuBADZUAwB5BCAB5BDAKqBBAKnEC-CDXFnEjB5CDnE+BAUnEGAhBkFCAbkFCZqBAIZQA1B5BCAKqBBABqBCsEBAH-CFXEnEkDASnEGAjBkFCAZkFBZoBAKZPAzB5BDAKqBCACsECAG-CEhDDnElDARnEGAkBkFCAWkFBZnBAMZNAzB5BDAKqBCACsEDAFhDGnElDAQnEHAjBkFBACkFCARkFBZkBAOZNAzB5BDANsEEAEhDCABhDDnEkDAQnEGAjBkFCATkFBZjBAOZNAyB5BCAOsEEAHhDBuBCnEkDAPnEEAkBkFDAOkFDZkBANZIABZEAyB5BCAI2DCACsEFAGuBDnEjDAQnEDAekFIAMkFBZBkFCZiBAOZIADZCA7B2DDAB2DBsEFAFuBEnEiDAHnEDAFnEDAdkFHACkFBAIkFCZCkFBZiBAOZHADZCA6B2DFsEGAInEqDAGnECAZkFBABkFNADkFDZnBAOZGAU8BCAoB2DGsEFAD0BDACnEoDAGnEFABnEBAUkFLABkFIZmBANZHAR8BEAnB2DGsEEAD0BGnEnDAEnEBABnEIARkFUZmBAMZFAS8BFAmB2DGsEEAD0BHnElDACnECABnEIAQkFTZmBAKZBABZEAEZBAN8BFAmB2DFsEEAD0BHnEoDABnEJAPkFSZlBAHZBAJZCAN8BGAlB2DFsEEAD0BHnEyDAHkFBAFkFQZmBAOZFAL8BHAlB2DDsEFAC0BHnEvDAPkFPZlBACZFAGZFAK8BIAOuCEAT2DCsEGAC0BFnEtDAFnEBAHkFQZmBABZDADZCABZGAK8BIANuCFAT2DCsEFAC0BFnEDABnElDAFnECAEkFSZmBABZCAEZHACZBAI8BIANuCGAR2DCsEFAD0BDnEEAEnEiDABnEFACkFTZlBAJZEABZCAH8BKAKuCHAS2DBsEGAC0BDnEDAEnEmDAEkFBABkFOZlBAIZEABZDAG8BMAIuCBADuCCAS2DCsEF0BEnEDACnECABnEUABnErCABnEBAGkFOZnBAGZHAG8BMAf2DCsEF0BDnEIACnEBACnEQABnEoCAHkFPZUABZRADZBABZGAH8BNAe2DBsEF0BEnEHACnEBACnEQABnElCAHkFPZRAEZCAEZBABZEABZDADZBABZFAI8BNAe2DBsED0BEnEHACnECADnExCAHkFQZSACZBAHZEABZDADZEAL8BPAa2DCsEB0BEnEGAJnEBACnEBABnEDACnECABnEgCAKkFNZBACZKACZIABZCABZDADZCADZFAI8BBAB8BPAa2DB0BB2DC0BC2DBnECAQnECACnE7BABnEFALkFMAGZDAFZJADZCAFZJAI8BSAY2DE0BB2DBAVnE1BAGnECAPkFFAVZGADZDACZLAI8BQAb2DEAUnEDABnEwBALnEBALkFBAVZHAEZCACZJAL8BOAB8BBApBnECAFnEDABnEeABnELAOnEBAdZCABZFABZBADZBABZBACZIAK8BRAnBnECAHnECACnEbAGnEFAsBZKACZCABZBABZFABZCAK8BRAmBnEBAHnECAEnEYAFnEFArBZDABZBADZCACZBABZCABZEABZCAK8BQAlBnECAGnEBAEnEYAzBZEAFZBABZCABZCABZBABZBABZBAL8BQAkBnEBALnESACnECAGnECAqBZEAKZBAQ8BQAjBnEBANnELA9BZBAHZBABZFAK8BQAiBnEBAMnELA4BZFACZDABZFAJ8BRAgBnECAMnEKAKnEDABnEBAnBZCABZBABZCACZBAN8BQAgBnEDALnEIAKnECAmBZBADZBADZBABZGAE8BTAhBnECAMnEFAwBZCAHZBACZDAE8BTAM2DBAgBnEBA0BZBAFZBADZCAD8BSAM2DBAB2DBAyCZBABZBABZFAB8BSAL2DCAB2DBAanECAxBZBADZGAC8BQAK2DDAYnEDAyBZCABZDAD8BOAJ2DCAB2DBAVnECAwBZCABZEAB8BOAL2DCATnECAuBZBABZFAB8BNARnEBALnECAtBZGAB8BMAmCZGAB8BIAlCZGAD8BFAgCZCAF8BEAlN";
+const MAPC=`AE|United Arab Emirates|AS|23.87|54.21
+AF|Afghanistan|AS|33.86|66.09
+AL|Albania|EU|41.14|20.03
+AM|Armenia|AS|40.22|45.0
+AO|Angola|AF|-12.29|17.5
+AR|Argentina|SA|-35.22|-65.15
+AT|Austria|EU|47.61|14.08
+AU|Australia|OC|-25.56|134.38
+AZ|Azerbaijan|AS|40.28|47.68
+BA|Bosnia and Herz.|EU|44.18|17.82
+BD|Bangladesh|AS|23.84|90.27
+BE|Belgium|EU|50.65|4.58
+BF|Burkina Faso|AF|12.31|-1.78
+BG|Bulgaria|EU|42.75|25.2
+BI|Burundi|AF|-3.38|29.91
+BJ|Benin|AF|9.65|2.34
+BN|Brunei|AS|4.69|114.92
+BO|Bolivia|SA|-16.73|-64.64
+BR|Brazil|SA|-10.81|-53.05
+BS|Bahamas|NA|24.51|-77.92
+BT|Bhutan|AS|27.43|90.47
+BW|Botswana|AF|-22.1|23.77
+BY|Belarus|EU|53.51|27.98
+BZ|Belize|NA|17.2|-88.7
+CA|Canada|NA|57.75|-101.57
+CD|Dem. Rep. Congo|AF|-2.85|23.58
+CF|Central African Rep.|AF|6.54|20.37
+CG|Congo|AF|-0.84|15.13
+CH|Switzerland|EU|46.79|8.12
+CI|Côte d'Ivoire|AF|7.55|-5.61
+CL|Chile|SA|-37.34|-71.67
+CM|Cameroon|AF|5.66|12.61
+CN|China|AS|36.61|103.87
+CN-TW|Taiwan|AS|23.74|120.97
+CO|Colombia|SA|3.93|-73.08
+CR|Costa Rica|NA|9.97|-84.18
+CU|Cuba|NA|21.63|-78.96
+CY|Cyprus|AS|34.91|33.04
+CZ|Czechia|EU|49.78|15.33
+DE|Germany|EU|51.13|10.29
+DJ|Djibouti|AF|11.77|42.5
+DK|Denmark|EU|56.22|9.31
+DO|Dominican Rep.|NA|18.88|-70.46
+DZ|Algeria|AF|28.19|2.6
+EC|Ecuador|SA|-1.45|-78.38
+EE|Estonia|EU|58.64|25.82
+EG|Egypt|AF|26.51|29.84
+EH|W. Sahara|AF|24.29|-12.14
+ER|Eritrea|AF|15.43|38.68
+ES|Spain|EU|40.35|-3.62
+ET|Ethiopia|AF|8.65|39.55
+FI|Finland|EU|64.5|26.21
+FJ|Fiji|OC|-17.83|178.0
+FK|Falkland Is.|SA|-51.71|-59.42
+FR|France|EU|46.61|2.34
+GA|Gabon|AF|-0.65|11.69
+GB|United Kingdom|EU|53.88|-2.66
+GE|Georgia|AS|42.16|43.48
+GH|Ghana|AF|7.93|-1.24
+GL|Greenland|NA|74.77|-41.5
+GM|Gambia|AF|13.48|-15.43
+GN|Guinea|AF|10.45|-11.06
+GQ|Eq. Guinea|AF|1.65|10.37
+GR|Greece|EU|39.34|22.56
+GT|Guatemala|NA|15.7|-90.37
+GW|Guinea-Bissau|AF|12.02|-15.11
+GY|Guyana|SA|4.79|-58.97
+HN|Honduras|NA|14.82|-86.59
+HR|Croatia|EU|44.85|16.43
+HT|Haiti|NA|18.84|-72.7
+HU|Hungary|EU|47.2|19.36
+ID|Indonesia|AS|-0.25|114.02
+IE|Ireland|EU|53.18|-8.01
+IL|Israel|AS|32.0|35.11
+IN|India|AS|22.93|79.59
+IQ|Iraq|AS|33.04|43.76
+IR|Iran|AS|32.52|54.29
+IS|Iceland|EU|65.07|-18.76
+IT|Italy|EU|43.47|12.22
+JM|Jamaica|NA|18.14|-77.32
+JO|Jordan|AS|31.25|36.78
+JP|Japan|AS|36.02|136.88
+KE|Kenya|AF|0.6|37.79
+KG|Kyrgyzstan|AS|41.51|74.62
+KH|Cambodia|AS|12.68|104.88
+KP|North Korea|AS|40.14|127.17
+KR|South Korea|AS|36.43|127.82
+KW|Kuwait|AS|29.31|47.6
+KZ|Kazakhstan|AS|48.19|67.28
+LA|Laos|AS|18.44|103.75
+LB|Lebanon|AS|33.91|35.87
+LK|Sri Lanka|AS|7.7|80.67
+LR|Liberia|AF|6.43|-9.41
+LS|Lesotho|AF|-29.63|28.17
+LT|Lithuania|EU|55.28|23.88
+LU|Luxembourg|EU|49.77|5.97
+LV|Latvia|EU|56.81|24.83
+LY|Libya|AF|27.0|17.97
+MA|Morocco|AF|29.89|-8.42
+MD|Moldova|EU|47.2|28.41
+ME|Montenegro|EU|42.79|19.29
+MG|Madagascar|AF|-19.36|46.69
+MK|North Macedonia|EU|41.61|21.7
+ML|Mali|AF|17.27|-3.54
+MM|Myanmar|AS|21.02|96.51
+MN|Mongolia|AS|46.82|102.95
+MR|Mauritania|AF|20.21|-10.33
+MW|Malawi|AF|-13.17|34.19
+MX|Mexico|NA|23.94|-102.58
+MY|Malaysia|AS|3.55|114.68
+MZ|Mozambique|AF|-17.23|35.47
+NA|Namibia|AF|-22.1|17.16
+NC|New Caledonia|OC|-21.26|165.53
+NE|Niger|AF|17.35|9.32
+NG|Nigeria|AF|9.55|8.0
+NI|Nicaragua|NA|12.85|-85.02
+NL|Netherlands|EU|52.3|5.51
+NO|Norway|EU|66.23|18.09
+NP|Nepal|AS|28.24|84.01
+NZ|New Zealand|OC|-43.99|170.51
+OM|Oman|AS|20.58|56.1
+PA|Panama|NA|8.53|-80.11
+PE|Peru|SA|-9.19|-74.39
+PG|Papua New Guinea|OC|-6.65|144.33
+PH|Philippines|AS|15.75|121.54
+PK|Pakistan|AS|29.97|69.41
+PL|Poland|EU|52.15|19.31
+PR|Puerto Rico|NA|18.24|-66.48
+PS|Palestine|AS|31.94|35.27
+PT|Portugal|EU|39.63|-8.06
+PY|Paraguay|SA|-23.25|-58.39
+QA|Qatar|AS|25.32|51.18
+RO|Romania|EU|45.86|24.94
+RS|Serbia|EU|44.23|20.82
+RU|Russia|EU|61.69|99.22
+RW|Rwanda|AF|-2.01|29.92
+SA|Saudi Arabia|AS|24.12|44.52
+SB|Solomon Is.|OC|-7.9|159.1
+SD|Sudan|AF|15.99|29.86
+SE|Sweden|EU|62.81|16.6
+SI|Slovenia|EU|46.13|14.94
+SK|Slovakia|EU|48.73|19.51
+SL|Sierra Leone|AF|8.53|-11.8
+SN|Senegal|AF|14.35|-14.51
+SO|Somalia|AF|4.75|45.73
+SR|Suriname|SA|4.12|-55.91
+SS|S. Sudan|AF|7.29|30.2
+SV|El Salvador|NA|13.73|-88.87
+SY|Syria|AS|35.01|38.54
+SZ|eSwatini|AF|-26.49|31.4
+TD|Chad|AF|15.33|18.58
+TF|Fr. S. Antarctic Lands|OC|-49.31|69.53
+TG|Togo|AF|8.44|1.0
+TH|Thailand|AS|15.02|101.01
+TJ|Tajikistan|AS|38.58|71.03
+TL|Timor-Leste|AS|-8.77|125.97
+TM|Turkmenistan|AS|39.09|59.28
+TN|Tunisia|AF|34.17|9.53
+TR|Turkey|AS|38.99|35.39
+TT|Trinidad and Tobago|NA|10.43|-61.33
+TZ|Tanzania|AF|-6.26|34.75
+UA|Ukraine|EU|49.15|31.23
+UG|Uganda|AF|1.3|32.36
+US|United States of America|NA|39.5|-99.06
+UY|Uruguay|SA|-32.78|-56.0
+UZ|Uzbekistan|AS|41.75|63.2
+VE|Venezuela|SA|7.16|-66.16
+VN|Vietnam|AS|16.71|105.94
+VU|Vanuatu|OC|-15.22|166.91
+XC|N. Cyprus|AS|35.27|33.56
+XK|Kosovo|EU|42.58|20.9
+XS|Somaliland|AF|9.76|46.23
+YE|Yemen|AS|15.91|47.54
+ZA|South Africa|AF|-28.96|25.12
+ZM|Zambia|AF|-13.4|27.73
+ZW|Zimbabwe|AF|-18.91|29.79`;
+const MAP64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-';
+
+const CTRY=MAPC.trim().split('\n').map(l=>{const p=l.split('|');
+  return{iso:p[0],name:p[1],cont:p[2],lat:+p[3],lon:+p[4]}});
+const CIX={};CTRY.forEach((c,i)=>CIX[c.iso]=i+1);       // iso -> 1-based id, as the grid stores it
+const CONTNAME={EU:'Europe',AS:'Asia',AF:'Africa',NA:'North America',SA:'South America',OC:'Oceania'};
+/* Natural Earth's spellings are not what anyone types. This is a fallback for rows with no
+   coordinates on them — enough to recognise a country at the end of a line, not a gazetteer. */
+const CNAME={};CTRY.forEach(c=>CNAME[c.name.toLowerCase()]=c.iso);
+Object.assign(CNAME,{'usa':'US','u.s.':'US','u.s.a.':'US','united states':'US','america':'US',
+ 'uk':'GB','u.k.':'GB','britain':'GB','great britain':'GB','england':'GB','scotland':'GB',
+ 'wales':'GB','northern ireland':'GB','türkiye':'TR','turkiye':'TR',
+ 'dominican republic':'DO','czech republic':'CZ','bosnia':'BA','bosnia and herzegovina':'BA',
+ 'ivory coast':'CI','holland':'NL','uae':'AE','emirates':'AE','south sudan':'SS',
+ 'western sahara':'EH','equatorial guinea':'GQ','east timor':'TL','swaziland':'SZ',
+ 'macedonia':'MK','burma':'MM','drc':'CD','democratic republic of the congo':'CD',
+ 'central african republic':'CF','solomon islands':'SB','falkland islands':'FK'});
+const USST=new Set(['alabama','alaska','arizona','arkansas','california','colorado','connecticut',
+ 'delaware','florida','hawaii','idaho','illinois','indiana','iowa','kansas','kentucky','louisiana',
+ 'maine','maryland','massachusetts','michigan','minnesota','mississippi','missouri','montana',
+ 'nebraska','nevada','new hampshire','new jersey','new mexico','new york','north carolina',
+ 'north dakota','ohio','oklahoma','oregon','pennsylvania','rhode island','south carolina',
+ 'south dakota','tennessee','texas','utah','vermont','virginia','west virginia','wisconsin',
+ 'wyoming','d.c.','dc','district of columbia','new england']);
+/* The last recognisable thing in "Bruges, Belgium" is the country. Read right to left,
+   because that is the order places are written in. */
+function placeCC(s){
+  const parts=String(s||'').split(/[,/&]/).map(x=>x.replace(/\(.*?\)/g,'').trim().toLowerCase()).filter(Boolean);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];
+    if(CNAME[p])return CNAME[p];
+    if(USST.has(p))return 'US';
+  }
+  return '';
+}
+
+/* The grid, unpacked once and kept. Each land cell becomes a unit vector, so turning the
+   globe is a matrix multiply rather than a sine per dot per frame, and the flat map's two
+   Equal Earth terms are precomputed too — both depend only on latitude. */
+let ATL=null;
+const EE=[1.340264,-0.081106,0.000893,0.003796];
+function eeY(t){return EE[3]*Math.pow(t,9)+EE[2]*Math.pow(t,7)+EE[1]*t*t*t+EE[0]*t}
+function eeK(t){return 2*Math.sqrt(3)*Math.cos(t)/(3*(9*EE[3]*Math.pow(t,8)+7*EE[2]*Math.pow(t,6)+3*EE[1]*t*t+EE[0]))}
+const EEY=eeY(Math.asin(Math.sqrt(3)/2)),EEX=Math.PI*eeK(0);
+function atlasDots(){
+  if(ATL)return ATL;
+  const R=MAPROWS,ix={};for(let i=0;i<MAP64.length;i++)ix[MAP64[i]]=i;
+  const colsOf=r=>Math.max(1,Math.round(2*R*Math.cos((-90+(r+.5)*180/R)*Math.PI/180)));
+  const X=[],Y=[],Z=[],LR=[],FK=[],FY=[],CD=[];
+  let cell=0,row=0,rowCols=colsOf(0),rowBase=0,acc=0,sh=0,pend=null;
+  for(let k=0;k<MAPD.length;k++){
+    const d=ix[MAPD[k]];acc|=(d&31)<<sh;sh+=5;
+    if(d>=32)continue;
+    const v=acc;acc=0;sh=0;
+    if(pend===null){pend=v;continue}
+    const id=pend,cnt=v;pend=null;
+    for(let j=0;j<cnt;j++){
+      while(cell>=rowBase+rowCols&&row<R-1){rowBase+=rowCols;row++;rowCols=colsOf(row)}
+      if(!id){cell++;continue}
+      const la=(-90+(row+.5)*180/R)*Math.PI/180,lo=(-180+((cell-rowBase)+.5)*360/rowCols)*Math.PI/180;
+      const cl=Math.cos(la),t=Math.asin(Math.sqrt(3)/2*Math.sin(la));
+      X.push(cl*Math.sin(lo));Y.push(Math.sin(la));Z.push(cl*Math.cos(lo));
+      LR.push(lo);FK.push(eeK(t));FY.push(eeY(t));CD.push(id);
+      cell++;
+    }
+  }
+  ATL={x:Float32Array.from(X),y:Float32Array.from(Y),z:Float32Array.from(Z),
+       lon:Float32Array.from(LR),fk:Float32Array.from(FK),fy:Float32Array.from(FY),
+       cid:Uint8Array.from(CD),n:CD.length};
+  return ATL;
+}
+
+/* Everywhere he has been, folded so a place visited nine times is one beacon that knows it
+   was nine. A row carries its own pin; without one it lands at the middle of its country
+   and says so. */
+function atlasPins(){
+  const rows=list('travels').filter(i=>!!i.d.done);
+  const m=new Map(),lost=[];
+  rows.forEach(i=>{
+    const d=i.d,nm=String(d.place||'').trim();if(!nm)return;
+    let la=d.lat,lo=d.lon,cc=String(d.cc||'')||placeCC(nm),approx=false;
+    if(la===''||la==null||lo===''||lo==null||isNaN(+la)||isNaN(+lo)){
+      const c=cc&&CIX[cc]?CTRY[CIX[cc]-1]:null;
+      if(!c){lost.push(nm);return}
+      la=c.lat;lo=c.lon;approx=true;
+    }
+    const k=nm.toLowerCase();
+    const e=m.get(k)||{name:nm,lat:+la,lon:+lo,cc,n:0,yrs:[],approx};
+    e.n++;
+    const y=String(tripWhen(d)||'').slice(0,4);
+    if(/^\d{4}$/.test(y)&&!e.yrs.includes(y))e.yrs.push(y);
+    m.set(k,e);
+  });
+  const places=[...m.values()];
+  places.forEach(p=>p.yrs.sort());
+  places.sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name));
+  const ccs=new Set(places.map(p=>p.cc).filter(c=>c&&CIX[c]));
+  const conts=new Set([...ccs].map(c=>CTRY[CIX[c]-1].cont));
+  return{places,ccs,conts,lost,trips:rows.length};
+}
+
+/* View state outlives a redraw, so changing the dropdown does not throw away the angle you
+   had turned the globe to. */
+const AT={view:'list',mode:'country',globe:1,morph:1,yaw:10,pitch:14,zoom:1,px:0,py:0,
+  spin:1,hits:[],tip:-1,stride:1};
+try{const s=JSON.parse(localStorage.alfred_atlas||'{}');
+  if(s.view)AT.view=s.view;if(s.mode)AT.mode=s.mode;
+  if('globe' in s){AT.globe=s.globe;AT.morph=s.globe?1:0}}catch(e){}
+const atSave=()=>{try{localStorage.alfred_atlas=JSON.stringify({view:AT.view,mode:AT.mode,globe:AT.globe})}catch(e){}};
+function atView(v){AT.view=v;atSave();renderActive()}
+function atMode(v){AT.mode=v;atSave();renderActive()}
+function atProj(){AT.globe=AT.globe?0:1;atSave();renderActive()}
+function atSpin(){AT.spin=!AT.spin;const b=$('#atSpinB');if(b)b.classList.toggle('on',!!AT.spin)}
+function atReset(){AT.yaw=10;AT.pitch=14;AT.zoom=1;AT.px=0;AT.py=0}
+
+function atStat(k,v,u,c){
+  return `<div class="stat" style="--accent:${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="u">${esc(u)}</div></div>`;
+}
+function travpastPage(){
+  const v=AT.view;
+  let h=`<div class="vsw" data-v="${v}"><span class="vthumb"></span>`+
+    `<button class="${v==='list'?'on':''}" onclick="atView('list')">List</button>`+
+    `<button class="${v==='map'?'on':''}" onclick="atView('map')">Visual</button></div>`;
+  return h+(v==='map'?atlasPanel():genList('travpast'));
+}
+function atlasPanel(){
+  const P=atlasPins(),m=MODS.travpast,share=P.ccs.size/195*100;
+  let h='<div class="grid stats" style="margin-top:12px">'+
+    atStat('Countries',P.ccs.size,'of 195 · '+(share<10?share.toFixed(1):Math.round(share))+'% of the world','var(--gold)')+
+    atStat('Places',P.places.length,'distinct destinations','var(--acc)')+
+    atStat('Trips',P.trips,'entries on the timeline','var(--blue)')+
+    atStat('Continents',P.conts.size,[...P.conts].map(c=>CONTNAME[c]||c).sort().join(' · ')||'—','var(--orange)')+
+    '</div>';
+  h+=`<div class="panel"><h2><span class="sw" style="background:${m.color}"></span>${m.title}</h2>`+
+    `<div class="hint">The same places as the list, on the world. Drag to turn it, scroll to close in, tap a light to see what it was.</div>`+
+    `<div class="atBar"><span class="atSel"><select onchange="atMode(this.value)" aria-label="What to show">`+
+      `<option value="country"${AT.mode==='country'?' selected':''}>Country</option>`+
+      `<option value="city"${AT.mode==='city'?' selected':''}>City</option>`+
+    `</select></span>`+
+    `<span style="font-size:11px;color:var(--faint)">${AT.mode==='country'
+      ?P.ccs.size+' countries lit'
+      :P.places.length+' places pinned'}</span></div>`+
+    `<div class="atGlass" id="atGlass"><canvas id="atCv"></canvas>`+
+      `<div class="atTip" id="atTip"></div>`+
+      `<div class="atBtns">`+
+        `<button onclick="atProj()" title="Globe or flat">${AT.globe?'3D':'2D'}</button>`+
+        `<button id="atSpinB" class="${AT.spin?'on':''}" onclick="atSpin()" title="Turn by itself">↻</button>`+
+        `<button onclick="atReset()" title="Recentre">⌖</button>`+
+      `</div>`+
+      `<div class="atHud">`+
+        `<span><i style="background:${AT.mode==='country'?'var(--mapLit)':'var(--mapBeam)'}"></i>${AT.mode==='country'?'visited':'been there'}</span>`+
+        `<span><i style="background:var(--mapDot)"></i>${AT.mode==='country'?'not yet':'land'}</span></div>`+
+    `</div>`;
+  if(P.lost.length)h+=`<div class="atNote">Not on the map yet: ${P.lost.map(esc).join(', ')} — nothing in the name says which country.</div>`;
+  const ap=P.places.filter(p=>p.approx).length;
+  if(ap)h+=`<div class="atNote">${ap} ${ap>1?'sit':'sits'} at the middle of the country rather than the town itself.</div>`;
+  return h+'</div>';
+}
+
+/* One loop, started when the page draws and stopped the moment its canvas leaves the
+   document — which is what renderActive does to every page it replaces. */
+function bindAtlas(){
+  const cv=$('#atCv');if(!cv)return;
+  const glass=$('#atGlass'),tipEl=$('#atTip'),ctx=cv.getContext('2d');
+  const D=atlasDots(),P=atlasPins();
+  const lit=new Uint8Array(CTRY.length+1);
+  P.ccs.forEach(c=>{if(CIX[c])lit[CIX[c]]=1});
+  const cells=new Int32Array(CTRY.length+1);
+  for(let i=0;i<D.n;i++)cells[D.cid[i]]++;
+  // What each lit country has in it, for the label you get when you touch one.
+  const per={};P.places.forEach(p=>{if(!p.cc)return;(per[p.cc]=per[p.cc]||{n:0,pl:[],yrs:new Set()});
+    per[p.cc].n+=p.n;per[p.cc].pl.push(p.name);p.yrs.forEach(y=>per[p.cc].yrs.add(y))});
+
+  let W=0,H=0,dpr=1,last=0,drag=null,ptrs=new Map(),pinch=0,hoverXY=null,raf=0;
+  function size(){
+    const r=glass.getBoundingClientRect();
+    dpr=Math.min(2,window.devicePixelRatio||1);
+    W=Math.max(1,Math.round(r.width));H=Math.max(1,Math.round(r.height));
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  size();
+  const ro=new ResizeObserver(size);ro.observe(glass);
+
+  const css=getComputedStyle(document.documentElement);
+  const C={dot:css.getPropertyValue('--mapDot').trim()||'#31513f',
+           lit:css.getPropertyValue('--mapLit').trim()||'#e3b355',
+           beam:css.getPropertyValue('--mapBeam').trim()||'#6fe3c0',
+           grid:css.getPropertyValue('--mapGrid').trim()||'rgba(139,196,169,.085)'};
+  /* A sphere lit flat is a disc. Each cell is sorted into one of four bands by how squarely
+     it faces you and the band is painted in one go, so the globe gets its roundness back for
+     four fillStyle changes a frame rather than thirty thousand. */
+  const hexRGB=h=>{h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');
+    return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]};
+  const ramp=(hex,as)=>{const[r,g,b]=hexRGB(hex);return as.map(a=>`rgba(${r},${g},${b},${a})`)};
+  const NB=4,DOTA=ramp(C.dot,[.34,.56,.79,1]),LITA=ramp(C.lit,[.5,.72,.88,1]);
+  const BUF=[],BUFL=[];
+  for(let b=0;b<NB;b++){BUF.push({p:new Float32Array(D.n*2),n:0});BUFL.push({p:new Float32Array(4096),n:0})}
+
+  /* Both projections in one place. Everything downstream asks for a screen point and a
+     facing flag and does not care which world it is in; the morph is a straight blend, so
+     the globe unrolls into the map instead of cutting to it. */
+  let sc=1,cx=0,cy=0,cyaw=1,syaw=0,cpit=1,spit=0,mo=1;
+  function frame(){
+    mo=AT.morph;
+    sc=Math.min(W,H)*0.455*AT.zoom;
+    cx=W/2+AT.px;cy=H/2+AT.py;
+    const a=AT.yaw*Math.PI/180,b=AT.pitch*Math.PI/180;
+    cyaw=Math.cos(a);syaw=Math.sin(a);cpit=Math.cos(b);spit=Math.sin(b);
+  }
+  const FW=()=>Math.min(W*0.47,H*0.47*(EEX/EEY))*AT.zoom;
+  function proj(x0,y0,z0,lonR,fk,fy,out){
+    // globe
+    const x1=x0*cyaw+z0*syaw, z1=-x0*syaw+z0*cyaw;
+    const y2=y0*cpit-z1*spit,  z2=y0*spit+z1*cpit;
+    const gx=cx+x1*sc, gy=cy-y2*sc;
+    if(mo>=0.999){out[0]=gx;out[1]=gy;out[2]=z2;return}
+    // flat
+    const fwd=FW();
+    let lam=lonR+AT.yaw*Math.PI/180;
+    lam=((lam+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+    const fx=cx+lam*fk/EEX*fwd, fyy=cy-fy*fwd/EEX;
+    out[0]=fx+(gx-fx)*mo;out[1]=fyy+(gy-fyy)*mo;out[2]=z2;
+  }
+  const o=[0,0,0];
+  function projLL(la,lo,out){
+    const p=la*Math.PI/180,l=lo*Math.PI/180,cl=Math.cos(p);
+    const t=Math.asin(Math.sqrt(3)/2*Math.sin(p));
+    proj(cl*Math.sin(l),Math.sin(p),cl*Math.cos(l),l,eeK(t),eeY(t),out);
+  }
+
+  const host=cv.closest('.page');
+  function draw(ts){
+    // Two ways this view ends. Switching to List replaces the page's markup and the canvas
+    // is gone; walking to another tab only takes .active off, and the markup stays in the
+    // document — so contains() alone had the loop drawing a globe nobody could see for as
+    // long as the app was open.
+    if(!document.body.contains(cv)||(host&&!host.classList.contains('active'))){ro.disconnect();return}
+    raf=requestAnimationFrame(draw);
+    const dt=Math.min(0.1,(ts-last)/1000||0);last=ts;
+    if(document.hidden)return;
+    const want=AT.globe?1:0;
+    if(AT.morph!==want){const d=Math.sign(want-AT.morph)*dt*3.2;
+      AT.morph=Math.abs(want-AT.morph)<Math.abs(d)?want:AT.morph+d}
+    if(AT.spin&&!drag&&!hoverXY&&!REDUCED)AT.yaw=(AT.yaw+dt*3.4)%360;
+    const t0=performance.now();
+    frame();
+    ctx.clearRect(0,0,W,H);
+
+    // the glass under it: a disc when it is a globe, nothing when it is a map
+    if(mo>0.02){
+      const g=ctx.createRadialGradient(cx-sc*.35,cy-sc*.4,sc*.1,cx,cy,sc);
+      g.addColorStop(0,'rgba(120,190,160,.085)');g.addColorStop(.75,'rgba(90,150,125,.03)');
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.globalAlpha=mo;ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,sc,0,7);ctx.fill();
+      ctx.strokeStyle='rgba(139,196,169,.16)';ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
+    }
+    graticule();
+
+    // the land
+    // A cell is drawn at four fifths of the gap to the next one, so the grid reads as dots
+    // however far in you are. The gap itself is the projection's own: 300 rows across the
+    // globe's diameter, or across the flat map's height.
+    const step=AT.stride;
+    const unit=mo*sc+(1-mo)*(FW()/(EEX/EEY));
+    const ds=Math.max(.9,Math.min(5,unit/150*0.8*step));
+    const city=AT.mode==='city';
+    // Only a globe has a far side. Flat, every cell faces you, and dimming half of them
+    // because their vector still points away was the map drawn in two brightnesses.
+    const BD=mo>0.15,CULL=mo>0.985,backA=(1-mo)*0.5;
+    for(let b=0;b<NB;b++){BUF[b].n=0;BUFL[b].n=0}
+    let backN=0;const backP=[];
+    for(let i=0;i<D.n;i+=step){
+      proj(D.x[i],D.y[i],D.z[i],D.lon[i],D.fk[i],D.fy[i],o);
+      const z=o[2],back=BD&&z<0;
+      if(back&&CULL)continue;
+      if(o[0]<-20||o[0]>W+20||o[1]<-20||o[1]>H+20)continue;
+      if(back){backP.push(o[0],o[1],lit[D.cid[i]]&&!city?1:0);backN++;continue}
+      const b=BD?(z<.3?0:z<.55?1:z<.78?2:3):3;
+      const t=(!city&&lit[D.cid[i]])?BUFL[b]:BUF[b];
+      if(t.n*2+1<t.p.length){t.p[t.n*2]=o[0];t.p[t.n*2+1]=o[1];t.n++}
+    }
+    for(let b=0;b<NB;b++){
+      const q=BUF[b];if(!q.n)continue;
+      ctx.fillStyle=DOTA[b];
+      for(let i=0;i<q.n;i++)ctx.fillRect(q.p[i*2],q.p[i*2+1],ds,ds);
+    }
+    // The bloom is a second, fatter pass at low alpha. A canvas shadow would have been one
+    // line and thirty times the cost: it is applied per fill, and this fills thousands.
+    const litAll=BUFL.reduce((a,q)=>a+q.n,0);
+    if(litAll){
+      ctx.fillStyle=C.lit;ctx.globalAlpha=.14;const w=ds*3.2;
+      for(let b=0;b<NB;b++){const q=BUFL[b];
+        for(let i=0;i<q.n;i++)ctx.fillRect(q.p[i*2]-ds,q.p[i*2+1]-ds,w,w)}
+      ctx.globalAlpha=1;
+      for(let b=0;b<NB;b++){const q=BUFL[b];if(!q.n)continue;ctx.fillStyle=LITA[b];
+        for(let i=0;i<q.n;i++)ctx.fillRect(q.p[i*2],q.p[i*2+1],ds+.4,ds+.4)}
+    }
+    if(backN&&backA>0.01){
+      for(let i=0;i<backP.length;i+=3){
+        ctx.fillStyle=backP[i+2]?C.lit:C.dot;ctx.globalAlpha=backA;
+        ctx.fillRect(backP[i],backP[i+1],ds,ds);
+      }
+      ctx.globalAlpha=1;
+    }
+
+    AT.hits.length=0;
+    if(city)beacons(ts);else marks(ts);
+    tip();
+
+    // If a frame costs too much, thin the grid rather than drop below a turn that reads as
+    // smooth. It climbs back the moment there is room.
+    const cost=performance.now()-t0;
+    if(cost>15&&AT.stride<4)AT.stride++;
+    else if(cost<7&&AT.stride>1)AT.stride--;
+  }
+
+  function graticule(){
+    ctx.strokeStyle=C.grid;ctx.lineWidth=1;
+    for(let la=-60;la<=60;la+=30)line((lo)=>[la,lo],-180,180,6);
+    for(let lo=-180;lo<180;lo+=30)line((la)=>[la,lo],-80,80,6);
+    function line(f,a,b,st){
+      ctx.beginPath();let on=false,px=0;
+      for(let v=a;v<=b;v+=st){
+        const[la,lo]=f(v);projLL(la,lo,o);
+        if(o[2]<0&&mo>0.985){on=false;continue}
+        if(on&&Math.abs(o[0]-px)>W*0.45)on=false;   // the seam: pick the pen up, don't drag it back
+        if(!on){ctx.moveTo(o[0],o[1]);on=true}else ctx.lineTo(o[0],o[1]);
+        px=o[0];
+      }
+      ctx.stroke();
+    }
+  }
+
+  // Country mode: a soft ring on each country he has been to, so a country too small to
+  // show as cells — Lebanon is two — is still visibly his.
+  function marks(ts){
+    const pulse=0.5+0.5*Math.sin(ts/900);
+    P.ccs.forEach(cc=>{
+      const c=CTRY[CIX[cc]-1];if(!c)return;
+      projLL(c.lat,c.lon,o);
+      if(o[2]<0&&mo>0.985)return;
+      // A ring over a country already painted gold is noise; over Lebanon, which the grid
+      // holds in two cells, it is the only thing there is to see. So it is drawn on the
+      // small ones only — every country keeps its hit, or half of them could not be tapped.
+      if((cells[CIX[cc]]||0)<30){
+        const r=6+2*pulse;
+        ctx.beginPath();ctx.arc(o[0],o[1],r,0,7);
+        ctx.strokeStyle=C.lit;ctx.globalAlpha=0.34+0.24*pulse;ctx.lineWidth=1.2;ctx.stroke();
+        ctx.globalAlpha=1;
+      }
+      AT.hits.push({x:o[0],y:o[1],r:16,k:cc});
+    });
+  }
+  // City mode: every place is a beacon, its rings going out on a stagger so the map reads
+  // as something live rather than a scatter of dots.
+  function beacons(ts){
+    P.places.forEach((p,i)=>{
+      projLL(p.lat,p.lon,o);
+      if(o[2]<0&&mo>0.985)return;
+      const ph=((ts/1500)+i*0.17)%1;
+      const core=2+Math.min(3.6,Math.sqrt(p.n)*1.1);
+      ctx.beginPath();ctx.arc(o[0],o[1],core+ph*15,0,7);
+      ctx.strokeStyle=C.beam;ctx.globalAlpha=(1-ph)*0.42;ctx.lineWidth=1.1;ctx.stroke();
+      ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(o[0],o[1],core,0,7);
+      ctx.fillStyle=C.beam;ctx.shadowColor=C.beam;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
+      AT.hits.push({x:o[0],y:o[1],r:Math.max(13,core+6),k:p.name});
+    });
+  }
+
+  function tip(){
+    if(!hoverXY||AT.tip<0){tipEl.classList.remove('on');return}
+    const h=AT.hits[AT.tip];if(!h){tipEl.classList.remove('on');return}
+    tipEl.style.left=h.x+'px';tipEl.style.top=h.y+'px';tipEl.classList.add('on');
+  }
+  function tipText(h){
+    if(AT.mode==='city'){
+      const p=P.places.find(x=>x.name===h.k);if(!p)return'';
+      return`<div class="t">${esc(p.name)}</div><div class="s">${p.n} visit${p.n>1?'s':''}${p.yrs.length?' · '+p.yrs.join(', '):''}${p.approx?' · approximate':''}</div>`;
+    }
+    const c=CTRY[CIX[h.k]-1],d=per[h.k];if(!c)return'';
+    const yrs=d?[...d.yrs].sort():[];
+    return`<div class="t">${esc(c.name)}</div><div class="s">${d?d.pl.length:0} place${(d&&d.pl.length)!==1?'s':''} · ${d?d.n:0} visit${(d&&d.n)!==1?'s':''}${yrs.length?' · '+yrs[0]+(yrs.length>1?'–'+yrs[yrs.length-1]:''):''}</div>`;
+  }
+  function hover(x,y){
+    hoverXY=[x,y];let best=-1,bd=1e9;
+    AT.hits.forEach((h,i)=>{const d=(h.x-x)**2+(h.y-y)**2;if(d<h.r*h.r&&d<bd){bd=d;best=i}});
+    if(best!==AT.tip){AT.tip=best;if(best>=0)tipEl.innerHTML=tipText(AT.hits[best])}
+    glass.style.cursor=best>=0?'pointer':(drag?'grabbing':'grab');
+  }
+
+  const xy=e=>{const r=glass.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+  glass.addEventListener('pointerdown',e=>{
+    // The buttons sit inside the glass. Capturing the pointer for them turned every tap on
+    // 3D or spin into a one-pixel drag of the globe and ate the click.
+    if(e.target.closest('.atBtns'))return;
+    glass.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,xy(e));
+    if(ptrs.size===2){const v=[...ptrs.values()];pinch=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1])}
+    drag=xy(e);glass.classList.add('drag');
+  });
+  glass.addEventListener('pointermove',e=>{
+    const p=xy(e);
+    if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,p);
+    if(ptrs.size===2&&pinch){
+      const v=[...ptrs.values()],d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);
+      AT.zoom=Math.max(.6,Math.min(7,AT.zoom*(d/pinch)));pinch=d;return;
+    }
+    if(drag){
+      const dx=p[0]-drag[0],dy=p[1]-drag[1];drag=p;
+      if(AT.globe){AT.yaw=(AT.yaw+dx*0.34/Math.max(.7,AT.zoom))%360;
+        AT.pitch=Math.max(-78,Math.min(78,AT.pitch+dy*0.3/Math.max(.7,AT.zoom)))}
+      else{AT.px=Math.max(-W*.9,Math.min(W*.9,AT.px+dx));AT.py=Math.max(-H*.9,Math.min(H*.9,AT.py+dy))}
+      return;
+    }
+    hover(p[0],p[1]);
+  });
+  const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=0;
+    if(!ptrs.size){drag=null;glass.classList.remove('drag')}};
+  glass.addEventListener('pointerup',up);
+  glass.addEventListener('pointercancel',up);
+  glass.addEventListener('pointerleave',()=>{hoverXY=null;AT.tip=-1});
+  glass.addEventListener('wheel',e=>{
+    e.preventDefault();
+    AT.zoom=Math.max(.6,Math.min(7,AT.zoom*(e.deltaY>0?0.9:1.11)));
+  },{passive:false});
+  glass.addEventListener('dblclick',atReset);
+
+  raf=requestAnimationFrame(draw);
+}
+
 const SPECIAL={overview:{render:overviewPage,fab:null},
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
@@ -5984,6 +6677,8 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   fintx:{render:fintxPage,fab:'fintx'},
   tx:{render:txPage,fab:'tx'},
   networth:{render:networthPage,fab:'assets'},
+  // Past is two views of one section: the written list, or the same rows on the world.
+  travpast:{render:travpastPage,bind:bindAtlas,fab:'travpast'},
   service:{render:servicePage},           // nothing here is added with +, so no button
   cfo:{render:cfoPage,fab:()=>CFOV==='dash'?null:CFOV},
   // The Geo desk. Only a country page takes +, and what it adds is that country's weekly brief.
