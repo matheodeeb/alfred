@@ -853,7 +853,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-28 · who\'s who by country';
+const BUILD='2026-09-28 · haiti';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5360,7 +5360,12 @@ const GEO_C=[
   strong:['Controls the Bosphorus and Dardanelles','Large army and a booming drone industry','Bridge between Europe, the Middle East and Central Asia','Mediator role (grain deal, prisoner swaps)'],
   weak:['High inflation and repeated currency crises','Strained ties with the US and the EU','Democratic backsliding','Imports most of its energy']},
 ];
-const GEO_ACT=[...GEO_C,{c:'EU',n:'European Union',f:'🇪🇺'}];
+GEO_C.push({c:'HT',n:'Haiti',f:'🇭🇹',reg:'Caribbean',cap:'Port-au-Prince',gov:'Transitional government (no elected officials in office)',lead:'Alix Didier Fils-Aimé',leadT:'Prime Minister',
+  s:[1,1,1,1,2,2,2,3],st:{gdp:.025,gdppc:2.1,pop:11.9,mil:null,milpct:null,nuk:0,armsx:null,hdi:.554},
+  why:'The poorest country in the Americas, in a political and security crisis since President Jovenel Moïse was assassinated in 2021. Armed gangs control most of Port-au-Prince and the roads out of it, no one in national office has been elected, and a UN-backed Gang Suppression Force is being built up to help restore order. Its path depends heavily on Washington, the UN, the Dominican Republic next door and its Caribbean neighbours.',
+  strong:['A large, well-connected diaspora: remittances are worth over a fifth of GDP','Garment assembly with preferential access to the US market','Young population, strong cultural identity; the first Black republic (1804)','Seat in CARICOM and the OAS, which keep Haiti on the regional agenda'],
+  weak:['Gangs (the Viv Ansanm coalition) control most of the capital and key highways','No elected president or parliament; elections repeatedly postponed','About 1.4 million people displaced and roughly half the population facing acute hunger','A small police force and army that depend on foreign help','Exposed to hurricanes and earthquakes']});
+const GEO_ACT=[...GEO_C,{c:'EU',n:'European Union',f:'🇪🇺'},{c:'DO',n:'Dominican Republic',f:'🇩🇴'}];
 const gC=c=>GEO_ACT.find(x=>x.c===c);
 const gCode=name=>(GEO_ACT.find(x=>x.n===name)||{}).c||name;
 
@@ -5406,6 +5411,12 @@ const GEO_REL=[
  ['SA','IR',-2,'Rivals','Regional and sectarian rivals; a 2023 détente strained by Iranian strikes on Gulf neighbours.'],
  ['SA','IL',-1,'No relations','Normalisation talks stalled by the Gaza war; quiet security contacts.'],
  ['TR','IL',-3,'Hostile','Türkiye cut trade with Israel in 2024 over Gaza.'],
+ ['HT','US',2,'Dependent partner','The largest donor and export market, and home to the biggest Haitian diaspora. Washington designated the main gangs terrorist organisations in 2025 and pushed for the Gang Suppression Force, while tightening entry: a 2025 travel ban and moves to end protected status for Haitians in the US.'],
+ ['HT','DO',-2,'Tense neighbours','The two share the island of Hispaniola. The Dominican Republic is a key trading partner, but it has deported hundreds of thousands of Haitians since 2024, is building a border wall, and has closed the border in past crises.'],
+ ['HT','FR',1,'Old coloniser','Haiti won independence from France in 1804, then paid France a crippling indemnity for its freedom from 1825, a grievance still raised today. In 2025 France acknowledged it and set up a joint commission of historians. Aid and French-language ties continue.'],
+ ['HT','CN',-1,'No diplomatic ties','Haiti is one of the few countries that recognise Taiwan rather than Beijing. China, a veto power, has pushed to keep UN security mandates for Haiti narrow.'],
+ ['HT','EU',2,'Donor','One of the largest humanitarian and development donors to Haiti.'],
+ ['US','DO',3,'Partners','Close trade and security partners; the Dominican Republic hosts US support for the Haiti mission.'],
 ];
 
 const GEO_ORG=[
@@ -5465,6 +5476,14 @@ const GEO_ORG=[
   mem:[],memTxt:'55 African states',
   what:'Peace, security and economic integration across Africa.',
   why:'A permanent G20 member since 2023 and the arena where China, Russia, the Gulf and the West compete for influence.'},
+ {k:'CARICOM',n:'CARICOM',kind:'Regional community',yr:1973,hq:'Georgetown, Guyana',head:'Carla Barnett (Secretary-General)',
+  mem:['HT'],memTxt:'15 Caribbean states, Haiti among them',
+  what:'The Caribbean Community: a common market and a forum for coordinating the region\'s foreign policy.',
+  why:'Brokered the 2024 agreement that set up Haiti\'s transitional government, and speaks for the region on the crisis.'},
+ {k:'OAS',n:'Organization of American States',kind:'Regional organisation',yr:1948,hq:'Washington, D.C.',head:'Albert Ramdin (Secretary General)',
+  mem:['US','HT'],memTxt:'35 independent states of the Americas',
+  what:'The main political forum for the Western Hemisphere, covering democracy, human rights, security and election observation.',
+  why:'Leads regional support on Haiti, including planning for its elections and a hemispheric road map out of the crisis.'},
 ];
 
 const GEO_ROLE_CAT=['Heads of state & government','Diplomacy & defence','Money & trade','International institutions'];
@@ -5514,6 +5533,9 @@ const GEO_ROLES=[
  [3,'IMF Managing Director','Kristalina Georgieva','IMF','2019-10-01','Runs the lender of last resort to countries in crisis (Ukraine, Argentina, Pakistan…).'],
  [3,'World Bank President','Ajay Banga','World Bank','2023-06-02','Leads the main lender for development in poorer countries.'],
  [3,'WTO Director-General','Ngozi Okonjo-Iweala','WTO','2021-03-01','Heads the body that polices global trade rules, now strained by tariff wars.'],
+ [0,'Prime Minister of Haiti','Alix Didier Fils-Aimé','HT','2024-11-11','Head of government. Since the Transitional Presidential Council\'s mandate ended in February 2026 he has run the executive alone, until elections restore an elected president and parliament. Haiti has had no president since 2021.'],
+ [3,'OAS Secretary General','Albert Ramdin','OAS','2025-05-16','Heads the Organization of American States, the hemisphere\'s main political forum, which is central to planning Haiti\'s return to elections.'],
+ [3,'CARICOM Secretary-General','Carla Barnett','CARICOM','2021-08-15','Runs the Caribbean Community\'s secretariat; CARICOM brokered Haiti\'s transitional arrangement in 2024.'],
 ];
 
 /* Starting points, so the charts have a shape before anything is logged. New readings are
@@ -5543,6 +5565,10 @@ const GEO_POL=[
  {c:'GB',n:'Defence to 2.5% of GDP by 2027',st:'In force',d:'2025-02',s:'Paid for by cutting foreign aid to 0.3% of national income.'},
  {c:'JP',n:'Defence spending at 2% of GDP',st:'In force',d:'2025-10',s:'Target brought forward two years to fiscal 2025.'},
  {c:'UA',n:'EU accession talks',st:'Proposed',d:'2024-06',s:'A candidate since 2022; opening the negotiating chapters has been blocked by Hungary.'},
+ {c:'HT',n:'Gang Suppression Force',st:'Enacted',d:'2025-09-30',s:'A UN Security Council resolution replaced the Kenya-led support mission with a larger force of up to 5,550 troops and police, backed by a new UN support office. The force is still being assembled.'},
+ {c:'HT',n:'Return to elected government',st:'Proposed',d:'2026-02',s:'The transition was meant to hand power to elected leaders by 7 February 2026. Insecurity pushed the vote back; elections are now planned for later in 2026.'},
+ {c:'HT',n:'New constitution',st:'Proposed',d:'2025',s:'A draft constitution was published in 2025 for a referendum, which has been repeatedly postponed.'},
+ {c:'HT',n:'US immigration curbs on Haitians',st:'In court',d:'2025-06',s:'Haiti is covered by a 2025 US travel ban, and Washington moved to end Temporary Protected Status for Haitians living in the US; the TPS decision is being fought in court.'},
  {c:'SA',n:'Vision 2030',st:'In force',d:'2016-04',s:'The plan to diversify away from oil through tourism, industry and giga-projects, now being scaled back as oil revenue falls short.'},
 ];
 
@@ -5742,7 +5768,7 @@ function gCmpTog(c){const s=GEO.cmp.sel,i=s.indexOf(c);if(i>=0)s.splice(i,1);els
 
 /* ---- Relations ---- */
 function geoRelationsPage(){
-  const A=['US','CN','RU','EU','GB','FR','DE','JP','IN','UA','TR','IL','IR','SA'];
+  const A=['US','CN','RU','EU','GB','FR','DE','JP','IN','UA','TR','IL','IR','SA','HT','DO'];
   const key=(a,b)=>GEO_REL.find(r=>(r[0]===a&&r[1]===b)||(r[0]===b&&r[1]===a));
   let h=`<div class="gIntro"><h1>Relations</h1><p>Who is aligned with whom, and why. Scores run from −5 (at war) to +5 (treaty allies). Tap a square to read that relationship.</p></div>`;
   h+=`<div class="panel"><div class="gMatW"><table class="gMat"><tr><th></th>${A.map(c=>`<th title="${gName(c)}">${gC(c).f}</th>`).join('')}</tr>
@@ -5784,7 +5810,7 @@ function gOrgJump(k){const e=document.getElementById('org-'+k.replace(/\W/g,''))
    belongs to, so a country's president, ministers and speaker read together. Countries come
    first in the same order as elsewhere on the desk, then the international bodies. The kind
    of role still shows, in small caps on each card. */
-const GEO_ORG_NAMES={UN:'United Nations',NATO:'NATO',EU:'European Union',IMF:'International Monetary Fund','World Bank':'World Bank',WTO:'World Trade Organization',OPEC:'OPEC'};
+const GEO_ORG_NAMES={UN:'United Nations',NATO:'NATO',EU:'European Union',OAS:'Organization of American States',CARICOM:'CARICOM',IMF:'International Monetary Fund','World Bank':'World Bank',WTO:'World Trade Organization',OPEC:'OPEC'};
 function gRoleGroups(){
   const keys=[...new Set(GEO_ROLES.map(r=>r[3]))];
   const cs=GEO_C.map(x=>x.c).filter(c=>keys.includes(c));
