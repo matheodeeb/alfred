@@ -3612,6 +3612,11 @@ function plaidRow(t,card,item){
 async function plaidLiabSync(){
   let filled=0,failed=0;
   for(const it of plaidItems()){
+    /* A connection whose balance is kept by hand has been taken off the list of banks we
+       reach out to, and this reaches out too. The cost is real and worth stating: a card
+       set this way stops refreshing its APR, minimum and due day. Worth it, because the
+       alternative is the call that keeps knocking the connection over. */
+    if(plaidManual(it))continue;
     let out;
     try{ out=await plaidFn('liabilities',{item_id:it.d.item}) }
     catch(e){ failed++; continue }
@@ -3693,10 +3698,30 @@ function plaidSeatAccounts(){
   }));
   return made;
 }
+/* Some banks will never hand over a balance. BankUnited asks for a one-time code on every
+   single login, and every call that reaches the bank forces one: Plaid can take that code
+   inside Link, with him sitting there, and cannot supply one unattended. So the balance
+   call fails within seconds of even a perfect sign-in, and the connection is marked
+   login-required again -- four times in one evening, each reconnect working and each one
+   undone by the next call.
+
+   Kept on the connection so it is a property of the bank rather than a rule about one
+   name, because the next bank like this should need no code at all. */
+const plaidManual=it=>!!(it&&it.d&&it.d.manualBal);
+function plaidSetManual(id,on){
+  const it=one(id); if(!it)return;
+  if(on&&!confirm('Keep '+(it.d.inst||'this bank')+'\u2019s balance by hand?\n\nIts transactions carry on syncing as they do now. Only the balance stops being fetched \u2014 you type it, and nothing overwrites it.'))return;
+  // The old refusal is not news about a bank we have stopped asking.
+  put('plaid',{manualBal:!!on,...(on?{balErr:'',diag:null,diagAt:''}:{})},id);
+  renderActive();
+}
 async function plaidBalSync(){
   let filled=0,failed=0;
   const inv=[];
   for(const it of plaidItems()){
+    // Asked not to. Its accounts keep whatever is typed on them, and no call is made that
+    // the bank would refuse and then hold against the connection.
+    if(plaidManual(it))continue;
     let out;
     /* A bank that will hand over transactions can still refuse a balance, and when that
        happened the account simply was not there -- no row, no reason, nothing to tell it
@@ -4117,7 +4142,9 @@ function plaidPanel(){
        putting the button that helps beside it, is the difference between a warning and an
        instruction. The bank's own words stay on hover, so a new kind of failure can still
        be reported exactly rather than paraphrased. */
-    const stale=/ITEM_LOGIN_REQUIRED|login details/i.test(String(i.d.err||'')+String(i.d.balErr||''));
+    const manual=plaidManual(i);
+    // A bank we have stopped asking cannot be failing to answer.
+    const stale=!manual&&/ITEM_LOGIN_REQUIRED|login details/i.test(String(i.d.err||'')+String(i.d.balErr||''));
     // Balances that came from Plaid's own store because the bank would not take a fresh
     // login. Not an error -- the number is real -- but not this second either.
     const lastKnown=!stale&&i.d.balStale;
@@ -4125,7 +4152,7 @@ function plaidPanel(){
        much to expect of it: a bank that signs you in on its own site issues a token it
        honours, while one that does not is Plaid logging in as you -- and that session can
        be ended by the bank, or by you signing in yourself. */
-    const d=i.d.diag||null;
+    const d=manual?null:(i.d.diag||null);
     const diag=d?'<div class="hint" style="margin:6px 0 0 2px">Plaid says: '
       +esc(d.itemError||'no error stored against the connection itself')
       +(d.oauth===false?' · this bank does not use OAuth, so Plaid signs in as you and that session can be ended by the bank':'')
@@ -4135,7 +4162,8 @@ function plaidPanel(){
       +'</div>':'';
     const empty=!stale&&i.d.last&&!i.d.rows;
     const raw=esc(String(i.d.err||i.d.balErr||''));
-    const note=stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
+    const note=manual?' · <b style="color:var(--blue)">balance kept by hand — tap the account on Brief to set it; transactions still sync on their own</b>'
+      :stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
       :i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
       :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
       :lastKnown?' · <b style="color:var(--gold)">this bank wants a one-time code for every login, so the balance is the last one Plaid collected rather than this second — transactions are current</b>'
@@ -4143,10 +4171,13 @@ function plaidPanel(){
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
       '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span>'+diag+'</span>'+
       '<span style="margin-left:auto;display:inline-flex;gap:8px">'+
-      (empty?'<button class="btn sm ghost" onclick="plaidRepull(\''+esc(i.id)+'\')" '+
+      '<button class="btn sm ghost" onclick="plaidSetManual(\''+esc(i.id)+'\','+(manual?'false':'true')+')" '+
+        'title="'+(manual?'Go back to fetching this bank\u2019s balance':'Stop fetching this balance and type it yourself')+'">'+
+        (manual?'Fetch balance':'Balance by hand')+'</button>'+
+      (empty&&!manual?'<button class="btn sm ghost" onclick="plaidRepull(\''+esc(i.id)+'\')" '+
         'title="Ask this bank for its whole history again, ignoring what we already hold">Re-pull history</button>':'')+
-      '<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
-        'title="Re-authorise this bank without using another connection">Reconnect</button>'+
+      (manual?'':'<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
+        'title="Re-authorise this bank without using another connection">Reconnect</button>')+
       '<button class="btn sm ghost" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></span></div>';
   }).join('');
   h+='<div style="display:flex;gap:8px;margin-top:12px">'+
