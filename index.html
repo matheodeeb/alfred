@@ -3886,25 +3886,18 @@ function plaidAutoSync(){
 
    It is cheap to repeat: the cursor lives on the server, so a bank with nothing new
    answers with an empty delta rather than resending its history. */
-/* Ask every bank to go and look, before reading what they have.
+/* There is deliberately no "make the banks go and look" step here.
 
-   /transactions/sync serves Plaid's own copy, which Plaid updates on its own schedule --
-   for some banks only a few times a day. Without this, "Sync now" could faithfully report
-   nothing new while the bank itself had moved on hours ago, which is exactly what "it
-   never goes through" feels like from the outside.
+   /transactions/refresh forces a live login at the bank, and Sync now briefly fired it at
+   every connection to get past Plaid's own refresh schedule. Within ten minutes of that
+   shipping, Citibank went from working to ITEM_LOGIN_REQUIRED -- an OAuth bank, reported
+   HEALTHY for everyone, with consent good for another year. Nothing about that is the
+   bank's doing, and the only new thing in between was the forced refresh.
 
-   Deliberately best-effort and never fatal: a bank that will not be pushed answers
-   PRODUCT_NOT_READY, which is no reason to abandon the sync. Plaid fetches in the
-   background, so the read that follows may still be a moment behind and the one after it
-   carries the rows. */
-async function plaidAskBanks(){
-  let asked=0;
-  await Promise.all(plaidItems().map(async it=>{
-    try{const r=await plaidFn('refresh',{item_id:it.d.item}); if(r&&r.asked)asked++}
-    catch(e){}
-  }));
-  return asked;
-}
+   Not proven, and it does not need to be. Forcing a login buys very little, because Plaid
+   refreshes on its own anyway, and the cost when it goes wrong is a connection that was
+   working and now needs a sign-in. That trade is not worth taking, so nothing here pushes
+   a bank that has not asked to be pushed. */
 /* reset throws away the cursor and asks each bank from the beginning.
 
    A cursor is a promise that everything before it has already been handed over. A bank
@@ -4043,8 +4036,7 @@ async function plaidRepull(id){
   if(!confirm('Ask '+(it.d.inst||'this bank')+' for its whole history again?\n\nNothing can be duplicated — every transaction is stored under the id the bank gives it, so anything already here is simply rewritten.'))return;
   PLAIDBUSY=1;PLAIDMSG='asking '+(it.d.inst||'the bank')+' for everything…';renderActive();
   try{
-    await plaidFn('refresh',{item_id:it.d.item}).catch(()=>{});   // this bank only
-    await plaidTxSync(true,id);
+    await plaidTxSync(true,id);   // the cursor reset alone: no forced login at the bank
     plaidStmtSync();plaidTfrSync();
     const got=plaidRowsOf(it).length;
     alert(got?got+' transaction'+(got===1?'':'s')+' now held for this bank.'
@@ -4053,10 +4045,8 @@ async function plaidRepull(id){
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
 async function plaidSyncNow(){
-  PLAIDBUSY=1;PLAIDMSG='asking your banks…';renderActive();
+  PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
   try{
-    await plaidAskBanks();
-    PLAIDMSG='reading what they sent…';renderActive();
     const r=await plaidSyncAll();
     alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
       r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
