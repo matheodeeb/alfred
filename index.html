@@ -3712,7 +3712,11 @@ async function plaidBalSync(){
         .then(d=>put('plaid',{diag:d,diagAt:new Date().toISOString()},it.id))
         .catch(()=>{});
       continue }
-    put('plaid',{balErr:'',diag:null,diagAt:''},it.id);
+    /* The figure arrived, but say whether it came from the bank just now or from what
+       Plaid last managed to collect. For a bank that demands a one-time code on every
+       login the live call can never succeed, and a slightly old real number beats an empty
+       row -- as long as it does not claim to be current. */
+    put('plaid',{balErr:'',balStale:!!out.stale,diag:null,diagAt:''},it.id);
     (out.balances||[]).forEach(a=>{
       // A brokerage is not cash and not a card. It is the Investment log's, collected here
       // and written once at the end so the log holds one figure rather than several.
@@ -4124,6 +4128,9 @@ function plaidPanel(){
        instruction. The bank's own words stay on hover, so a new kind of failure can still
        be reported exactly rather than paraphrased. */
     const stale=/ITEM_LOGIN_REQUIRED|login details/i.test(String(i.d.err||'')+String(i.d.balErr||''));
+    // Balances that came from Plaid's own store because the bank would not take a fresh
+    // login. Not an error -- the number is real -- but not this second either.
+    const lastKnown=!stale&&i.d.balStale;
     /* What Plaid itself says about this connection. `oauth` is the line that decides how
        much to expect of it: a bank that signs you in on its own site issues a token it
        honours, while one that does not is Plaid logging in as you -- and that session can
@@ -4141,6 +4148,7 @@ function plaidPanel(){
     const note=stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
       :i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
       :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
+      :lastKnown?' · <b style="color:var(--gold)">this bank wants a one-time code for every login, so the balance is the last one Plaid collected rather than this second — transactions are current</b>'
       :(empty?' · <b style="color:var(--orange)">connects fine but sends no transactions — try Re-pull history</b>':'');
     return '<div class="finRow"><span class="n">'+esc(i.d.inst||'Bank')+
       '<span class="sub"> · '+n+' account'+(n===1?'':'s')+' · synced '+esc(last)+note+'</span>'+diag+'</span>'+

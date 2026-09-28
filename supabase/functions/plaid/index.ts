@@ -459,7 +459,22 @@ Deno.serve(async (req: Request) => {
         const rows = await db(`plaid_items?item_id=eq.${qs(body.item_id)}&owner=eq.${qs(user)}&select=access_token`);
         const row = rows?.[0];
         if (!row) return json({ error: "no such connection" }, 404);
-        const out = await plaid("/accounts/balance/get", { access_token: row.access_token });
+        /* /accounts/balance/get forces a fresh login at the bank -- that is the point of it,
+         * and for most banks it is free. For a bank that demands a one-time code on every
+         * single login it is fatal: the code cannot be supplied outside Link, so the call
+         * fails and the Item is marked login-required seconds after a perfectly good
+         * sign-in. That is a balance nobody can ever fetch.
+         *
+         * /accounts/get asks Plaid for what it already holds instead of sending it to the
+         * bank. The figure is as of Plaid's last successful contact rather than this second
+         * -- which is worth saying out loud, and worth far more than "not reported". */
+        let out: any, stale = false;
+        try {
+          out = await plaid("/accounts/balance/get", { access_token: row.access_token });
+        } catch (e) {
+          out = await plaid("/accounts/get", { access_token: row.access_token });
+          stale = true;
+        }
         const balances = (out.accounts ?? []).map((a: any) => ({
           id: a.account_id, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype,
           current: a.balances?.current ?? null, available: a.balances?.available ?? null,
@@ -474,7 +489,7 @@ Deno.serve(async (req: Request) => {
             updated_at: new Date().toISOString(),
           }),
         });
-        return json({ balances });
+        return json({ balances, stale });
       }
 
       // Connections belonging to the caller. Tokens are excluded from the projection.
