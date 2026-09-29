@@ -232,7 +232,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
      same type. The tick does not carry a state — it is never off and ticking it records
      nothing — so it never fills in or turns green; it only lights under the cursor, the
      way a button does. */
-  .adv,.rankB{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);
+  .adv,.rankB{flex:none;width:24px;height:24px;border-radius:7px;border:1px solid var(--line2);
     background:var(--bg2);display:flex;align-items:center;justify-content:center;
     font-family:"IBM Plex Mono";font-size:12px;font-weight:600;line-height:1;
     color:var(--muted);padding:0}
@@ -955,7 +955,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-29 · a place in the queue';
+const BUILD='2026-09-29 · a genre says what it is';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1403,14 +1403,21 @@ const watchSt=d=>{const v=(d&&d.status)||'';return WATCH_OLD[v]||v};
    the front of the list, being watched, finished. The filter row and the dropdown are both
    built from this, so they cannot disagree about it. */
 const WATCH_OPTS=['Coming soon','To watch','Next up','Watching','Done'];
+/* Nearly the same list, not quite: a film is one sitting, and being halfway through one is
+   not a state worth keeping — so Movies has the list without that step, and its tick goes
+   straight from the queue to done. Anything that reads the words reads them from here, so
+   the two pages still cannot drift in the places they do agree. */
+const WATCH_SKIP={movies:['Watching']};
+const optsFor=sec=>{const skip=WATCH_SKIP[sec];return skip?WATCH_OPTS.filter(o=>!skip.includes(o)):WATCH_OPTS};
 /* Coming soon and Next up are the two that are often empty — nothing is announced, or
    nothing has been put in order yet — and a filter with nothing behind it is a dead tab.
    They earn their place by having something in them. */
 /* One step along the list — Coming soon to To watch, To watch to Next up, and so on to
    Done, which has nowhere further to go. */
-function advNext(d){
-  const ix=WATCH_OPTS.indexOf(watchSt(d));
-  return ix>=0&&ix<WATCH_OPTS.length-1?WATCH_OPTS[ix+1]:'';
+function advNext(d,sec){
+  const L=optsFor(sec);
+  const ix=L.indexOf(watchSt(d));
+  return ix>=0&&ix<L.length-1?L[ix+1]:'';
 }
 /* Which filter each page is drawing. A row only offers the move when you are looking at
    one of the steps: on All the rows are in five different places at once and there is no
@@ -1418,7 +1425,7 @@ function advNext(d){
 const CURCHIP={};
 function advWatch(sec,id){
   const i=one(id);if(!i)return;
-  const nx=advNext(i.d);if(!nx)return;
+  const nx=advNext(i.d,sec);if(!nx)return;
   // Joining the queue is the one step that needs a decision: everywhere else there is only
   // one place to go, but a queue has positions, and dropping something on the end when it
   // was meant to be next is the sort of thing you notice a week later.
@@ -1460,7 +1467,7 @@ function askRank(sec,id){
   ov('rankOv',1);
 }
 const WATCH_LEAN=new Set(['Coming soon','Next up']);
-const WATCH_CHIPS=[{l:'All',f:()=>1}].concat(WATCH_OPTS.map(o=>(
+const chipsFor=sec=>[{l:'All',f:()=>1}].concat(optsFor(sec).map(o=>(
   {l:o,f:i=>watchSt(i.d)===o,hideEmpty:WATCH_LEAN.has(o)})));
 const WATCH_PILL={'Coming soon':'warn','Watching':'ok','Next up':'acc','To watch':'info','Done':'mut'};
 const watchPill=d=>({cls:WATCH_PILL[watchSt(d)]||'mut',txt:esc(watchSt(d))});
@@ -1498,20 +1505,24 @@ function relDate(d){
   if((new Date(y,mi,day)-now)/86400000<-120)y+=1;
   return new Date(y,mi,day).getTime();
 }
-/* Upcoming runs chronologically — what lands soonest sits on top, including
-   something already in cinemas. Everything else keeps the manual ranking. */
+/* What has not landed yet runs chronologically — soonest on top — and everything else
+   keeps the manual ranking. That used to hang off a genre called Upcoming, which meant a
+   film had to give up saying what it actually was in order to say it was not out. It hangs
+   off the status now, which is what the status is for, so a film can be Coming soon AND a
+   thriller. */
 function upNextSort(a,b){
   /* Compare within a genre only. Mixing two different rules across genres would
      make this comparator inconsistent and Array.sort would scramble the result. */
   const ga=a.d.genre||'Other', gb=b.d.genre||'Other';
-  if(ga!==gb)return (ga==='Upcoming'?0:1)-(gb==='Upcoming'?0:1)||ga.localeCompare(gb);
-  if(ga!=='Upcoming')return priSort(a,b);
-  const fa=isFinished(a.d)?1:0, fb=isFinished(b.d)?1:0;
-  if(fa!==fb)return fa-fb;
+  if(ga!==gb)return ga.localeCompare(gb);
+  const sa=watchSt(a.d)==='Coming soon'?0:1, sb=watchSt(b.d)==='Coming soon'?0:1;
+  if(sa!==sb)return sa-sb;                         // still to land, ahead of what is out
+  if(sa)return priSort(a,b);
   const pa=+a.d.pri||0, pb=+b.d.pri||0;            // an explicit rank still wins
   if(pa!==pb)return (pa||1e9)-(pb||1e9);
   const da=relDate(a.d), db=relDate(b.d);
   if(da!=null&&db!=null&&da!==db)return da-db;
+  if((da==null)!==(db==null))return da==null?1:-1; // no date at all sits last
   if(da!=null&&db==null)return -1;
   if(da==null&&db!=null)return 1;
   return (a.d.name||'').localeCompare(b.d.name||'');
@@ -1956,7 +1967,7 @@ function rowHtml(sec,i){
   const m=MODS[sec],c=m.card(i);
   const doneKey=m.toggle, isDone=doneKey?!!i.d[doneKey.k||doneKey]:false;
   const view=CURCHIP[sec]||'';
-  const nx=(m.advance&&view&&view!=='All'&&view!=='Done')?advNext(i.d):'';
+  const nx=(m.advance&&view&&view!=='All'&&view!=='Done')?advNext(i.d,sec):'';
   const det=detailHtml(sec,i);
   return`<div class="rowBox ${c.dim?'dim':''} ${OPEN.has(i.id)?'open':''}" data-id="${i.id}">
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
@@ -2809,19 +2820,19 @@ travpast:{title:'Timeline — past',color:'var(--gold)',data:'travels',only:i=>!
   card:i=>({t:esc(i.d.place),s:tripDates(i.d,1),pill:{cls:'mut',txt:'travelled'}}),
   empty:'Nothing here yet — tick a place off on Travels and it lands here.'},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next in the queue.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:WATCH_OPTS},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:optsFor('shows')},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
-  groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
-  chips:WATCH_CHIPS,
+  groupOrder:(a,b)=>a.localeCompare(b),
+  chips:chipsFor('shows'),
   ranked:1, advance:1, sort:upNextSort,
   card:i=>({t:esc(i.d.name),rank:+i.d.pri||'',
     s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:watchPill(i.d),dim:isFinished(i.d)})},
 movies:{title:'Movies',color:'var(--red)',hint:'What is out, what is queued, and what is still to come.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:WATCH_OPTS},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:optsFor('movies')},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
-  groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
-  chips:WATCH_CHIPS,
+  groupOrder:(a,b)=>a.localeCompare(b),
+  chips:chipsFor('movies'),
   ranked:1, advance:1, sort:upNextSort,
   card:i=>({t:esc(i.d.name),rank:+i.d.pri||'',
     s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),
@@ -7052,6 +7063,9 @@ function migrateWatchStatus(){
   Object.values(S.items).forEach(i=>{
     if(i.del||(i.sec!=='shows'&&i.sec!=='movies')||!i.d)return;
     let st=watchSt(i.d), pri=+i.d.pri||0, ch=false;
+    // Movies no longer has Watching. Nothing uses it today, but a row written before this
+    // would land in no filter at all, so it goes back to the queue rather than nowhere.
+    if(i.sec==='movies'&&st==='Watching')st='To watch';
     if(st!==i.d.status){i.d.status=st;ch=true}
     if(pri>0&&st==='To watch'){i.d.status=st='Next up';ch=true}
     if(pri>0&&st!=='Next up'){i.d.pri='';ch=true;touched.push(i)}
