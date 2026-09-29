@@ -4086,6 +4086,13 @@ function txTfrKind(d){
 }
 function plaidTfrSync(){
   let n=0;
+  /* Transfers made from ledger rows that are no longer there. Removing one at the moment
+     Plaid says so is the fix; this is the sweep that heals what was already orphaned, and
+     the guard for any route that kills a ledger row without coming through here. */
+  list('fintx').forEach(f=>{
+    const m=/^fintx:plaid:(.+)$/.exec(f.id); if(!m)return;
+    if(!one('tx:plaid:'+m[1]))kill(f.id);
+  });
   list('tx').forEach(x=>{
     const kind=txTfrKind(x.d); if(!kind)return;
     const d=String(x.d.date||''); if(!d)return;
@@ -4174,7 +4181,15 @@ async function plaidTxSync(reset,onlyId){
     let n=0;
     (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++;n++});
     (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);updated++});
-    (out.removed||[]).forEach(id=>{if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}});
+    /* A transfer is the same event as its ledger row, written twice, so it has to die
+       with it. A wire arrives pending under one id and posts under another; Plaid sends
+       the pending one back as removed, the ledger row goes, and the transfer row made
+       from it used to stay -- one wire, showing twice, on a page whose whole job is to
+       add money up. */
+    (out.removed||[]).forEach(id=>{
+      if(one('tx:plaid:'+id)){kill('tx:plaid:'+id);removed++}
+      if(one('fintx:plaid:'+id))kill('fintx:plaid:'+id);
+    });
     // What this bank gave, so a connection that keeps arriving empty can say so rather
     // than looking identical to one nobody has spent on.
     put('plaid',{last:new Date().toISOString(),err:'',
