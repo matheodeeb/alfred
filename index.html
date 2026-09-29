@@ -3673,8 +3673,11 @@ function syncIncomeTransfers(){
       const id='fintx:income:'+i.id+':'+y+'-'+String(m+1).padStart(2,'0');
       if(!stOf('fintx').items[id]){
         const date=y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        // card is the account the money lands in. Without it fintxCardOf() falls back to
+        // "Unassigned", which would file your salary next to the hand-typed rows that
+        // genuinely have no account -- so the account dropdown names it instead.
         put('fintx',{date,month:MONTHS[m],year:y,desc:i.d.name||'Income',
-          acct:side,cur,amt:Math.abs(amt),src2:'Income'},id);
+          acct:side,card:String(i.d.acct||'').trim(),cur,amt:Math.abs(amt),src2:'Income'},id);
         n++;
       }
       m++; if(m>11){m=0;y++}
