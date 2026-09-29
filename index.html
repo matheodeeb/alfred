@@ -922,7 +922,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-29 · one queue, both pages';
+const BUILD='2026-09-29 · in order';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1366,7 +1366,10 @@ const isFinished=d=>d.status==='Done'||d.status==='Watched';
    this build yet, so status is read through watchSt rather than compared directly. */
 const WATCH_OLD={'Available':'To watch','Watched':'Done','Waiting for season':'Coming soon'};
 const watchSt=d=>{const v=(d&&d.status)||'';return WATCH_OLD[v]||v};
-const WATCH_OPTS=['Coming soon','Watching','Next up','To watch','Done'];
+/* In the order a thing actually moves through them: not out yet, out and on the list, near
+   the front of the list, being watched, finished. The filter row and the dropdown are both
+   built from this, so they cannot disagree about it. */
+const WATCH_OPTS=['Coming soon','To watch','Next up','Watching','Done'];
 /* Coming soon and Next up are the two that are often empty — nothing is announced, or
    nothing has been put in order yet — and a filter with nothing behind it is a dead tab.
    They earn their place by having something in them. */
@@ -6950,15 +6953,23 @@ function migrateWatchStatus(){
   // reRank renumbers a genre 1..n from whatever is left, so handing it the row that just
   // gave up its number is all that is needed to close the hole it left.
   touched.forEach(i=>{try{reRank(i.sec,i)}catch(e){}});
-  /* Which filter each page was on is remembered as a position, and the row of filters has
-     been rebuilt twice — so a remembered position no longer points at the same filter and
-     could open the wrong one without saying so. Both pages go back to All, once. */
+  /* Which filter each page was on is remembered as a position, so rebuilding the row moves
+     what a remembered position means. Twice now: first the row was rebuilt outright, and
+     both pages went back to All; then Watching and To watch traded places, which is a
+     swap rather than a rebuild, so the tab he was on follows its own label across. */
   try{
     if(!localStorage.alfred_chips2){
       localStorage.alfred_chips2='1';
       const c=JSON.parse(localStorage.alfred_chips||'{}');
       ['shows','movies'].forEach(k=>{delete c[k];delete chipState[k]});
       localStorage.alfred_chips=JSON.stringify(c);
+    }
+    if(!localStorage.alfred_chipswap){
+      localStorage.alfred_chipswap='1';
+      const c=JSON.parse(localStorage.alfred_chips||'{}');let moved=false;
+      ['shows','movies'].forEach(k=>{
+        const v=c[k];if(v===2||v===4){c[k]=v===2?4:2;chipState[k]=c[k];moved=true}});
+      if(moved)localStorage.alfred_chips=JSON.stringify(c);
     }
   }catch(e){}
 }
