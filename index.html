@@ -224,6 +224,23 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .editBtn:hover{border-color:var(--acc);color:var(--acc)}
   .chk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:transparent;transition:.15s}
   .chk.done{background:var(--ok);border-color:var(--ok);color:#faf6ec}
+  /* Not a checkbox: it is never off, and ticking it does not record anything. It is the one
+     move you make on a row over and over — this is out now, I have started it, I have
+     finished it — so it is a button that says which way the row is going, and the tick is
+     drawn the whole time because there is no state to read off it. */
+  /* The tick and the rank are one pair, so they are one shape: same circle, same border,
+     same type. The tick does not carry a state — it is never off and ticking it records
+     nothing — so it never fills in or turns green; it only lights under the cursor, the
+     way a button does. */
+  .adv,.rankB{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);
+    background:var(--bg2);display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono";font-size:12px;font-weight:600;line-height:1;
+    color:var(--muted);padding:0}
+  .adv{cursor:pointer;transition:.14s}
+  .adv:hover{border-color:var(--acc);color:var(--acc)}
+  .adv:active{transform:scale(.9)}
+  .rankB{pointer-events:none;user-select:none}
+  .adv+.rankB{margin-left:-7px}                 /* the pair reads as one, not as two gaps */
   /* How many things are on the order. It is a label, not a control: no pointer, no tap. */
   .cnt{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line2);
     display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;
@@ -277,6 +294,11 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
   .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
+  .rkName{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:15px;margin-top:4px}
+  .rkList{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  .rkHead{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px}
+  .rkRow{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px}
   .modal .foot .spacer{flex:1}
   .note{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.55}
   /* menu grid */
@@ -879,6 +901,17 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   </div>
 </div></div>
 
+<div class="overlay" id="rankOv"><div class="modal">
+  <button class="close" onclick="ov('rankOv',0)">×</button>
+  <h3 id="rankTitle">Where in the queue?</h3>
+  <div id="rankBody"></div>
+  <div class="foot">
+    <span class="spacer"></span>
+    <button class="btn ghost" onclick="ov('rankOv',0)">Cancel</button>
+    <button class="btn primary" id="rankOk">Put it there</button>
+  </div>
+</div></div>
+
 <div class="overlay" id="ordOv"><div class="modal">
   <button class="close" onclick="ov('ordOv',0)">×</button>
   <h3>Into an order</h3>
@@ -922,7 +955,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-29 · in order';
+const BUILD='2026-09-29 · a place in the queue';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1373,6 +1406,59 @@ const WATCH_OPTS=['Coming soon','To watch','Next up','Watching','Done'];
 /* Coming soon and Next up are the two that are often empty — nothing is announced, or
    nothing has been put in order yet — and a filter with nothing behind it is a dead tab.
    They earn their place by having something in them. */
+/* One step along the list — Coming soon to To watch, To watch to Next up, and so on to
+   Done, which has nowhere further to go. */
+function advNext(d){
+  const ix=WATCH_OPTS.indexOf(watchSt(d));
+  return ix>=0&&ix<WATCH_OPTS.length-1?WATCH_OPTS[ix+1]:'';
+}
+/* Which filter each page is drawing. A row only offers the move when you are looking at
+   one of the steps: on All the rows are in five different places at once and there is no
+   one next, and on Done there is nothing after. */
+const CURCHIP={};
+function advWatch(sec,id){
+  const i=one(id);if(!i)return;
+  const nx=advNext(i.d);if(!nx)return;
+  // Joining the queue is the one step that needs a decision: everywhere else there is only
+  // one place to go, but a queue has positions, and dropping something on the end when it
+  // was meant to be next is the sort of thing you notice a week later.
+  if(nx==='Next up')return askRank(sec,id);
+  const patch={status:nx,pri:''};        // out of the queue, so the number goes back…
+  const saved=put(secData(sec),patch,id);
+  if(MODS[sec]&&MODS[sec].ranked)reRank(sec,saved);   // …and the rows behind it close up
+  renderActive();
+}
+/* What is already queued under the same heading, in order. Shown alongside the box, because
+   "third" means nothing without the list it is third in. */
+function rankPeers(sec,id){
+  const me=one(id);if(!me)return[];
+  const g=rankGroupOf(sec,me);
+  return list(sec).filter(x=>x.id!==id&&rankGroupOf(sec,x)===g&&watchSt(x.d)==='Next up'&&+x.d.pri>0)
+                  .sort((a,b)=>(+a.d.pri)-(+b.d.pri));
+}
+function askRank(sec,id){
+  const me=one(id);if(!me)return;
+  const peers=rankPeers(sec,id), max=peers.length+1;
+  const g=rankGroupOf(sec,me)||'no section';
+  $('#rankTitle').textContent='Where in '+g+'?';
+  $('#rankBody').innerHTML=
+    `<div class="rkName">${esc(me.d.name||'')}</div>`+
+    `<div class="field" style="margin-top:12px"><label>Place in the queue</label>`+
+      `<select id="rankPick">${Array.from({length:max},(_,n)=>
+        `<option value="${n+1}"${n===0?' selected':''}>${n+1}</option>`).join('')}</select></div>`+
+    (peers.length
+      ? `<div class="rkList"><div class="rkHead">Already queued under ${esc(g)}</div>`+
+        peers.map(p=>`<div class="rkRow"><span class="rankB">${+p.d.pri}</span>${esc(p.d.name||'')}</div>`).join('')+
+        `</div>`
+      : `<div class="rkList"><div class="rkHead">Nothing else is queued under ${esc(g)} yet.</div></div>`);
+  $('#rankOk').onclick=()=>{
+    const want=Math.max(1,Math.min(max,+$('#rankPick').value||1));
+    const saved=put(secData(sec),{status:'Next up',pri:want},id);
+    reRank(sec,saved);                    // slots it in and renumbers the rest around it
+    ov('rankOv',0);renderActive();
+  };
+  ov('rankOv',1);
+}
 const WATCH_LEAN=new Set(['Coming soon','Next up']);
 const WATCH_CHIPS=[{l:'All',f:()=>1}].concat(WATCH_OPTS.map(o=>(
   {l:o,f:i=>watchSt(i.d)===o,hideEmpty:WATCH_LEAN.has(o)})));
@@ -1737,6 +1823,7 @@ function genList(sec){
   const totalAll=items.length;
   if(chips){
     const cur=chipCur(sec,m,items);
+    CURCHIP[sec]=chips[cur].l;
     html+='<div class="segbar">'+chipShown(m,items).map(({c,i})=>`<button class="${i===cur?'active':''}" onclick="setChip('${sec}',${i})">${c.l}</button>`).join('')+'</div>';
     items=items.filter(chips[cur].f);
   }
@@ -1868,10 +1955,14 @@ function toggleDet(el){const b=el.closest('.rowBox'),id=b.dataset.id;
 function rowHtml(sec,i){
   const m=MODS[sec],c=m.card(i);
   const doneKey=m.toggle, isDone=doneKey?!!i.d[doneKey.k||doneKey]:false;
+  const view=CURCHIP[sec]||'';
+  const nx=(m.advance&&view&&view!=='All'&&view!=='Done')?advNext(i.d):'';
   const det=detailHtml(sec,i);
   return`<div class="rowBox ${c.dim?'dim':''} ${OPEN.has(i.id)?'open':''}" data-id="${i.id}">
     <div class="row${det?'':' nodet'}" ${det?'onclick="toggleDet(this)"':''}>
     ${doneKey?`<span class="chk ${isDone?'done':''}" onclick="event.stopPropagation();togg('${sec}','${i.id}')">✓</span>`:''}
+    ${nx?`<button class="adv" title="Move to ${esc(nx)}" aria-label="Move to ${esc(nx)}" onclick="event.stopPropagation();advWatch('${sec}','${i.id}')">✓</button>`:''}
+    ${c.rank?`<span class="rankB">${c.rank}</span>`:''}
     ${c.badge?`<span class="cnt" title="${c.badge} item${c.badge===1?'':'s'} on this order">${c.badge}</span>`:''}
     <div class="rinfo"><div class="t">${c.t}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>
     <div class="rright">${c.step?stepHtml(i,c.step):''}${c.act?`<button class="btn sm ${c.act.cls||'ordBtn'}" onclick="event.stopPropagation();${c.act.fn}">${c.act.txt}</button>`:''}${c.pill?`<span class="pill ${c.pill.cls}">${c.pill.txt}</span>`:''}<button class="editBtn" title="Edit" onclick="event.stopPropagation();openForm('${sec}','${i.id}')">✎</button></div>
@@ -2722,16 +2813,18 @@ shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:WATCH_CHIPS,
-  ranked:1, sort:upNextSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
+  ranked:1, advance:1, sort:upNextSort,
+  card:i=>({t:esc(i.d.name),rank:+i.d.pri||'',
+    s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:watchPill(i.d),dim:isFinished(i.d)})},
 movies:{title:'Movies',color:'var(--red)',hint:'What is out, what is queued, and what is still to come.',
   fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:WATCH_OPTS},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
   chips:WATCH_CHIPS,
-  ranked:1, sort:upNextSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),
+  ranked:1, advance:1, sort:upNextSort,
+  card:i=>({t:esc(i.d.name),rank:+i.d.pri||'',
+    s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),
     dim:isFinished(i.d),pill:watchPill(i.d)})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
   fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
