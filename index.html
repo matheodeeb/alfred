@@ -921,7 +921,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-28 · atlas';
+const BUILD='2026-09-29 · next up';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1357,6 +1357,18 @@ function reRank(sec,item){
 }
 function priHtml(i){const p=+i.d.pri||0;return p?`<span class="priBadge">${p}</span>`:''}
 const isFinished=d=>d.status==='Done'||d.status==='Watched';
+/* Shows said "Next up" and Movies said "Available" for the same thing: something he means
+   to watch and has not. Both now read "To watch". The old words are still on rows written
+   before the rename — and on any device that has not had this build yet — so status is
+   read through here rather than compared directly, and such a row lands in the right chip
+   and keeps its own colour instead of falling through to the default. */
+const WATCH_OLD={'Next up':'To watch','Available':'To watch'};
+const watchSt=d=>{const v=(d&&d.status)||'';return WATCH_OLD[v]||v};
+/* "Next up" is now the short list rather than the long one: the things inside a genre that
+   have been given a place in the order, which is the number on the badge. Everything he
+   means to watch some day sits under To watch; only what he has actually ranked is next.
+   Anything already finished drops out, ranked or not. */
+const isNextUp=d=>!!d&&+d.pri>0&&!isFinished(d);
 function priSort(a,b){
   const fa=isFinished(a.d)?1:0, fb=isFinished(b.d)?1:0;
   return fa-fb||(+a.d.pri||9999)-(+b.d.pri||9999)||(a.d.name||'').localeCompare(b.d.name||'');
@@ -2658,21 +2670,25 @@ travpast:{title:'Timeline — past',color:'var(--gold)',data:'travels',only:i=>!
   card:i=>({t:esc(i.d.place),s:tripDates(i.d,1),pill:{cls:'mut',txt:'travelled'}}),
   empty:'Nothing here yet — tick a place off on Travels and it lands here.'},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','Next up','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:['Watching','To watch','Waiting for season','Done']},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
-  chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},{l:'Next up',f:i=>i.d.status==='Next up'},{l:'Done',f:i=>i.d.status==='Done'}],
+  chips:[{l:'All',f:()=>1},{l:'Watching',f:i=>i.d.status==='Watching'},
+    {l:'Next up',f:i=>isNextUp(i.d)},
+    {l:'To watch',f:i=>watchSt(i.d)==='To watch'},{l:'Done',f:i=>i.d.status==='Done'}],
   ranked:1, sort:upNextSort,
   card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
-    pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')},dim:i.d.status==='Done'})},
-movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs already out.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','Available','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+    pill:{cls:i.d.status==='Watching'?'ok':i.d.status==='Done'?'mut':'acc',txt:esc(watchSt(i.d))},dim:i.d.status==='Done'})},
+movies:{title:'Movies',color:'var(--red)',hint:'Coming soon vs ready to watch.',
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Upcoming','Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:['Coming soon','To watch','Watched']},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>(a==='Upcoming'?0:1)-(b==='Upcoming'?0:1)||a.localeCompare(b),
-  chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},{l:'Available',f:i=>i.d.status==='Available'},{l:'Watched',f:i=>i.d.status==='Watched'}],
+  chips:[{l:'All',f:()=>1},{l:'Coming soon',f:i=>i.d.status==='Coming soon'},
+    {l:'Next up',f:i=>isNextUp(i.d)},
+    {l:'To watch',f:i=>watchSt(i.d)==='To watch'},{l:'Watched',f:i=>i.d.status==='Watched'}],
   ranked:1, sort:upNextSort,
   card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),dim:i.d.status==='Watched',
-    pill:{cls:i.d.status==='Available'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(i.d.status||'')}})},
+    pill:{cls:watchSt(i.d)==='To watch'?'ok':i.d.status==='Watched'?'mut':'warn',txt:esc(watchSt(i.d))}})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
   fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
@@ -6869,6 +6885,36 @@ function seedJerseys(){
     notes:'Spain 26 away, the authentic cut rather than the replica. Bought from adidas at $180; sold out there since.'},id);
 }
 
+/* ---------------- one-time: the watch statuses take their new name ----------------
+   The cloud rows were renamed in one go, but a device can be holding its own copy of a row
+   it has not pushed yet, and the form's select has no option for a word that is no longer
+   in the list — opening such a row and saving would have quietly set it to the first
+   option instead. So the word is rewritten here too, and only where it is actually found,
+   which means this costs nothing on every load after the first. */
+function migrateWatchStatus(){
+  let n=0;
+  Object.values(S.items).forEach(i=>{
+    if(i.del)return;
+    if(i.sec!=='shows'&&i.sec!=='movies')return;
+    const v=i.d&&i.d.status;
+    if(v!=='Next up'&&v!=='Available')return;
+    i.d.status='To watch';i.up=Date.now();i.dirty=1;n++;
+  });
+  if(n)save();
+  /* Which chip you were on is remembered as a position, and Next up was slotted in at 2 —
+     so the tab you left open would quietly become the one to its left. Everything from the
+     insertion point rightwards shifts up by one, once. */
+  try{
+    const c=JSON.parse(localStorage.alfred_chips||'{}');let moved=false;
+    if(!localStorage.alfred_chipshift){
+      ['shows','movies'].forEach(k=>{if((c[k]??0)>=2){c[k]=c[k]+1;moved=true}});
+      localStorage.alfred_chipshift='1';
+      if(moved){localStorage.alfred_chips=JSON.stringify(c);
+        for(const k in c)chipState[k]=c[k]}
+    }
+  }catch(e){}
+}
+
 /* ---------------- settings ---------------- */
 $('#gearBtn').onclick=()=>{
   $('#setSync').textContent=cfg?'configured':'not set up';
@@ -6949,7 +6995,7 @@ $('#impFile').onchange=e=>{
     }catch(e){}
   }
   addEventListener('hashchange',()=>{if(location.hash.startsWith('#cfg='))location.reload()});
-  load();seed();seedJerseys();
+  load();seed();seedJerseys();migrateWatchStatus();
   // A reset link lands on the house, but it is the ledger's password it is for — so it
   // opens that room and puts the new-password screen where the door would be.
   RESET_TOK=recoveryToken();
