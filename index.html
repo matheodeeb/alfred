@@ -294,11 +294,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
   .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
-  .rkName{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:15px;margin-top:4px}
-  .rkList{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
-  .rkHead{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);margin-bottom:8px}
-  .rkRow{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px}
   .modal .foot .spacer{flex:1}
   .note{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.55}
   /* menu grid */
@@ -901,17 +896,6 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   </div>
 </div></div>
 
-<div class="overlay" id="rankOv"><div class="modal">
-  <button class="close" onclick="ov('rankOv',0)">×</button>
-  <h3 id="rankTitle">Where in the queue?</h3>
-  <div id="rankBody"></div>
-  <div class="foot">
-    <span class="spacer"></span>
-    <button class="btn ghost" onclick="ov('rankOv',0)">Cancel</button>
-    <button class="btn primary" id="rankOk">Put it there</button>
-  </div>
-</div></div>
-
 <div class="overlay" id="ordOv"><div class="modal">
   <button class="close" onclick="ov('ordOv',0)">×</button>
   <h3>Into an order</h3>
@@ -955,7 +939,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-09-29 · a genre says what it is';
+const BUILD='2026-10-01 · the pen decides the order';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1407,6 +1391,7 @@ const WATCH_OPTS=['Coming soon','To watch','Next up','Watching','Done'];
    not a state worth keeping — so Movies has the list without that step, and its tick goes
    straight from the queue to done. Anything that reads the words reads them from here, so
    the two pages still cannot drift in the places they do agree. */
+const NEXT_UP='Next up';                 // the queue, named once for both pages
 const WATCH_SKIP={movies:['Watching']};
 const optsFor=sec=>{const skip=WATCH_SKIP[sec];return skip?WATCH_OPTS.filter(o=>!skip.includes(o)):WATCH_OPTS};
 /* Coming soon and Next up are the two that are often empty — nothing is announced, or
@@ -1414,10 +1399,16 @@ const optsFor=sec=>{const skip=WATCH_SKIP[sec];return skip?WATCH_OPTS.filter(o=>
    They earn their place by having something in them. */
 /* One step along the list — Coming soon to To watch, To watch to Next up, and so on to
    Done, which has nowhere further to go. */
+/* One step along — but never INTO the queue. Where something sits in the order is a
+   decision, and a decision belongs in the form, where he can see the number and the status
+   together; a tick that stops to ask a question is not a tick any more. So the tick skips
+   Next up as a destination and a row already in it still steps forward from where it is. */
 function advNext(d,sec){
   const L=optsFor(sec);
   const ix=L.indexOf(watchSt(d));
-  return ix>=0&&ix<L.length-1?L[ix+1]:'';
+  if(ix<0)return'';
+  for(let i=ix+1;i<L.length;i++)if(L[i]!==NEXT_UP)return L[i];
+  return'';
 }
 /* Which filter each page is drawing. A row only offers the move when you are looking at
    one of the steps: on All the rows are in five different places at once and there is no
@@ -1426,45 +1417,10 @@ const CURCHIP={};
 function advWatch(sec,id){
   const i=one(id);if(!i)return;
   const nx=advNext(i.d,sec);if(!nx)return;
-  // Joining the queue is the one step that needs a decision: everywhere else there is only
-  // one place to go, but a queue has positions, and dropping something on the end when it
-  // was meant to be next is the sort of thing you notice a week later.
-  if(nx==='Next up')return askRank(sec,id);
   const patch={status:nx,pri:''};        // out of the queue, so the number goes back…
   const saved=put(secData(sec),patch,id);
   if(MODS[sec]&&MODS[sec].ranked)reRank(sec,saved);   // …and the rows behind it close up
   renderActive();
-}
-/* What is already queued under the same heading, in order. Shown alongside the box, because
-   "third" means nothing without the list it is third in. */
-function rankPeers(sec,id){
-  const me=one(id);if(!me)return[];
-  const g=rankGroupOf(sec,me);
-  return list(sec).filter(x=>x.id!==id&&rankGroupOf(sec,x)===g&&watchSt(x.d)==='Next up'&&+x.d.pri>0)
-                  .sort((a,b)=>(+a.d.pri)-(+b.d.pri));
-}
-function askRank(sec,id){
-  const me=one(id);if(!me)return;
-  const peers=rankPeers(sec,id), max=peers.length+1;
-  const g=rankGroupOf(sec,me)||'no section';
-  $('#rankTitle').textContent='Where in '+g+'?';
-  $('#rankBody').innerHTML=
-    `<div class="rkName">${esc(me.d.name||'')}</div>`+
-    `<div class="field" style="margin-top:12px"><label>Place in the queue</label>`+
-      `<select id="rankPick">${Array.from({length:max},(_,n)=>
-        `<option value="${n+1}"${n===0?' selected':''}>${n+1}</option>`).join('')}</select></div>`+
-    (peers.length
-      ? `<div class="rkList"><div class="rkHead">Already queued under ${esc(g)}</div>`+
-        peers.map(p=>`<div class="rkRow"><span class="rankB">${+p.d.pri}</span>${esc(p.d.name||'')}</div>`).join('')+
-        `</div>`
-      : `<div class="rkList"><div class="rkHead">Nothing else is queued under ${esc(g)} yet.</div></div>`);
-  $('#rankOk').onclick=()=>{
-    const want=Math.max(1,Math.min(max,+$('#rankPick').value||1));
-    const saved=put(secData(sec),{status:'Next up',pri:want},id);
-    reRank(sec,saved);                    // slots it in and renumbers the rest around it
-    ov('rankOv',0);renderActive();
-  };
-  ov('rankOv',1);
 }
 const WATCH_LEAN=new Set(['Coming soon','Next up']);
 const chipsFor=sec=>[{l:'All',f:()=>1}].concat(optsFor(sec).map(o=>(
@@ -1477,7 +1433,7 @@ const watchPill=d=>({cls:WATCH_PILL[watchSt(d)]||'mut',txt:esc(watchSt(d))});
    it under Next up, and moving it off Next up gives the number back — you cannot be third
    in a queue you are not standing in. Books and Courses have no such status and keep the
    older rule, where a rank only goes when the thing is finished. */
-const RANK_ON={shows:'Next up',movies:'Next up'};
+const RANK_ON={shows:NEXT_UP,movies:NEXT_UP};
 function priSort(a,b){
   const fa=isFinished(a.d)?1:0, fb=isFinished(b.d)?1:0;
   return fa-fb||(+a.d.pri||9999)-(+b.d.pri||9999)||(a.d.name||'').localeCompare(b.d.name||'');
@@ -1660,8 +1616,13 @@ function syncRankField(sec,from){
   const want=RANK_ON[sec];if(!want)return;
   const st=document.getElementById('f_status'),pr=document.getElementById('f_pri');
   if(!st||!pr)return;
-  if(from==='pri'){if(+pr.value>0&&st.value!==want)st.value=want;return}
-  if(st.value!==want&&pr.value!=='')pr.value='';
+  if(from==='pri'){if(+pr.value>0&&st.value!==want)st.value=want}
+  else if(st.value!==want&&pr.value!=='')pr.value='';
+  // Saying it on the label beats saying it with a red border after he has tried.
+  const lab=document.querySelector('#fw_pri label');
+  if(lab)lab.textContent=st.value===want?'Priority in genre — required for '+want:'Priority in genre';
+  if(st.value===want&&!(+pr.value>0))pr.placeholder='1 = watch next · required here';
+  else pr.placeholder='1 = watch next';
 }
 function syncRecurFields(){
   const ev=document.getElementById('f_every'), an=document.getElementById('f_anchor');
@@ -1756,7 +1717,14 @@ $('#mSave').onclick=()=>{
     d[f.k]=v;
   }
   m.fields.forEach(f=>{const e=$('#f_'+f.k);if(e&&e.style)e.style.borderColor=''});
-  const req=m.fields.find(f=>f.req&&(d[f.k]===''||d[f.k]==null));
+  /* req is always required; reqIf is required given what the rest of the form says — the
+     rank, once the status is Next up, because a queue with an unnumbered row in it is not
+     a queue. reqMin catches the other way of leaving it blank: a 0 is a number, and it is
+     not a place in the order. */
+  const missing=f=>{const v=d[f.k];
+    if(v===''||v==null)return true;
+    return f.reqMin!=null&&!(+v>=f.reqMin)};
+  const req=m.fields.find(f=>(f.req||(f.reqIf&&f.reqIf(d)))&&missing(f));
   if(req){const e=$('#f_'+req.k);
     if(e){e.style.borderColor='var(--bad)';e.scrollIntoView({block:'center'});try{e.focus()}catch(x){}}
     return}
@@ -2820,7 +2788,7 @@ travpast:{title:'Timeline — past',color:'var(--gold)',data:'travels',only:i=>!
   card:i=>({t:esc(i.d.place),s:tripDates(i.d,1),pill:{cls:'mut',txt:'travelled'}}),
   empty:'Nothing here yet — tick a place off on Travels and it lands here.'},
 shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s next in the queue.',
-  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:optsFor('shows')},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Show',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Musts','Anime','YouTube','CIA','Drama','Documentary']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next',reqIf:d=>watchSt(d)===NEXT_UP,reqMin:1},{k:'seasons',l:'Seasons',t:'num'},{k:'eps',l:'Episodes per season',t:'num'},{k:'epmin',l:'Avg min / episode',t:'num'},{k:'len',l:'Duration (videos)',t:'text',ph:'33:18'},{k:'plat',l:'Where',t:'text',ph:'Netflix, HBO…'},{k:'status',l:'Status',t:'sel',opt:optsFor('shows')},{k:'season',l:'Up to (S/E)',t:'text',ph:'S2E4'},{k:'rel',l:'Returns / airs',t:'text',ph:'Aug 7, Sept 2026…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>a.localeCompare(b),
   chips:chipsFor('shows'),
@@ -2829,7 +2797,7 @@ shows:{title:'Shows',color:'var(--blue)',hint:'What you\'re watching and what\'s
     s:[esc(showLen(i.d)),esc(i.d.plat||''),esc(i.d.rel||''),esc(i.d.season?'up to '+i.d.season:'')].filter(Boolean).join(' · '),
     pill:watchPill(i.d),dim:isFinished(i.d)})},
 movies:{title:'Movies',color:'var(--red)',hint:'What is out, what is queued, and what is still to come.',
-  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next'},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:optsFor('movies')},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'name',l:'Movie',t:'text',req:1},{k:'genre',l:'Genre',t:'dyn',opt:['Action','Comedy','Drama','Horror','Sad','Anime','Documentary','Saga','Thriller']},{k:'pri',l:'Priority in genre',t:'num',ph:'1 = watch next',reqIf:d=>watchSt(d)===NEXT_UP,reqMin:1},{k:'runtime',l:'Runtime',t:'text',ph:'2h 31m'},{k:'status',l:'Status',t:'sel',opt:optsFor('movies')},{k:'rel',l:'Release / where',t:'text',ph:'Dec 2026, theaters, Netflix…'},{k:'notes',l:'Notes',t:'ta',full:1}],
   group:i=>i.d.genre||'Other',
   groupOrder:(a,b)=>a.localeCompare(b),
   chips:chipsFor('movies'),
