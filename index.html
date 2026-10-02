@@ -3828,6 +3828,68 @@ function plaidAcctLabel(inst,a){
 }
 // What an account was called before this existed, so rows written then can be found again.
 const plaidLegacyLabel=a=>(a&&a.name||'Account')+(a&&a.mask?' \u2022\u2022'+a.mask:'');
+/* A bank told to sign in only when asked keeps no stored credential between syncs, so each
+   sync is a brand-new Plaid item -- new item id, and new ids for every account under it.
+   Nothing on the ledger may notice. An account keeps the id it was first filed under, since
+   every balance row, every transaction and every derived total points at it, and the id
+   Plaid happens to be using this time rides alongside as `pid`.
+
+   Matched on the last four digits and the kind, because that is what stays the same about
+   an account across sign-ins. An account with no mask is left alone rather than guessed at:
+   filing two different accounts as one would be far worse than filing one twice. */
+const plaidAcctKey=a=>[String(a&&a.mask||'').trim(),plaidAcctKind(a)].join('|');
+const plaidAcctOf=(it,pid)=>((it&&it.d&&it.d.accts)||[]).find(x=>x.pid===pid||x.id===pid)||null;
+const plaidStableId=(it,pid)=>{const a=plaidAcctOf(it,pid);return a?a.id:pid};
+function plaidAdopt(inst,accts){
+  const prev=plaidItems().filter(p=>plaidInstShort(p.d.inst)===plaidInstShort(inst));
+  if(!prev.length)return{accts:accts||[],from:[],adopted:0};
+  const taken=new Set(), from=[];
+  const out=(accts||[]).map(a=>{
+    if(!a||!a.mask)return a;
+    for(const p of prev){
+      const old=(p.d.accts||[]).find(x=>x.mask&&plaidAcctKey(x)===plaidAcctKey(a)&&!taken.has(x.id));
+      if(!old)continue;
+      taken.add(old.id); if(from.indexOf(p.id)<0)from.push(p.id);
+      return{...a,id:old.id,pid:a.id};
+    }
+    return a;
+  });
+  return{accts:out,from,adopted:taken.size};
+}
+/* Signing in only when asked. Plaid refreshes an item it holds a credential for on its own
+   schedule, server-side -- that is its product, not a setting this app can reach. The only
+   thing that reliably stops a bank being logged into unasked is leaving Plaid nothing to
+   log in with, so the credential is handed back after each sync and taken out again, with
+   you present, on the next one. */
+const plaidOnDemand=it=>!!(it&&it.d&&it.d.onDemand);
+const plaidSignedOut=it=>!!(it&&it.d&&!it.d.item);
+async function plaidRevokeOnDemand(){
+  let n=0;
+  for(const it of plaidItems()){
+    if(!plaidOnDemand(it)||!it.d.item)continue;
+    try{ await plaidFn('remove',{item_id:it.d.item}) }
+    catch(e){ continue }   // Plaid still holds it, so do not pretend otherwise
+    /* Only the credential goes. The connection keeps its accounts, its balances and every
+       transaction it brought in -- there is nothing wrong with the data, and the point is
+       that it stays readable while nobody is logging into the bank. The errors go with it:
+       a login that no longer exists cannot be stale. */
+    put('plaid',{item:'',signedOutAt:new Date().toISOString(),
+      err:'',balErr:'',balStale:false,diag:null,diagAt:''},it.id);
+    n++;
+  }
+  return n;
+}
+function plaidSetOnDemand(id,on){
+  const it=one(id); if(!it)return;
+  const name=it.d.inst||'this bank';
+  if(on&&!confirm('Sign into '+name+' only when you press Sync now?\n\n'
+    +'The connection is handed back to Plaid after each sync, so it has nothing to log in '
+    +'with in between \u2014 which is what stops the bank emailing about a sign-in every '
+    +'morning.\n\nThe accounts, balances and transactions already here all stay. Each '
+    +'Sync now will ask you to log in again.'))return;
+  put('plaid',{onDemand:!!on},id);
+  renderActive();
+}
 /* Transactions carry the name they were filed under, so renaming an account has to go and
    correct them -- otherwise the old name lingers as a chip of its own with the history
    behind it. Matching on Plaid's account id where a row has one, and on the old name where
@@ -3847,9 +3909,9 @@ function plaidRelabel(){
   return n;
 }
 // Plaid reports money leaving as a positive amount, which is this register's convention too.
-function plaidRow(t,card,item){
+function plaidRow(t,card,item,acct){
   return{date:t.date||'',desc:t.desc||'Transaction',amt:+t.amt||0,card,item:item||'',
-    acct:t.account||'',cat:plaidCat(t),det:t.det||'',cur:t.cur||'USD',notes:t.pending?'pending':''};
+    acct:acct||t.account||'',cat:plaidCat(t),det:t.det||'',cur:t.cur||'USD',notes:t.pending?'pending':''};
 }
 /* The three fields the payoff comparison cannot work without -- APR, minimum payment and
    due day -- are printed on a statement four times a year and typed in by hand roughly
@@ -3870,20 +3932,22 @@ async function plaidLiabSync(){
        set this way stops refreshing its APR, minimum and due day. Worth it, because the
        alternative is the call that keeps knocking the connection over. */
     if(plaidManual(it))continue;
+    if(plaidSignedOut(it))continue;   // signed out on purpose; Sync now signs it back in
     let out;
     try{ out=await plaidFn('liabilities',{item_id:it.d.item}) }
     catch(e){ failed++; continue }
     (out.debts||[]).forEach(d=>{
       if(!d.account)return;
-      const id='debt:plaid:'+d.account, fresh=!one(id);
-      const row={cur:'USD',src:'Plaid',acct:d.account,item:it.id};
+      const dsid=plaidStableId(it,d.account);
+      const id='debt:plaid:'+dsid, fresh=!one(id);
+      const row={cur:'USD',src:'Plaid',acct:dsid,item:it.id};
       if(fresh){row.name=d.name||'Card';row.kind=d.kind||'Credit card'}
       if(d.bal!=null)row.bal=d.bal;
       if(d.apr!=null)row.apr=d.apr;
       if(d.min!=null)row.min=d.min;
       if(d.day!=null)row.day=d.day;
       put('debt',row,id);filled++;
-      const fid='fin:plaid:'+d.account;          // the same card, over on the Accounts page
+      const fid='fin:plaid:'+dsid;               // the same card, over on the Accounts page
       if(one(fid)){
         const f={};
         if(d.day!=null)f.dueDay=d.day;
@@ -3975,6 +4039,7 @@ async function plaidBalSync(){
     // Asked not to. Its accounts keep whatever is typed on them, and no call is made that
     // the bank would refuse and then hold against the connection.
     if(plaidManual(it))continue;
+    if(plaidSignedOut(it))continue;
     let out;
     /* A bank that will hand over transactions can still refuse a balance, and when that
        happened the account simply was not there -- no row, no reason, nothing to tell it
@@ -4008,15 +4073,16 @@ async function plaidBalSync(){
          checking account the available figure is the answer to "how much have I got", so
          it is used rather than treating the account as having no balance at all. */
       const val=a.current!=null?a.current:(a.available!=null?a.available:null);
-      const id='fin:plaid:'+a.id, fresh=!one(id);
+      const sid=plaidStableId(it,a.id);
+      const id='fin:plaid:'+sid, fresh=!one(id);
       if(val==null){
         // Neither figure given. The account still belongs on the page -- it exists and you
         // can type its balance -- but nothing is invented, and a figure already there stands.
-        if(fresh)put('fincash',{grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,amt:'',
+        if(fresh)put('fincash',{grp,cur:a.cur||'USD',src:'Plaid',acct:sid,amt:'',
           name:plaidAcctLabel(it.d.inst,a)},id);
         return;
       }
-      const row={grp,cur:a.cur||'USD',src:'Plaid',acct:a.id,at:Date.now(),
+      const row={grp,cur:a.cur||'USD',src:'Plaid',acct:sid,at:Date.now(),
         amt:grp==='Credit'?-Math.abs(+val||0):(+val||0)};
       if(a.limit!=null)row.limit=+a.limit||0;   // room left on the card, where it is offered
       if(fresh){
@@ -4199,9 +4265,11 @@ async function plaidTxSync(reset,onlyId){
   const items=plaidItems().filter(it=>!onlyId||it.id===onlyId);
   let added=0,updated=0,removed=0,failed=0;
   for(const it of items){
+    if(plaidSignedOut(it))continue;
     const accts=it.d.accts||[];
-    const nameOf=id=>{const a=accts.find(x=>x.id===id);
+    const nameOf=id=>{const a=plaidAcctOf(it,id);
       return a?plaidAcctLabel(it.d.inst,a):plaidInstShort(it.d.inst)};
+    const sid=id=>plaidStableId(it,id);
     /* Each bank on its own. One connection refusing -- a login gone stale, a bank having
        a bad morning -- used to throw out of the loop and silently strip every bank after
        it of its sync, which looks exactly like a bank with no transactions. */
@@ -4211,8 +4279,8 @@ async function plaidTxSync(reset,onlyId){
               failed++; continue }
     // Keyed on Plaid's own id, so a re-sync corrects a row instead of duplicating it.
     let n=0;
-    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);added++;n++});
-    (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id),'tx:plaid:'+t.id);updated++});
+    (out.added||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id,sid(t.account)),'tx:plaid:'+t.id);added++;n++});
+    (out.modified||[]).forEach(t=>{put('tx',plaidRow(t,nameOf(t.account),it.id,sid(t.account)),'tx:plaid:'+t.id);updated++});
     /* A transfer is the same event as its ledger row, written twice, so it has to die
        with it. A wire arrives pending under one id and posts under another; Plaid sends
        the pending one back as removed, the ledger row goes, and the transfer row made
@@ -4307,17 +4375,31 @@ async function plaidConnect(){
             PLAIDBUSY=1;PLAIDMSG='connecting…';renderActive();
             const ex=await plaidFn('exchange',{public_token,
               institution:(meta&&meta.institution&&meta.institution.name)||''});
+            /* Signing a bank back in makes a new item with new account ids. If this is a
+               connection we already hold -- same bank, same last four digits -- the accounts
+               keep the ids the ledger already points at, and the settings that made it sign
+               out come with them. The superseded row goes, or the bank would be listed
+               twice and its history split between the two. */
+            const ad=plaidAdopt(ex.institution||'',ex.accounts||[]);
+            const was=ad.from.map(one).filter(Boolean);
+            const keep={};
+            if(was.some(plaidOnDemand))keep.onDemand=true;
+            if(was.some(plaidManual))keep.manualBal=true;
             put('plaid',{item:ex.item_id,inst:ex.institution||'Bank',
-              accts:ex.accounts||[],added:today()},'plaid:'+ex.item_id);
+              accts:ad.accts,added:today(),...keep},'plaid:'+ex.item_id);
+            ad.from.forEach(id=>{if(id!=='plaid:'+ex.item_id)kill(id)});
             PLAIDMSG='fetching transactions…';renderActive();
             const r=await plaidSyncAll();
+            const signedOut=await plaidRevokeOnDemand();
             PLAIDMSG='';
             alert(['Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.',
               r.accts?r.accts+' account'+(r.accts===1?'':'s')+' now keep their balance current.':'',
               r.debts?r.debts+' card'+(r.debts===1?'':'s')+' carry their real APR, minimum and due date.':'',
               r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
               r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
-              r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':''
+              r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':'',
+              signedOut?'Signed back out of '+signedOut+' bank'+(signedOut===1?'':'s')
+                +' — nothing will log in again until you press Sync now.':''
             ].filter(Boolean).join('\n'));
           }catch(e){alert('Could not finish connecting: '+e.message)}
           done();
@@ -4378,16 +4460,26 @@ async function plaidRepull(id){
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
 async function plaidSyncNow(){
+  /* A connection that signs in only when asked is holding nothing to sync with, and taking
+     the credential back out is the one part of this only you can do. So Sync now means the
+     login box for those, not a silent no-op. */
+  const out=plaidItems().filter(it=>plaidOnDemand(it)&&plaidSignedOut(it));
+  if(out.length&&confirm(out.map(i=>i.d.inst||'A bank').join(', ')
+    +(out.length===1?' signs':' sign')+' in only when you ask, so there is nothing stored to '
+    +'sync with.\n\nLog in now?'))return plaidConnect();
   PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
   try{
     const r=await plaidSyncAll();
+    const signedOut=await plaidRevokeOnDemand();
     alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
       r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
       r.debts?r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':'',
       r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
       r.stmts?r.stmts+' card payment'+(r.stmts===1?'':'s')+' filed on Statements.':'',
       r.zelle?r.zelle+' Zelle transfer'+(r.zelle===1?'':'s')+' on Transfers.':'',
-      r.failed?r.failed+' connection'+(r.failed===1?'':'s')+' could not be reached — see Service.':''
+      r.failed?r.failed+' connection'+(r.failed===1?'':'s')+' could not be reached — see Service.':'',
+      signedOut?'Signed back out of '+signedOut+' bank'+(signedOut===1?'':'s')
+        +' — nothing will log in again until you press Sync now.':''
     ].filter(Boolean).join('\n'));
   }catch(e){alert('Sync failed: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
@@ -4484,7 +4576,11 @@ function plaidPanel(){
       +(+der.d.derivedN||0)+' transaction'+((+der.d.derivedN||0)===1?'':'s')+' since '
       +esc(String(der.d.derivedFrom||'').slice(0,10))
       +' — it moves when a reconnect brings new ones, and you can type over it.</div>':'';
-    const note=manual?' · <b style="color:var(--blue)">balance kept by hand — tap the account on Brief to set it; transactions still sync on their own</b>'
+    const onDemand=plaidOnDemand(i), signedOut=plaidSignedOut(i);
+    const note=signedOut?' · <b style="color:var(--green)">signed out of Plaid on purpose — '
+        +'nothing logs into this bank until you press Sync now. The figures below are the '
+        +'ones it last brought in.</b>'
+      :manual?' · <b style="color:var(--blue)">balance kept by hand — tap the account on Brief to set it; transactions still sync on their own</b>'
       :stale?' · <b style="color:var(--bad)" title="'+raw+'">this bank has signed Plaid out — press Reconnect and log in once; nothing here can read it until you do (ITEM_LOGIN_REQUIRED)</b>'
       :i.d.err?' · <b style="color:var(--bad)">'+esc(i.d.err)+'</b>'
       :i.d.balErr?' · <b style="color:var(--orange)">balances: '+esc(i.d.balErr)+'</b>'
@@ -4496,10 +4592,14 @@ function plaidPanel(){
       '<button class="btn sm ghost" onclick="plaidSetManual(\''+esc(i.id)+'\','+(manual?'false':'true')+')" '+
         'title="'+(manual?'Go back to fetching this bank\u2019s balance':'Stop fetching this balance and type it yourself')+'">'+
         (manual?'Fetch balance':'Balance by hand')+'</button>'+
-      (empty&&!manual?'<button class="btn sm ghost" onclick="plaidRepull(\''+esc(i.id)+'\')" '+
+      (empty&&!manual&&!signedOut?'<button class="btn sm ghost" onclick="plaidRepull(\''+esc(i.id)+'\')" '+
         'title="Ask this bank for its whole history again, ignoring what we already hold">Re-pull history</button>':'')+
-      (manual?'':'<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
+      (manual||signedOut?'':'<button class="btn sm ghost" onclick="plaidReconnect(\''+esc(i.id)+'\')" '+
         'title="Re-authorise this bank without using another connection">Reconnect</button>')+
+      '<button class="btn sm ghost" onclick="plaidSetOnDemand(\''+esc(i.id)+'\','+(onDemand?'false':'true')+')" '+
+        'title="'+(onDemand?'Let Plaid keep this connection and refresh it on its own schedule'
+          :'Hand the connection back after each sync, so nothing logs into this bank unless you ask')+'">'+
+        (onDemand?'Keep signed in':'Only on Sync now')+'</button>'+
       '<button class="btn sm ghost" onclick="plaidDisconnect(\''+esc(i.id)+'\')">Disconnect</button></span></div>';
   }).join('');
   h+='<div style="display:flex;gap:8px;margin-top:12px">'+
