@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.plaid.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.plaid.com; connect-src 'self' https://*.supabase.co https://cdn.plaid.com; frame-src https://cdn.plaid.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.plaid.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.plaid.com https://upload.wikimedia.org https://thumb.wikimedia.org; connect-src 'self' https://*.supabase.co https://cdn.plaid.com; frame-src https://cdn.plaid.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <script>
 /* Clickjacking. CSP frame-ancestors is ignored when delivered by <meta> and GitHub
@@ -467,6 +467,22 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .bkChk.on{background:var(--acc);border-color:var(--acc);color:#faf6ec}
   .bkNav{display:flex;justify-content:space-between;gap:10px;margin:32px 0 10px;border-top:1px solid var(--line2);padding-top:14px}
   @media(max-width:560px){.bkP,.bkUl{font-size:17.5px}.bkStand{font-size:19px}.bkH3{font-size:20px}}
+  /* margin art: one picture per report, hung in the empty gutter beside its headline,
+     alternating sides. Absolutely positioned with no top, so each sits at the height its
+     headline starts; it may run past into the next report, whose picture hangs opposite.
+     Only where the gutter is wide enough to hold it — the reading column never moves. */
+  .bkWrap{position:relative}
+  .bkArt{display:none}
+  @media(min-width:1180px){
+    .bkArt{display:block;position:absolute;margin:20px 0 0;width:min(330px,calc((100vw - 680px)/2 - 64px));pointer-events:auto}
+    .bkArt-R{left:calc(100% + 44px)}
+    .bkArt-L{right:calc(100% + 44px)}
+    .bkArt img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line2);box-shadow:0 14px 34px rgba(0,0,0,.28);filter:saturate(.82) sepia(.1);opacity:0;transition:opacity .5s}
+    .bkArt img.on{opacity:1}
+    .bkArt figcaption{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.05em;line-height:1.5;color:var(--muted);margin-top:8px}
+    .bkArt-L figcaption{text-align:right}
+    .bkArt figcaption a{color:var(--faint);text-decoration:none;border-bottom:1px solid var(--line2)}
+  }
   /* brief language switch */
   .bkLangRow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0}
   .bkSel{appearance:none;-webkit-appearance:none;background-color:var(--line);border:1px solid var(--line2);border-radius:999px;color:var(--txt);font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 28px 7px 15px;cursor:pointer;transition:.12s;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 11px center;background-size:9px 5px}
@@ -5408,6 +5424,20 @@ function briefMark(date,id,ed){
   se.scrollTop=keep;
 
 }
+/* data.art[k] illustrates the k-th ### report. The three editions run block-parallel, so one
+   list serves every language. Entry: {url, page, side:'L'|'R', cap_en, cap_fr, cap_es}.
+   Only Wikimedia hosts are drawn (the CSP allows nothing else), and the caption always
+   credits the file page, which the licences require. */
+const ART_HOST=/^https:\/\/(upload|thumb)\.wikimedia\.org\//;
+function briefArt(b,k){
+  const a=((b.d&&b.d.art)||[])[k];
+  if(!a||!ART_HOST.test(a.url||''))return '';
+  const side=a.side==='L'||a.side==='R'?a.side:(k%2?'L':'R');
+  const l=briefLang(),cap=a['cap_'+l]||a.cap_en||'';
+  const page=/^https:\/\/commons\.wikimedia\.org\//.test(a.page||'')?a.page:'';
+  const credit=page?`<a href="${esc(page)}" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>`:'Wikimedia Commons';
+  return `<figure class="bkArt bkArt-${side}"><img src="${esc(a.url)}" alt="${esc(cap)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onload="this.classList.add('on')" onerror="this.closest('figure').remove()"><figcaption>${cap?esc(cap)+' · ':''}${credit}</figcaption></figure>`;
+}
 function briefArticle(b){
   const U=bUI();
   const body=briefTxt(b,'body');
@@ -5426,10 +5456,10 @@ function briefArticle(b){
     <h1 class="bkH1">${esc(briefTxt(b,'title')||fdate(b.d.date))}</h1>
     <div class="bkMeta"><div>${esc(U.masthead)} · ${fdateL(b.d.date)} · ~${mins} ${esc(U.min)}</div>${briefSource(b)}</div>
     ${briefNative(b)?'':`<div class="bkFallback">${esc(U.fb)}</div>`}`;
-  let pi=0,firstP=blocks.findIndex(x=>x.t==='p');
+  let pi=0,hi=0,firstP=blocks.findIndex(x=>x.t==='p');
   blocks.forEach((bl,i)=>{
     if(bl.t==='kick'){h+=`<div class="bkKick" data-bi="${i}">${bl.h}</div>`;return}
-    if(bl.t==='h3'){h+=`<h3 class="bkH3" data-bi="${i}">${bl.h}</h3>`;return}
+    if(bl.t==='h3'){h+=briefArt(b,hi++)+`<h3 class="bkH3" data-bi="${i}">${bl.h}</h3>`;return}
     const stand=(i===firstP&&/^<em>.*<\/em>$/.test(bl.h));
     const cls=stand?'bkStand':(bl.t==='ul'?'bkUl':'bkP');
     const id=pi++;
