@@ -955,7 +955,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-01 · the pen decides the order';
+const BUILD='2026-10-09 · an edit outranks its parent';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1073,14 +1073,23 @@ const CFO_SECS=new Set(['fincash','finstmt','fintx','finsub','income','debt','go
   'spend','prop','assets','invest','plaid']);
 const stOf=sec=>CFO_SECS.has(sec)?SC:S;
 const stIn=id=>(S.items[id]?S:(SC.items[id]?SC:null));
+/* The version a row carries has to beat the version it was edited from, or the edit loses
+   to its own parent. Date.now() alone does not promise that: this device's clock, the
+   clocks of the other devices, and the database's own clock (which stamps anything written
+   server-side) are three different clocks, and a row can arrive stamped later than the
+   moment you then change it. One millisecond of disagreement is enough to make an edit —
+   including a delete — look older than what it replaced. So a local write takes the later
+   of the wall clock and one past what the row already had. It stays a timestamp in the
+   ordinary case and only steps ahead when the clocks disagree. */
+const stamp=prev=>Math.max(Date.now(),(+prev||0)+1);
 function put(sec,d,id){
   const B=stOf(sec);
   const it=B.items[id]||{id:id||uid(),sec,d:{}};
-  it.sec=sec; it.d=Object.assign({},it.d,d); it.up=Date.now(); it.dirty=1; delete it.del;
+  it.sec=sec; it.d=Object.assign({},it.d,d); it.up=stamp(it.up); it.dirty=1; delete it.del;
   B.items[it.id]=it; if(B===S)save(); queueSync(); return it;
 }
 function kill(id){const B=stIn(id);if(!B)return;const it=B.items[id];
-  it.del=true;it.up=Date.now();it.dirty=1;if(B===S)save();queueSync()}
+  it.del=true;it.up=stamp(it.up);it.dirty=1;if(B===S)save();queueSync()}
 function list(sec){return Object.values(stOf(sec).items).filter(i=>i.sec===sec&&!i.del)}
 function one(id){const B=stIn(id);if(!B)return null;const i=B.items[id];return (i&&!i.del)?i:null}
 
@@ -1137,6 +1146,7 @@ async function cfoSync(){
       const rows=await cfoSb(`cfo_items?select=*&up=gt.${since}&order=up.asc&limit=${PAGE}&offset=${off}`);
       for(const r of rows){
         const l=SC.items[r.id];
+        if(l&&l.dirty){if(+r.up>maxUp)maxUp=+r.up;continue}   // same rule as the monitor's store
         if(!l||+r.up>l.up){SC.items[r.id]={id:r.id,sec:r.sec,d:r.data||{},up:+r.up,...(r.del?{del:true}:{})};changed=true}
         if(+r.up>maxUp)maxUp=+r.up;
       }
@@ -1182,6 +1192,13 @@ async function sync(){
       const rows=await sb(`items?select=*&up=gt.${since}&order=up.asc&limit=${PAGE}&offset=${off}`);
       for(const r of rows){
         const l=S.items[r.id];
+        /* A row with unpushed changes is not a stale copy — it is the only copy of what he
+           just did, and it carries the flag that would have sent it. Overwriting it lost
+           both: the edit went, and with the flag gone nothing was ever pushed, so the next
+           pull handed the old row straight back. That is the bug that kept coming back as
+           "it will not let me delete this", and it was never the delete button. The push
+           below takes this row up; until then it stands. */
+        if(l&&l.dirty){if(+r.up>maxUp)maxUp=+r.up;continue}
         if(!l||+r.up>l.up){S.items[r.id]={id:r.id,sec:r.sec,d:r.data||{},up:+r.up,...(r.del?{del:true}:{})};changed=true}
         if(+r.up>maxUp)maxUp=+r.up;
       }
@@ -7220,7 +7237,7 @@ function migrateWatchStatus(){
     if(st!==i.d.status){i.d.status=st;ch=true}
     if(pri>0&&st==='To watch'){i.d.status=st='Next up';ch=true}
     if(pri>0&&st!=='Next up'){i.d.pri='';ch=true;touched.push(i)}
-    if(ch){i.up=Date.now();i.dirty=1;n++}
+    if(ch){i.up=stamp(i.up);i.dirty=1;n++}
   });
   if(n)save();
   // reRank renumbers a genre 1..n from whatever is left, so handing it the row that just
