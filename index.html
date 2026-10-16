@@ -955,7 +955,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-09 · an edit outranks its parent';
+const BUILD='2026-10-16 · books move along too';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1426,7 +1426,18 @@ const WATCH_OPTS=['Coming soon','To watch','Next up','Watching','Done'];
    the two pages still cannot drift in the places they do agree. */
 const NEXT_UP='Next up';                 // the queue, named once for both pages
 const WATCH_SKIP={movies:['Watching']};
-const optsFor=sec=>{const skip=WATCH_SKIP[sec];return skip?WATCH_OPTS.filter(o=>!skip.includes(o)):WATCH_OPTS};
+/* A section whose rows move through states in a fixed order says so here, once, and the
+   status menu, the filter row and the tick all read it from the same place. Books is not a
+   watch list and has its own three: on the shelf, open, finished. */
+const FLOW={books:['To read','Reading','Done']};
+const optsFor=sec=>{
+  if(FLOW[sec])return FLOW[sec];
+  const skip=WATCH_SKIP[sec];return skip?WATCH_OPTS.filter(o=>!skip.includes(o)):WATCH_OPTS};
+/* Where a rank is allowed to live. Shows and Movies keep it on one status only, because
+   there the number IS the queue. Books have no queue status: the number is its place in
+   the reading order, it keeps that while the book is open, and gives it back when the book
+   is finished — which is the rule the form has always applied on save. */
+const keepsRank=(sec,st)=>RANK_ON[sec]?st===RANK_ON[sec]:!isFinished({status:st});
 /* Coming soon and Next up are the two that are often empty — nothing is announced, or
    nothing has been put in order yet — and a filter with nothing behind it is a dead tab.
    They earn their place by having something in them. */
@@ -1450,7 +1461,8 @@ const CURCHIP={};
 function advWatch(sec,id){
   const i=one(id);if(!i)return;
   const nx=advNext(i.d,sec);if(!nx)return;
-  const patch={status:nx,pri:''};        // out of the queue, so the number goes back…
+  const patch={status:nx};
+  if(!keepsRank(sec,nx))patch.pri='';    // out of the order, so the number goes back…
   const saved=put(secData(sec),patch,id);
   if(MODS[sec]&&MODS[sec].ranked)reRank(sec,saved);   // …and the rows behind it close up
   renderActive();
@@ -2839,11 +2851,12 @@ movies:{title:'Movies',color:'var(--red)',hint:'What is out, what is queued, and
     s:[esc(i.d.runtime||''),esc(i.d.rel||'')].filter(Boolean).join(' · '),
     dim:isFinished(i.d),pill:watchPill(i.d)})},
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
-  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:['Reading','To read','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
+  fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:optsFor('books')},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
   chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
-  ranked:1, sort:priSort,
-  card:i=>({t:priHtml(i)+esc(i.d.name),s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
+  ranked:1, advance:1, sort:priSort,
+  card:i=>({t:esc(i.d.name),rank:+i.d.pri||'',
+    s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
     pill:i.d.status==='Reading'&&i.d.prog?{cls:'ok',txt:i.d.prog+'%'}:{cls:i.d.status==='Done'?'mut':'acc',txt:esc(i.d.status||'')}})},
 courses:{title:'To learn',color:'var(--blue)',hint:'Courses and topics to master.',
   fields:[{k:'name',l:'Course / topic',t:'text',req:1},{k:'topic',l:'Group',t:'dyn',opt:['Courses','Languages','Security','Diplomacy','Management','Haiti']},{k:'src',l:'Where',t:'text',ph:'YouTube, Udemy…'},{k:'status',l:'Status',t:'sel',opt:['In progress','To start','Done']},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Notes',t:'ta',full:1}],
