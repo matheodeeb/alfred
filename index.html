@@ -955,7 +955,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-16 · books move along too';
+const BUILD='2026-10-16 · shelf before open';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2853,7 +2853,7 @@ movies:{title:'Movies',color:'var(--red)',hint:'What is out, what is queued, and
 books:{title:'Books',color:'var(--green)',hint:'Reading list and progress.',
   fields:[{k:'name',l:'Book',t:'text',req:1},{k:'author',l:'Author',t:'text'},{k:'cat',l:'Category',t:'dyn',opt:['Business','Geopolitics / History','Philosophy','Other']},{k:'pri',l:'Priority in section',t:'num',ph:'1 = read next'},{k:'pages',l:'Pages',t:'num'},{k:'len',l:'Length (if not pages)',t:'text',ph:'37 volumes'},{k:'status',l:'Status',t:'sel',opt:optsFor('books')},{k:'prog',l:'Progress %',t:'num'},{k:'notes',l:'Takeaways',t:'ta',full:1}],
   group:i=>i.d.cat||'Other',
-  chips:[{l:'All',f:()=>1},{l:'Reading',f:i=>i.d.status==='Reading'},{l:'To read',f:i=>i.d.status==='To read'},{l:'Done',f:i=>i.d.status==='Done'}],
+  chips:chipsFor('books'),            // in reading order, from the same list the tick walks
   ranked:1, advance:1, sort:priSort,
   card:i=>({t:esc(i.d.name),rank:+i.d.pri||'',
     s:[esc(i.d.author||''),esc(bookLen(i.d))].filter(Boolean).join(' · '),dim:i.d.status==='Done',
@@ -7266,6 +7266,14 @@ function migrateWatchStatus(){
       const c=JSON.parse(localStorage.alfred_chips||'{}');
       ['shows','movies'].forEach(k=>{delete c[k];delete chipState[k]});
       localStorage.alfred_chips=JSON.stringify(c);
+    }
+    if(!localStorage.alfred_bookchips){
+      localStorage.alfred_bookchips='1';
+      const c=JSON.parse(localStorage.alfred_chips||'{}');
+      // Books put Reading before To read, which is the order you leave them in, not the
+      // order you go through them. The two traded places; the tab he was on goes with it.
+      if(c.books===1||c.books===2){c.books=c.books===1?2:1;chipState.books=c.books;
+        localStorage.alfred_chips=JSON.stringify(c)}
     }
     if(!localStorage.alfred_chipswap){
       localStorage.alfred_chipswap='1';
