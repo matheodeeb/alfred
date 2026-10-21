@@ -294,6 +294,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
   .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
+  #askOv{z-index:120}                 /* it is asked ON TOP of whatever asked it */
+  .askBody{white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:var(--muted);margin-top:8px}
+  .btn.solidBad{background:var(--bad);border-color:var(--bad);color:#faf6ec}
+  .btn.solidBad:hover{filter:brightness(1.08);border-color:var(--bad);color:#faf6ec}
   .modal .foot .spacer{flex:1}
   .note{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.55}
   /* menu grid */
@@ -912,6 +916,16 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   </div>
 </div></div>
 
+<div class="overlay" id="askOv"><div class="modal" style="max-width:430px">
+  <h3 id="askTitle">Are you sure?</h3>
+  <div id="askBody" class="askBody"></div>
+  <div class="foot">
+    <span class="spacer"></span>
+    <button class="btn ghost" id="askNo">Cancel</button>
+    <button class="btn solidBad" id="askYes">Delete</button>
+  </div>
+</div></div>
+
 <div class="overlay" id="ordOv"><div class="modal">
   <button class="close" onclick="ov('ordOv',0)">×</button>
   <h3>Into an order</h3>
@@ -955,7 +969,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-16 · shelf before open';
+const BUILD='2026-10-21 · delete asks in the page';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1113,7 +1127,13 @@ function queueSync(){setPill();clearTimeout(syncTimer);syncTimer=setTimeout(()=>
 /* The ledger's own channel. Same last-write-wins as the house's, against cfo_items with the
    account's token rather than the sync secret — and it simply does nothing while the room is
    locked, so the figures are never fetched by anyone who has not opened the door. */
-let cfoSyncing=false,cfoAgain=false;
+let cfoSyncing=false,cfoAgain=false,cfoErr='',cfoFails=0,cfoRetryTimer=null;
+function cfoRetry(){
+  cfoFails++;clearTimeout(cfoRetryTimer);
+  cfoRetryTimer=setTimeout(cfoSync,Math.min(60000,2000*Math.pow(2,Math.min(cfoFails,5))));
+}
+// Anything of his the ledger is still holding and has not managed to send.
+const cfoPending=()=>cfoAuthed()?Object.values(SC.items).filter(i=>i.dirty).length:0;
 async function cfoAuthToken(){
   if(!cfoAuthed())return '';
   if(CFOAUTH.access_token&&Date.now()<CFOAUTH.exp-60000)return CFOAUTH.access_token;
@@ -1161,9 +1181,18 @@ async function cfoSync(){
         body:JSON.stringify(chunk.map(x=>({id:x.id,sec:x.sec,data:x.d||{},up:x.up,del:!!x.del})))});
       snap.forEach(([x,u])=>{if(x.up===u)delete x.dirty});
     }
-    SC.lastSyncAt=Date.now();
-  }catch(e){if(!e.net)console.warn('ledger sync failed:',e.message)}
-  cfoSyncing=false;
+    SC.lastSyncAt=Date.now();cfoErr='';cfoFails=0;clearTimeout(cfoRetryTimer);
+  }catch(e){
+    /* The ledger is held in memory and never written to this device, on purpose — so a
+       push that fails is not merely late, it is the only copy of that edit, and a reload
+       loses it. It used to fail in a console warning and stop there: no retry, nothing on
+       screen. A deleted subscription would sit there looking deleted, go nowhere, and come
+       straight back from the cloud on the next visit. Now it keeps trying, and says so. */
+    cfoErr=e.net?'':(e.message||'ledger sync failed');
+    console.warn('ledger sync failed:',e.message);
+    cfoRetry();
+  }
+  cfoSyncing=false;setPill();
   if(changed&&SITE==='cfo')renderActive();
   if(cfoAgain){cfoAgain=false;cfoSync()}
 }
@@ -1229,16 +1258,22 @@ async function sync(){
 }
 function setPill(state){
   const dot=$('#pillDot'),txt=$('#pillTxt');
-  const pend=Object.values(S.items).filter(i=>i.dirty).length;
+  const pend=Object.values(S.items).filter(i=>i.dirty).length+cfoPending();
   if(!cfg){dot.className='dot gray';txt.textContent='local only';return}
   if(state==='sync'){dot.className='dot pend';txt.textContent='syncing…';return}
   if(storeErr){dot.className='dot off';txt.textContent='storage full';return}
   if(netOk===false){dot.className='dot off';txt.textContent='offline · retrying';return}
-  if(syncErr){dot.className='dot off';txt.textContent='sync error · retrying';return}
+  if(syncErr||cfoErr){dot.className='dot off';txt.textContent='sync error · retrying';return}
   if(pend){dot.className='dot pend';txt.textContent=pend+' pending';return}
   dot.className='dot';txt.textContent=S.lastSyncAt?('cloud · '+new Date(S.lastSyncAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'cloud';
 }
-addEventListener('online',()=>{fails=0;sync();cfoSync()});   // a hint worth acting on, never one we wait for
+/* The ledger lives in memory only. Closing the tab with something still unsent throws it
+   away, and nothing else in the app would have said a word. */
+addEventListener('beforeunload',e=>{
+  if(!cfoPending())return;
+  e.preventDefault();e.returnValue='';return'';
+});
+addEventListener('online',()=>{fails=0;sync();cfoSync();});   // a hint worth acting on, never one we wait for
 addEventListener('offline',()=>setPill());
 addEventListener('pageshow',e=>{if(e.persisted)syncSoon()});  // woken from the back/forward cache
 addEventListener('focus',()=>syncSoon());
@@ -1789,16 +1824,66 @@ $('#mSave').onclick=()=>{
     if(editCtx.sec==='todo')reRankTodo(saved);
   }catch(err){
     console.warn('save failed:',err);
-    alert('Could not save — '+(err.message||'unknown error')+'\n\nYour text is still in the form; try again or copy it out.');
+    say('Could not save — '+(err.message||'unknown error')+'\n\nYour text is still in the form; try again or copy it out.');
     return;                                    // keep the form open so nothing typed is lost
   }
   closeModal();renderActive();
 };
-$('#mDel').onclick=()=>{if(editCtx?.id&&confirm('Delete this item?')){
-  const sec=editCtx.sec,gone=one(editCtx.id),m=MODS[sec];
-  kill(editCtx.id);
-  if(m.ranked&&gone){const ghost={id:'',d:{...gone.d,pri:0}};reRank(sec,ghost)}
-  closeModal();renderActive()}};
+/* The browser's own confirm() is not ours to depend on, and the Delete button depended on
+   it completely: `if(confirm(...))`. Chrome offers "prevent this page from creating
+   additional dialogs" the moment a page shows a few in a row, and this one shows plenty —
+   Plaid, imports, every delete. Tick that box once and confirm() returns false the instant
+   it is called, for the rest of that tab's life. The Delete button then does nothing at
+   all. No error, no flicker, no amount of clicking helps, and a reload is the only way
+   out — which is exactly what "I press delete and nothing happens" looks like, over and
+   over, in any section, surviving every fix aimed at the delete itself.
+   So the question is asked in the page instead. Nothing can switch this off. */
+let askResolve=null;
+function ask(msg,o){
+  o=o||{};
+  return new Promise(res=>{
+    if(askResolve)askResolve(false);                 // never leave an older question hanging
+    askResolve=res;
+    $('#askTitle').textContent=o.title||(o.cancel===null?'Alfred':'Are you sure?');
+    $('#askBody').textContent=msg;
+    const yes=$('#askYes'),no=$('#askNo');
+    yes.textContent=o.ok||'Delete';
+    yes.className='btn '+(o.plain?'primary':'solidBad');
+    no.style.display=o.cancel===null?'none':'';
+    no.textContent=o.cancel||'Cancel';
+    ov('askOv',1);
+    setTimeout(()=>{try{yes.focus()}catch(e){}},40);
+  });
+}
+function askDone(v){
+  if(!askResolve)return;
+  const r=askResolve;askResolve=null;ov('askOv',0);r(v);
+}
+const say=(msg,title)=>ask(msg,{ok:'OK',cancel:null,plain:1,title:title||'Alfred'});
+$('#askYes').onclick=()=>askDone(true);
+$('#askNo').onclick=()=>askDone(false);
+let askDown=null;
+$('#askOv').addEventListener('pointerdown',e=>{askDown=e.target.id});
+$('#askOv').addEventListener('click',e=>{
+  if(e.target.id==='askOv'&&askDown==='askOv')askDone(false);
+  askDown=null;});
+addEventListener('keydown',e=>{
+  if(!askResolve)return;
+  if(e.key==='Escape'){e.preventDefault();askDone(false)}
+  else if(e.key==='Enter'){e.preventDefault();askDone(true)}
+});
+$('#mDel').onclick=async()=>{
+  if(!editCtx?.id)return;
+  // Read the row and where it lives BEFORE the question: closing the form clears editCtx,
+  // and a question that takes a moment to answer must not be answering about nothing.
+  const sec=editCtx.sec,id=editCtx.id,m=MODS[sec];
+  const gone=one(id);
+  if(!gone){closeModal();renderActive();return}
+  if(!await ask('Delete this item?'))return;
+  kill(id);
+  if(m&&m.ranked){const ghost={id:'',d:{...gone.d,pri:0}};reRank(sec,ghost)}
+  closeModal();renderActive();
+};
 let ovDown=null;
 $('#modalOv').addEventListener('pointerdown',e=>{ovDown=e.target.id});
 $('#modalOv').addEventListener('click',e=>{
@@ -3720,19 +3805,19 @@ const MON_LABEL={fincash:'Cash accounts',finstmt:'Statements',fintx:'Transfers',
 let MONROWS=null,MONBUSY=0;
 async function monScan(){
   if(MONBUSY)return;
-  if(!cfg){alert('Set up the cloud connection first — the gear, top right.');return}
+  if(!cfg){say('Set up the cloud connection first — the gear, top right.');return}
   MONBUSY=1;renderActive();
   try{
     const rows=await sb('items?select=id,sec,data,del&sec=in.('+MON_SECS.join(',')+')&limit=2000');
     MONROWS=(rows||[]).filter(r=>!r.del);
-  }catch(e){MONROWS=null;alert('Could not read the monitor: '+e.message)}
+  }catch(e){MONROWS=null;say('Could not read the monitor: '+e.message)}
   MONBUSY=0;renderActive();
 }
 async function monImport(){
   if(!MONROWS||MONBUSY)return;
   const fresh=MONROWS.filter(r=>!S.items[r.id]);
-  if(!fresh.length){alert('Nothing new to bring over.');return}
-  if(!confirm('Bring '+fresh.length+' row'+(fresh.length===1?'':'s')+' over from the monitor?\n\nThey are written through this browser, so they arrive encrypted. Anything already here is left alone.'))return;
+  if(!fresh.length){say('Nothing new to bring over.');return}
+  if(!await ask('Bring '+fresh.length+' row'+(fresh.length===1?'':'s')+' over from the monitor?\n\nThey are written through this browser, so they arrive encrypted. Anything already here is left alone.',{ok:'Bring them over',plain:1}))return;
   MONBUSY=1;renderActive();
   fresh.forEach(r=>put(r.sec,r.data||{},r.id));
   MONBUSY=0;MONROWS=null;renderActive();
@@ -3925,10 +4010,10 @@ async function plaidRevokeOnDemand(){
   }
   return n;
 }
-function plaidSetOnDemand(id,on){
+async function plaidSetOnDemand(id,on){
   const it=one(id); if(!it)return;
   const name=it.d.inst||'this bank';
-  if(on&&!confirm('Sign into '+name+' only when you press Sync now?\n\n'
+  if(on&&!await ask('Sign into '+name+' only when you press Sync now?\n\n'
     +'The connection is handed back to Plaid after each sync, so it has nothing to log in '
     +'with in between \u2014 which is what stops the bank emailing about a sign-in every '
     +'morning.\n\nThe accounts, balances and transactions already here all stay. Each '
@@ -4071,9 +4156,9 @@ function plaidSeatAccounts(){
    Kept on the connection so it is a property of the bank rather than a rule about one
    name, because the next bank like this should need no code at all. */
 const plaidManual=it=>!!(it&&it.d&&it.d.manualBal);
-function plaidSetManual(id,on){
+async function plaidSetManual(id,on){
   const it=one(id); if(!it)return;
-  if(on&&!confirm('Keep '+(it.d.inst||'this bank')+'\u2019s balance by hand?\n\nIts transactions carry on syncing as they do now. Only the balance stops being fetched \u2014 you type it, and nothing overwrites it.'))return;
+  if(on&&!await ask('Keep '+(it.d.inst||'this bank')+'\u2019s balance by hand?\n\nIts transactions carry on syncing as they do now. Only the balance stops being fetched \u2014 you type it, and nothing overwrites it.',{ok:'Yes, by hand',plain:1}))return;
   // The old refusal is not news about a bank we have stopped asking.
   put('plaid',{manualBal:!!on,...(on?{balErr:'',diag:null,diagAt:''}:{})},id);
   renderActive();
@@ -4438,7 +4523,7 @@ async function plaidConnect(){
             const r=await plaidSyncAll();
             const signedOut=await plaidRevokeOnDemand();
             PLAIDMSG='';
-            alert(['Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.',
+            say(['Connected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in.',
               r.accts?r.accts+' account'+(r.accts===1?'':'s')+' now keep their balance current.':'',
               r.debts?r.debts+' card'+(r.debts===1?'':'s')+' carry their real APR, minimum and due date.':'',
               r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
@@ -4447,14 +4532,14 @@ async function plaidConnect(){
               signedOut?'Signed back out of '+signedOut+' bank'+(signedOut===1?'':'s')
                 +' — nothing will log in again until you press Sync now.':''
             ].filter(Boolean).join('\n'));
-          }catch(e){alert('Could not finish connecting: '+e.message)}
+          }catch(e){say('Could not finish connecting: '+e.message)}
           done();
         },
         onExit:(err)=>{if(err)PLAIDMSG='';done()},
       });
       h.open();
     });
-  }catch(e){alert(e.message)}
+  }catch(e){say(e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
 /* Re-opening a connection you already have. Plaid calls it update mode: the token we hold
@@ -4478,31 +4563,31 @@ async function plaidReconnect(id){
           try{
             PLAIDBUSY=1;PLAIDMSG='fetching\u2026';renderActive();
             const r=await plaidSyncAll();
-            alert('Reconnected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in'
+            say('Reconnected. '+r.added+' transaction'+(r.added===1?'':'s')+' brought in'
               +(r.accts?', '+r.accts+' balance'+(r.accts===1?'':'s')+' refreshed':'')+'.');
-          }catch(e){alert('Reconnected, but the refresh failed: '+e.message)}
+          }catch(e){say('Reconnected, but the refresh failed: '+e.message)}
           done();
         },
         onExit:()=>done(),
       });
       h.open();
     });
-  }catch(e){alert(e.message)}
+  }catch(e){say(e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
 /* Everything this bank has, from the beginning, ignoring what we think we already hold.
    The remedy for a connection that answers without error and without rows. */
 async function plaidRepull(id){
   const it=one(id); if(!it)return;
-  if(!confirm('Ask '+(it.d.inst||'this bank')+' for its whole history again?\n\nNothing can be duplicated — every transaction is stored under the id the bank gives it, so anything already here is simply rewritten.'))return;
+  if(!await ask('Ask '+(it.d.inst||'this bank')+' for its whole history again?\n\nNothing can be duplicated — every transaction is stored under the id the bank gives it, so anything already here is simply rewritten.',{ok:'Re-pull',plain:1}))return;
   PLAIDBUSY=1;PLAIDMSG='asking '+(it.d.inst||'the bank')+' for everything…';renderActive();
   try{
     await plaidTxSync(true,id);   // the cursor reset alone: no forced login at the bank
     plaidStmtSync();plaidTfrSync();
     const got=plaidRowsOf(it).length;
-    alert(got?got+' transaction'+(got===1?'':'s')+' now held for this bank.'
+    say(got?got+' transaction'+(got===1?'':'s')+' now held for this bank.'
              :'This bank still returned nothing.\n\nIts balance works, so the connection itself is fine — the bank is not releasing transaction history. Reconnecting it is the next thing to try.');
-  }catch(e){alert('Could not re-pull: '+e.message)}
+  }catch(e){say('Could not re-pull: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
 async function plaidSyncNow(){
@@ -4510,14 +4595,14 @@ async function plaidSyncNow(){
      the credential back out is the one part of this only you can do. So Sync now means the
      login box for those, not a silent no-op. */
   const out=plaidItems().filter(it=>plaidOnDemand(it)&&plaidSignedOut(it));
-  if(out.length&&confirm(out.map(i=>i.d.inst||'A bank').join(', ')
+  if(out.length&&await ask(out.map(i=>i.d.inst||'A bank').join(', ')
     +(out.length===1?' signs':' sign')+' in only when you ask, so there is nothing stored to '
     +'sync with.\n\nLog in now?'))return plaidConnect();
   PLAIDBUSY=1;PLAIDMSG='syncing…';renderActive();
   try{
     const r=await plaidSyncAll();
     const signedOut=await plaidRevokeOnDemand();
-    alert([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
+    say([r.added+' new, '+r.updated+' updated'+(r.removed?', '+r.removed+' removed':'')+'.',
       r.accts?r.accts+' account balance'+(r.accts===1?'':'s')+' refreshed.':'',
       r.debts?r.debts+' debt'+(r.debts===1?'':'s')+' refreshed.':'',
       r.inv?'Investment log updated from '+r.inv+' brokerage account'+(r.inv===1?'':'s')+'.':'',
@@ -4527,7 +4612,7 @@ async function plaidSyncNow(){
       signedOut?'Signed back out of '+signedOut+' bank'+(signedOut===1?'':'s')
         +' — nothing will log in again until you press Sync now.':''
     ].filter(Boolean).join('\n'));
-  }catch(e){alert('Sync failed: '+e.message)}
+  }catch(e){say('Sync failed: '+e.message)}
   PLAIDBUSY=0;PLAIDMSG='';renderActive();
 }
 // Rows carry the connection they came from; older ones predate that, so fall back to
@@ -4541,10 +4626,10 @@ function plaidRowsOf(it){
 async function plaidDisconnect(id){
   const it=one(id);if(!it)return;
   const rows=plaidRowsOf(it), name=it.d.inst||'this bank';
-  if(!confirm('Disconnect '+name+'?\n\nNew transactions stop arriving, Plaid is told to drop the connection, and the stored bank token is deleted.'))return;
+  if(!await ask('Disconnect '+name+'?\n\nNew transactions stop arriving, Plaid is told to drop the connection, and the stored bank token is deleted.'))return;
   try{ await plaidFn('remove',{item_id:it.d.item}) }
-  catch(e){ if(!confirm('Could not reach Plaid to revoke it: '+e.message+'\n\nRemove it from this page anyway?'))return }
-  if(rows.length&&confirm('Also delete the '+rows.length+' transaction'+(rows.length===1?'':'s')+' it brought in?\n\nOK deletes them. Cancel keeps them.\n\nDelete them if this was a test connection \u2014 sandbox data is invented and will otherwise sit in your real figures.')){
+  catch(e){ if(!await ask('Could not reach Plaid to revoke it: '+e.message+'\n\nRemove it from this page anyway?',{ok:'Remove anyway'}))return }
+  if(rows.length&&await ask('Also delete the '+rows.length+' transaction'+(rows.length===1?'':'s')+' it brought in?\n\nOK deletes them. Cancel keeps them.\n\nDelete them if this was a test connection \u2014 sandbox data is invented and will otherwise sit in your real figures.')){
     rows.forEach(x=>kill(x.id));
   }
   kill(id);renderActive();
@@ -4813,14 +4898,14 @@ function txParse(text){
   });
   return rows;
 }
-function txDoImport(){
+async function txDoImport(){
   const ta=document.getElementById('txPaste'),card=document.getElementById('txCard');
   if(!ta||!card)return;
   const flip=document.getElementById('txFlip')?.checked;
   const rows=txParse(ta.value);
-  if(!rows.length){alert('Nothing recognisable. Each line needs a date and an amount.');return}
-  if(!card.value){alert('Pick which card these belong to.');return}
-  if(!confirm(`Import ${rows.length} transaction${rows.length===1?'':'s'} onto ${card.value}?`))return;
+  if(!rows.length){say('Nothing recognisable. Each line needs a date and an amount.');return}
+  if(!card.value){say('Pick which card these belong to.');return}
+  if(!await ask(`Import ${rows.length} transaction${rows.length===1?'':'s'} onto ${card.value}?`,{ok:'Import',plain:1}))return;
   rows.forEach((r,n)=>put('tx',{date:r.date,desc:r.desc,amt:flip?-r.amt:r.amt,
     card:card.value,cat:'',cur:'USD',notes:''},'tx:'+Date.now().toString(36)+':'+n));
   ta.value='';TXIMP=0;renderActive();
@@ -7343,12 +7428,12 @@ $('#impFile').onchange=e=>{
   r.onload=()=>{
     let j;
     try{j=JSON.parse(r.result);if(!j||!j.items)throw 0}
-    catch(err){alert('Not a valid Alfred backup.');return}
+    catch(err){say('Not a valid Alfred backup.');return}
     let added=0;const total=Object.keys(j.items).length;
     for(const id in j.items){const inc=j.items[id],cur=S.items[id];
       if(!cur||(+inc.up||0)>(+cur.up||0)){S.items[id]=inc;S.items[id].dirty=1;added++}}
-    try{save(1);renderActive();sync();alert(added+' of '+total+' items imported.')}
-    catch(err){alert('Imported '+added+', but saving failed: '+(err.message||err))}
+    try{save(1);renderActive();sync();say(added+' of '+total+' items imported.')}
+    catch(err){say('Imported '+added+', but saving failed: '+(err.message||err))}
   };
   r.readAsText(f);
 };
