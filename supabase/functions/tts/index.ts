@@ -14,8 +14,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * brief-audio bucket. Playing it again, on any device, is a download rather than a new bill.
  * Editing the brief changes the text hash, so the next listen voices the new version.
  *
- * Environment: OPENAI_API_KEY. Optional: TTS_VOICE (default "ash"), TTS_MODEL
- * (default "gpt-4o-mini-tts"). Read per request, so a newly added secret takes effect at once.
+ * The voice is Google Cloud Text-to-Speech, Chirp 3 HD: a natural narrator voice in each
+ * language, returned as compressed MP3 so a long brief stays a few megabytes.
+ *
+ * Environment: GOOGLE_TTS_API_KEY. Optional: TTS_VOICE_EN, TTS_VOICE_FR, TTS_VOICE_ES to
+ * use a different voice (full Google voice names). Read per request, so a newly added
+ * secret takes effect at once.
  */
 
 const SB_URL = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
@@ -56,15 +60,19 @@ function overLimit(): boolean {
   return ++GEN.n > 30;
 }
 
-const LANGS: Record<string, string> = {
-  en: "Speak in English with a neutral British accent.",
-  fr: "Parle en français, avec une prononciation française naturelle et soignée.",
-  es: "Habla en español peninsular, con una pronunciación natural y cuidada.",
+/* Charon is Google's measured, informative male narrator, the closest of its voices to a
+ * magazine's audio edition, and it exists in each language so the brief sounds like one
+ * presenter whichever edition is open. */
+const LANGS: Record<string, { code: string; voice: string }> = {
+  en: { code: "en-GB", voice: "en-GB-Chirp3-HD-Charon" },
+  fr: { code: "fr-FR", voice: "fr-FR-Chirp3-HD-Charon" },
+  es: { code: "es-ES", voice: "es-ES-Chirp3-HD-Charon" },
 };
-const STYLE =
-  "You are the narrator of a serious weekly news magazine's audio edition. Read calmly and " +
-  "clearly, at an unhurried pace, with the measured authority of a seasoned radio presenter. " +
-  "Let headlines land, pause briefly between sections, and never sound excited or salesy. ";
+function voiceFor(lang: string): { code: string; voice: string } {
+  const l = LANGS[lang] ?? LANGS.en;
+  const o = (Deno.env.get(`TTS_VOICE_${lang.toUpperCase()}`) ?? "").trim();
+  return o ? { code: l.code, voice: o } : l;
+}
 
 /* Markdown to something a narrator reads: headings become their own sentences, list items
  * become sentences, emphasis and links disappear but their words stay. */
@@ -83,26 +91,31 @@ function speakable(md: string): string {
     .trim();
 }
 
-/* The model takes a few thousand characters at a time, so a long brief is cut at paragraph
- * boundaries and the pieces are voiced in parallel. MP3 frames join end to end, so the
- * pieces concatenate into one file that plays straight through. */
-function chunks(text: string, max = 3200): string[] {
+/* Google takes at most 5,000 bytes of text per request, and an accented letter is two bytes,
+ * so a long brief is cut at paragraph boundaries by byte length and the pieces are voiced in
+ * parallel. MP3 frames join end to end, so the pieces concatenate into one file that plays
+ * straight through. */
+const ENC = new TextEncoder();
+const bytes = (s: string) => ENC.encode(s).length;
+function chunks(text: string, max = 4200): string[] {
   const out: string[] = [];
   let cur = "";
   for (const p of text.split(/\n\n+/)) {
-    if (p.length > max) {
+    if (bytes(p) > max) {
       if (cur) { out.push(cur); cur = ""; }
       let rest = p;
-      while (rest.length > max) {
-        const cut = Math.max(rest.lastIndexOf(". ", max), rest.lastIndexOf(" ", max));
-        const at = cut > max / 2 ? cut + 1 : max;
+      while (bytes(rest) > max) {
+        // max/2 characters is always within max bytes, even if every letter were accented
+        const lim = Math.floor(max / 2);
+        const cut = Math.max(rest.lastIndexOf(". ", lim), rest.lastIndexOf(" ", lim));
+        const at = cut > lim / 2 ? cut + 1 : lim;
         out.push(rest.slice(0, at).trim());
         rest = rest.slice(at).trim();
       }
       cur = rest;
       continue;
     }
-    if ((cur + "\n\n" + p).length > max && cur) { out.push(cur); cur = p; }
+    if (cur && bytes(cur + "\n\n" + p) > max) { out.push(cur); cur = p; }
     else cur = cur ? cur + "\n\n" + p : p;
   }
   if (cur) out.push(cur);
@@ -114,23 +127,32 @@ async function sha(s: string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
 }
 
+function unb64(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
 async function voice(text: string, lang: string, key: string): Promise<Uint8Array> {
-  const r = await fetch("https://api.openai.com/v1/audio/speech", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: (Deno.env.get("TTS_MODEL") ?? "").trim() || "gpt-4o-mini-tts",
-      voice: (Deno.env.get("TTS_VOICE") ?? "").trim() || "ash",
-      input: text,
-      instructions: STYLE + (LANGS[lang] ?? LANGS.en),
-      response_format: "mp3",
-    }),
-  });
+  const v = voiceFor(lang);
+  const call = (voice: Record<string, string>) =>
+    fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+      method: "POST",
+      headers: { "X-Goog-Api-Key": key, "Content-Type": "application/json" },
+      body: JSON.stringify({ input: { text }, voice, audioConfig: { audioEncoding: "MP3" } }),
+    });
+  let r = await call({ languageCode: v.code, name: v.voice });
+  // A voice name Google does not know (renamed, or not offered in that language) should not
+  // silence the brief: fall back to Google's own default voice for the language.
+  if (r.status === 400) r = await call({ languageCode: v.code });
   if (!r.ok) {
     const t = await r.text().catch(() => "");
-    throw new Error(`voice ${r.status}: ${t.slice(0, 200)}`);
+    throw new Error(`voice ${r.status}: ${t.slice(0, 300)}`);
   }
-  return new Uint8Array(await r.arrayBuffer());
+  const j = await r.json();
+  if (!j?.audioContent) throw new Error("voice returned no audio");
+  return unb64(j.audioContent);
 }
 
 Deno.serve(async (req: Request) => {
@@ -143,9 +165,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
-  const openai = (Deno.env.get("OPENAI_API_KEY") ?? "").trim();
+  const gkey = (Deno.env.get("GOOGLE_TTS_API_KEY") ?? "").trim();
   const svc = serviceKey();
-  if (!openai) return json({ error: "not_configured", detail: "OPENAI_API_KEY is not set on the tts function." }, 503);
+  if (!gkey) return json({ error: "not_configured", detail: "GOOGLE_TTS_API_KEY is not set on the tts function." }, 503);
   if (!SB_URL || !svc) return json({ error: "storage unavailable" }, 500);
 
   let body: { id?: string; lang?: string } = {};
@@ -173,7 +195,8 @@ Deno.serve(async (req: Request) => {
   if (!md) return json({ error: "nothing to read" }, 404);
   const text = (title ? speakable(title) + (/[.!?]$/.test(title) ? "" : ".") + "\n\n" : "") + speakable(md);
 
-  const path = `${id.replace(/[^A-Za-z0-9_-]/g, "_")}/${speakLang}-${await sha(text)}.mp3`;
+  // The voice is part of the name, so changing voices re-records rather than replaying the old one.
+  const path = `${id.replace(/[^A-Za-z0-9_-]/g, "_")}/${speakLang}-${await sha(voiceFor(speakLang).voice + "|" + text)}.mp3`;
   const objUrl = `${SB_URL}/storage/v1/object/${BUCKET}/${path}`;
   const store = { apikey: svc, Authorization: `Bearer ${svc}` };
   const audioHeaders = { ...CORS, "Content-Type": "audio/mpeg", "Cache-Control": "no-store" };
@@ -184,7 +207,7 @@ Deno.serve(async (req: Request) => {
   if (overLimit()) return json({ error: "rate limited" }, 429);
   let parts: Uint8Array[];
   try {
-    parts = await Promise.all(chunks(text).map((c) => voice(c, speakLang, openai)));
+    parts = await Promise.all(chunks(text).map((c) => voice(c, speakLang, gkey)));
   } catch (e) {
     return json({ error: "voice_failed", detail: String((e as Error).message ?? e) }, 502);
   }
