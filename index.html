@@ -987,7 +987,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-22 · brief read aloud';
+const BUILD='2026-10-22 · brief voice on google';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5577,9 +5577,9 @@ function briefArt(b,k){
    and kept in storage; this side only fetches the finished file and plays it. The player
    lives outside the page's HTML, so redrawing the article never stops what is playing. */
 const LS_UI={
-  en:{listen:'Listen to this brief',prep:'Preparing the audio — the first listen of an edition takes up to a minute',err:'The audio could not be loaded.',retry:'Try again',nocfg:'The voice is not set up yet: the OpenAI key still needs adding in Supabase.',min:'min'},
-  fr:{listen:'Écouter ce brief',prep:"Préparation de l'audio — la première écoute d'une édition prend jusqu'à une minute",err:"Impossible de charger l'audio.",retry:'Réessayer',nocfg:"La voix n'est pas encore configurée : la clé OpenAI reste à ajouter dans Supabase.",min:'min'},
-  es:{listen:'Escuchar este brief',prep:'Preparando el audio: la primera escucha de una edición tarda hasta un minuto',err:'No se pudo cargar el audio.',retry:'Reintentar',nocfg:'La voz aún no está configurada: falta añadir la clave de OpenAI en Supabase.',min:'min'}
+  en:{listen:'Listen to this brief',prep:'Preparing the audio — the first listen of an edition takes up to a minute',err:'The audio could not be loaded.',retry:'Try again',nocfg:'The voice is not set up yet: the Google Cloud key still needs adding in Supabase.',min:'min'},
+  fr:{listen:'Écouter ce brief',prep:"Préparation de l'audio — la première écoute d'une édition prend jusqu'à une minute",err:"Impossible de charger l'audio.",retry:'Réessayer',nocfg:"La voix n'est pas encore configurée : la clé Google Cloud reste à ajouter dans Supabase.",min:'min'},
+  es:{listen:'Escuchar este brief',prep:'Preparando el audio: la primera escucha de una edición tarda hasta un minuto',err:'No se pudo cargar el audio.',retry:'Reintentar',nocfg:'La voz aún no está configurada: falta añadir la clave de Google Cloud en Supabase.',min:'min'}
 };
 const LS_RATES=[1,1.25,1.5,2,0.75];
 const LS={key:'',id:'',st:'idle',audio:null,url:'',err:'',rate:1,mins:0};
