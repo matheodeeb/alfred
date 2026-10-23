@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { spoken } from "./spoken.ts";
 
 /* Alfred: the Brief, read aloud.
  *
@@ -19,6 +20,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * Each part is generated once per row, language, voice and text, then kept in the private
  * brief-audio bucket. Playing it again, on any device, is a download rather than a new call.
  * Editing the brief changes the text hash, so the next listen voices the new version.
+ *
+ * Before the voice sees it, the text is rewritten into what a person says (spoken.ts): a price
+ * is "6 dollars 29", never "six virgule vingt-neuf dollars".
  *
  * Environment: GEMINI_API_KEY (a Google AI Studio key). Optional: GEMINI_TTS_MODEL,
  * GEMINI_TTS_VOICE (default Charon). Read per request, so a newly added secret takes
@@ -64,21 +68,46 @@ function overLimit(): boolean {
   return ++GEN.n > 80;
 }
 
+/* How a native newsreader reads what is printed. The commonest cases are already rewritten
+ * by spoken.ts before the voice sees them; this covers everything a rule cannot foresee. */
 const LANG_NOTE: Record<string, string> = {
-  en: "The text is in English; read it with a neutral British accent.",
-  fr: "Le texte est en français ; lis-le avec une prononciation française naturelle et soignée.",
-  es: "El texto está en español; léelo con una pronunciación peninsular natural y cuidada.",
+  en: "The text is in English. Read it with a neutral British accent, the way a BBC newsreader " +
+    "would: \"$6.29\" is \"six dollars twenty-nine\", \"$64.6 billion\" is \"sixty-four point six " +
+    "billion dollars\", \"2026\" is \"twenty twenty-six\", \"2007-09\" is \"two thousand and seven to " +
+    "two thousand and nine\", \"5,000\" is \"five thousand\", \"Mr\" is \"mister\".",
+  fr: "Le texte est en français. Lis-le comme un journaliste de France Inter, avec une prononciation " +
+    "française naturelle et soignée. Un prix se dit sans « virgule » : « 6 dollars 29 », « 4 euros 50 ». " +
+    "Un chiffre décimal qui n'est pas un prix se dit comme à la radio : « 2,3 % » se dit « deux virgule " +
+    "trois pour cent », « 64,6 milliards » se dit « soixante-quatre virgule six milliards ». « 5 000 » se dit " +
+    "« cinq mille », « 2026 » se dit « deux mille vingt-six », « 18ème » se dit « dix-huitième », « M. » se " +
+    "dit « monsieur ». Les mots anglais (noms de journaux, d'entreprises) se prononcent à l'anglaise.",
+  es: "El texto está en español. Léelo como un locutor de Radio Nacional de España, con pronunciación " +
+    "peninsular natural y cuidada. Un precio se dice sin « coma »: « 6 dólares con 29 ». Un decimal que no " +
+    "es un precio se dice como en la radio: « 2,3 % » es « dos coma tres por ciento ». « 5.000 » es « cinco " +
+    "mil », « 2026 » es « dos mil veintiséis ». Las palabras inglesas se pronuncian en inglés.",
 };
 const STYLE =
   "Read the text below aloud, word for word, as the narrator of a serious news magazine's " +
   "audio edition: calm, clear, unhurried, with the measured authority of a seasoned radio " +
-  "presenter. Let headlines land and pause briefly between sections. Do not add anything. ";
+  "presenter. Let headlines land and pause briefly between sections. Speak it the way a person " +
+  "says it, never the way it is printed: never read punctuation, symbols, asterisks or " +
+  "abbreviations letter by letter. Do not add anything. ";
 
 /* Markdown to something a narrator reads: headings become their own sentences, list items
  * become sentences, emphasis and links disappear but their words stay. */
 function speakable(md: string): string {
-  return md
-    .replace(/\r/g, "")
+  // A list of links (the "today on economist.com" block) is for clicking, not for listening.
+  const lines = md.replace(/\r/g, "").split("\n").filter((l) => !/^\s*(?:[-*]\s*)?\[[^\]]+\]\([^)]+\)\s*$/.test(l));
+  const kept: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^#{1,6}\s/.test(lines[i])) {
+      let j = i + 1;
+      while (j < lines.length && !lines[j].trim()) j++;
+      if (j >= lines.length || /^#{1,2}\s/.test(lines[j])) continue;   // a heading with nothing under it
+    }
+    kept.push(lines[i]);
+  }
+  return kept.join("\n")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .split(/\n/)
@@ -220,7 +249,7 @@ Deno.serve(async (req: Request) => {
   let speakLang = lang;
   if (!md) { title = d.title_en || d.title || ""; md = d.body_en || d.body || ""; speakLang = "en"; }
   if (!md) return json({ error: "nothing to read" }, 404);
-  const text = (title ? speakable(title) + (/[.!?]$/.test(title) ? "" : ".") + "\n\n" : "") + speakable(md);
+  const text = spoken((title ? speakable(title) + (/[.!?]$/.test(title) ? "" : ".") + "\n\n" : "") + speakable(md), speakLang);
   const parts = chunks(text);
 
   if (body.part == null) return json({ parts: parts.length, chars: parts.map((p) => p.length), lang: speakLang });
