@@ -7404,7 +7404,7 @@ function go(p){
 let pendingPage=null;
 let lastDrawn=null;
 function renderActive(){
-  const keepY=SITE==='geo'&&activePage===lastDrawn?scrollY:null;
+  const keepY=activePage===lastDrawn?scrollY:null;
   syncAutoOrders();syncRecurTodos();syncIncomeTransfers();
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
@@ -7434,8 +7434,15 @@ function renderActive(){
   el.innerHTML=sp?sp.render():genList(activePage);
   if(sp?.bind)sp.bind(el);
   el.classList.add('active');
-  // In the Geo room, redrawing the tab you are already on — after saving a form, or when a
-  // sync lands — leaves you where you were rather than back at the top.
+  /* Redrawing the tab you are already on — stepping a note count up or down, saving a
+     form, a sync landing — leaves you where you were rather than back at the top. Replacing
+     the page's HTML momentarily empties it, and the browser clamps the scroll position to
+     the height it finds, which is what threw you to the top every time you pressed + or −.
+
+     This was written for the Geo room and left switched on only there, which was never a
+     reason -- every room redraws in place, and a counter you have to scroll back down to
+     after each press is the worst case of it. The guard that matters is the one on the page
+     itself: arriving somewhere new is still a fresh page, from the top. */
   if(keepY!=null)scrollTo(0,keepY);
   lastDrawn=activePage;
   markNav();
