@@ -987,7 +987,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-22 · brief voice on gemini';
+const BUILD='2026-11-06 · nav reordered';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -6619,17 +6619,18 @@ const NAVS={
   {t:'Service',p:'service'},
  ],
  main:[
+  // What he reaches for most, nearest the front: the list, then what he is watching, what
+  // is on order and what is in the house. The rest keeps the order it had.
   {t:'Overview',p:'overview'},
   {t:'To-do',p:'todo',cls:'todo'},
+  {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
+  {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
+  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Menu de la maison','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
-  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
-  {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
-  {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Schedule',p:'schedule'},
   {t:'Timeline',g:[['Travels','travels'],['Past','travpast'],['Spoils','tlspoils']]},
-  {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
   {t:'Learnings',g:[['Books','books'],['To learn','courses']]},
   {t:'Projects',p:'projects'},
  ],
