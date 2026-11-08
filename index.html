@@ -322,6 +322,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ovRow .d.hot{color:var(--bad);font-weight:600}
   .ovMore{font-family:"IBM Plex Mono";font-size:11px;color:var(--acc);margin-top:9px}
   .ovLate{font-family:"IBM Plex Mono";font-size:11px;color:var(--bad);margin-top:9px}
+  .ovStale{font-family:"IBM Plex Mono";font-size:11px;color:var(--warn);margin-top:9px}
   .ovBody{font-size:13.5px;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   /* The ledger's figures keep the ledger's face on them, even out here in the house:
      squarer corners and columns of digits that line up, because money reads wrong when
@@ -999,7 +1000,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-08 · today means today';
+const BUILD='2026-11-08 · the totals outlive the lock';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1230,6 +1231,10 @@ async function cfoSync(){
       snap.forEach(([x,u])=>{if(x.up===u)delete x.dirty});
     }
     SC.lastSyncAt=Date.now();cfoErr='';cfoFails=0;clearTimeout(cfoRetryTimer);
+    /* The Overview's saved totals are refreshed here as well as when the card draws, so a
+       session that ends while he is on another page still leaves today's figures behind
+       rather than last week's. */
+    finSnapSave();
   }catch(e){
     /* The ledger is held in memory and never written to this device, on purpose — so a
        push that fails is not merely late, it is the only copy of that edit, and a reload
@@ -6029,33 +6034,75 @@ function briefPage(){
    at the rate the ledger itself keeps. Bills — physical cash on hand — stay out of it, the
    same way they sit outside Cash & checking on the ledger's own page.
 
-   The figures appear only while the CFO session is open. That is not a nicety: the ledger
-   has a second lock precisely because it holds bank balances, and a copy of them on the
-   house's front page would be a way around it. Signed out, the card says where to sign in
-   and shows nothing. */
+   The card used to go blank the moment the ledger was locked, and it had to: the ledger is
+   held in memory and never written to this device, and the anon key is revoked on its table
+   outright, so a locked room has no copy of anything to show. That was a deliberate second
+   lock and he has asked for it to be opened — he wants the figures on the front page
+   whether the room is open or not.
+
+   So the totals, and only the totals, are kept. Seven numbers and a timestamp: the three
+   figures, the US and Haiti halves of each, and the rate. No account, no card, no name, no
+   balance of any single thing, no transaction, nothing that says where the money is. The
+   ledger itself still never touches the disk, and the room's lock still holds everything a
+   room holds — accounts, statements, transfers, subscriptions, the Plaid connections. What
+   it no longer hides is the sum.
+
+   Said plainly, because it is his to decide and not mine to bury: anyone who gets past the
+   house PIN can now read what he is worth to the nearest cent without the ledger's
+   password. That is the trade, and it is the whole of it. */
+const FIN_SNAP='alfred_fin';
+function finTotals(){
+  if(!cfoAuthed()||!list('fincash').length)return null;
+  return {usCash:finSum('Banking'),usCr:finSum('Credit'),
+    htCash:finUsd('Haiti cash'),htCr:finUsd('Haiti credit'),
+    rate:fxRate(),at:Date.now()};
+}
+function finSnapSave(){
+  const t=finTotals();if(!t)return;
+  try{localStorage[FIN_SNAP]=JSON.stringify(t)}catch(e){}
+}
+function finSnapRead(){
+  try{const j=JSON.parse(localStorage[FIN_SNAP]||'null');
+    return (j&&typeof j.usCash==='number')?j:null}catch(e){return null}
+}
+function finWhen(ts){
+  const d=new Date(+ts||0);if(isNaN(d)||!+ts)return'';
+  const sameDay=d.toDateString()===new Date().toDateString();
+  const clock=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return sameDay?clock:d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+clock;
+}
 function ovFinCard(){
   const head=`<h2><span class="sw" style="background:var(--green)"></span>Finances</h2>`;
-  if(!cfoAuthed())
-    return `<div class="panel ovCard ovFin" onclick="goSite('cfo')">${head}`
-      +`<div class="empty" style="padding:16px">The ledger is locked on this device. Sign in at the CFO desk and your balances show up here.</div>`
-      +`<div class="ovMore">Open the CFO desk →</div></div>`;
-  if(!list('fincash').length)
-    return `<div class="panel ovCard ovFin" onclick="go('fincash')">${head}`
-      +`<div class="empty" style="padding:16px">Reading the ledger…</div></div>`;
-  const r=fxRate();
-  const usCash=finSum('Banking'), usCr=finSum('Credit');
-  const htCash=finUsd('Haiti cash'), htCr=finUsd('Haiti credit');
-  const cash=usCash+htCash, cr=usCr+htCr, ov=cash+cr;
+  const live=finTotals();
+  if(live)finSnapSave();                 // every draw with the room open refreshes the copy
+  const t=live||finSnapRead();
+  if(!t)
+    return cfoAuthed()
+      ?`<div class="panel ovCard ovFin" onclick="go('fincash')">${head}`
+        +`<div class="empty" style="padding:16px">Reading the ledger…</div></div>`
+      :`<div class="panel ovCard ovFin" onclick="goSite('cfo')">${head}`
+        +`<div class="empty" style="padding:16px">No figures on this device yet. Sign in at the CFO desk once and they stay on this card.</div>`
+        +`<div class="ovMore">Open the CFO desk →</div></div>`;
+  const cash=t.usCash+t.htCash, cr=t.usCr+t.htCr, ov=cash+cr;
   const sp=(a,b)=>`US ${money2(a)} · HT ${money2(b)}`;
   const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div>`
     +`<div class="v ${signCls(v)}">${money2(v)}</div><div class="u">${u}</div></div>`;
-  return `<div class="panel ovCard ovFin" onclick="go('fincash')">${head}`
-    +`<div class="hint">American and Haitian together — HTG at ${r} HTG / USD. Bills are kept out, as they are on the ledger.${esc(finBalNote())}</div>`
+  /* A figure read an hour ago and a figure read last Tuesday look identical, so the card
+     says which it is. Open, it reports when the banks were last read; locked, when these
+     numbers themselves were taken — and it stops calling them current. */
+  const hint=live
+    ?`American and Haitian together — HTG at ${t.rate} HTG / USD. Bills are kept out, as they are on the ledger.${esc(finBalNote())}`
+    :`American and Haitian together — HTG at ${t.rate} HTG / USD. Bills are kept out.`;
+  return `<div class="panel ovCard ovFin" onclick="${live?`go('fincash')`:`goSite('cfo')`}">${head}`
+    +`<div class="hint">${hint}</div>`
     +`<div class="grid stats">`
-      +tile('Overall',ov,sp(usCash+usCr,htCash+htCr),'blue')
-      +tile('Cash &amp; checking',cash,sp(usCash,htCash),'green')
-      +tile('Credit',cr,sp(usCr,htCr),'red')
-    +`</div><div class="ovMore">Open the ledger →</div></div>`;
+      +tile('Overall',ov,sp(t.usCash+t.usCr,t.htCash+t.htCr),'blue')
+      +tile('Cash &amp; checking',cash,sp(t.usCash,t.htCash),'green')
+      +tile('Credit',cr,sp(t.usCr,t.htCr),'red')
+    +`</div>`
+    +(live?`<div class="ovMore">Open the ledger →</div>`
+          :`<div class="ovStale">Ledger locked · figures as of ${finWhen(t.at)} — sign in for the live ones →</div>`)
+    +`</div>`;
 }
 function overviewPage(){
   const t=today();
