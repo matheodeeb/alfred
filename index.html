@@ -321,6 +321,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ovRow .d{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);flex:none;min-width:52px}
   .ovRow .d.hot{color:var(--bad);font-weight:600}
   .ovMore{font-family:"IBM Plex Mono";font-size:11px;color:var(--acc);margin-top:9px}
+  .ovLate{font-family:"IBM Plex Mono";font-size:11px;color:var(--bad);margin-top:9px}
   .ovBody{font-size:13.5px;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   /* The ledger's figures keep the ledger's face on them, even out here in the house:
      squarer corners and columns of digits that line up, because money reads wrong when
@@ -998,7 +999,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-08 · the front page is three cards';
+const BUILD='2026-11-08 · today means today';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -6067,10 +6068,25 @@ function overviewPage(){
      What used to follow them — activities, low stock, the living room, payroll, the next
      trip, birthdays — was a noticeboard pinned to the front door, and every one of those
      has its own page that says it better. The Overview is not an index of the app. */
-  const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
+  /* Today means today. Yesterday's unfinished work belongs on the To-do page, which holds
+     all of it in order — a front page that lets the backlog pile up stops being a view of
+     the day and becomes the list again. The count of what is late still shows, in one line:
+     eleven tasks quietly dropped is not a tidier page, only a less honest one.
+
+     The left column used to say "today" on every row, which it now would on all of them.
+     It carries the task's section instead — the same Miami / Haiti / House / Work the
+     To-do page files it under — and the rows come in that page's own order for the day,
+     so the card is the top of the list rather than a differently sorted copy of it. */
+  const open=list('todo').filter(i=>!i.d.done&&i.d.due);
+  const tds=open.filter(i=>i.d.due===t).sort((a,b)=>
+    grpRankFor(t,(a.d.grp||'').trim()||'General')-grpRankFor(t,(b.d.grp||'').trim()||'General')
+    ||(+a.d.ord||0)-(+b.d.ord||0)
+    ||(a.d.task||'').localeCompare(b.d.task||''));
+  const late=open.filter(i=>i.d.due<t).length;
   h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
-  if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
+  if(tds.length)h+=tds.slice(0,8).map(i=>`<div class="ovRow"><span class="d">${esc((i.d.grp||'').trim())}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>8?`<div class="ovMore">+${tds.length-8} more →</div>`:'');
   else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
+  if(late)h+=`<div class="ovLate">${late} still open from before →</div>`;
   h+=`</div>`;
   const briefs=list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
