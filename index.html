@@ -998,7 +998,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-08 · the day at a glance, money included';
+const BUILD='2026-11-08 · the front page is three cards';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -6060,10 +6060,13 @@ function overviewPage(){
   const t=today();
   const dateline=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
-  /* Three cards carry the day: what has to be done, what happened overnight, and where the
+  /* Three cards and no more: what has to be done, what happened overnight, and where the
      money stands. They are always drawn, in that order, even with nothing in them — a page
-     whose shape moves around depending on the data is a page you have to re-read. What
-     follows them appears only when it has something to say. */
+     whose shape moves around depending on the data is a page you have to re-read.
+
+     What used to follow them — activities, low stock, the living room, payroll, the next
+     trip, birthdays — was a noticeboard pinned to the front door, and every one of those
+     has its own page that says it better. The Overview is not an index of the app. */
   const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
   h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
   if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
@@ -6078,18 +6081,6 @@ function overviewPage(){
   else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
   h+=`</div>`;
   h+=ovFinCard();
-  const acts=list('acts').filter(actToday).sort(byStart);
-  if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(actStart(i,DOW_TODAY()))||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
-  const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
-  const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
-  const pd=list('payroll').filter(i=>!paidThis(i));
-  if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
-  const tr=list('travels').filter(i=>!i.d.done&&tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
-  if(tr)h+=`<div class="panel ovCard" onclick="go('travels')"><h2><span class="sw" style="background:var(--blue)"></span>Next trip</h2><div class="ovRow"><span class="d">${fdate(tripWhen(tr.d))}</span><span>${esc(tr.d.place)}</span></div></div>`;
-  const bd=list('bdays').map(i=>({i,dd:daysToBday(i.d.date)})).filter(x=>x.dd!=null&&x.dd<=14).sort((a,b)=>a.dd-b.dd);
-  if(bd.length)h+=`<div class="panel ovCard" onclick="go('bdays')"><h2><span class="sw" style="background:var(--purple)"></span>Birthdays coming up</h2>${bd.map(x=>`<div class="ovRow"><span class="d">${x.dd===0?'today!':'in '+x.dd+'d'}</span><span>${esc(x.i.d.name)}</span></div>`).join('')}</div>`;
   return h;
 }
 
