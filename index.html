@@ -322,6 +322,13 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ovRow .d.hot{color:var(--bad);font-weight:600}
   .ovMore{font-family:"IBM Plex Mono";font-size:11px;color:var(--acc);margin-top:9px}
   .ovBody{font-size:13.5px;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  /* The ledger's figures keep the ledger's face on them, even out here in the house:
+     squarer corners and columns of digits that line up, because money reads wrong when
+     the thousands wander. */
+  .ovFin .stat{border-radius:5px}
+  .ovFin .stat .v{font-variant-numeric:tabular-nums;font-size:21px}
+  .ovFin .stat .u{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+  @media(max-width:420px){.ovFin .stat .v{font-size:19px}}
   /* day picker */
   .dayPick{display:flex;gap:6px;flex-wrap:wrap}
   .dayBtn{width:44px;height:36px;border-radius:8px;border:1px solid var(--line2);background:var(--bg2);color:var(--muted);font-family:"IBM Plex Mono";font-size:11px;cursor:pointer;transition:.12s}
@@ -991,7 +998,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-08 · storage kept, link explained';
+const BUILD='2026-11-08 · the day at a glance, money included';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1233,7 +1240,10 @@ async function cfoSync(){
     cfoRetry();
   }
   cfoSyncing=false;setPill();
-  if(changed&&SITE==='cfo')renderActive();
+  /* The Overview reads the ledger too now, so a pull that moves a balance has to reach it.
+     Before this the house's front page would sit on whatever the figures were when it was
+     drawn, which on a phone left open overnight is yesterday's money. */
+  if(changed&&(SITE==='cfo'||activePage==='overview'))renderActive();
   if(cfoAgain){cfoAgain=false;cfoSync()}
 }
 // Online/offline is decided by what actually happened on the wire, not by navigator.onLine:
@@ -6013,10 +6023,52 @@ function briefPage(){
   if(briefSel!=='archive'){const t=briefPick(briefDay(today()));if(t)return briefArticle(t)}
   return briefArchive();
 }
+/* The ledger's three figures, read from the CFO room's own rows and shown with both sides
+   of the house added together: the American accounts in dollars, the Haitian ones converted
+   at the rate the ledger itself keeps. Bills — physical cash on hand — stay out of it, the
+   same way they sit outside Cash & checking on the ledger's own page.
+
+   The figures appear only while the CFO session is open. That is not a nicety: the ledger
+   has a second lock precisely because it holds bank balances, and a copy of them on the
+   house's front page would be a way around it. Signed out, the card says where to sign in
+   and shows nothing. */
+function ovFinCard(){
+  const head=`<h2><span class="sw" style="background:var(--green)"></span>Finances</h2>`;
+  if(!cfoAuthed())
+    return `<div class="panel ovCard ovFin" onclick="goSite('cfo')">${head}`
+      +`<div class="empty" style="padding:16px">The ledger is locked on this device. Sign in at the CFO desk and your balances show up here.</div>`
+      +`<div class="ovMore">Open the CFO desk →</div></div>`;
+  if(!list('fincash').length)
+    return `<div class="panel ovCard ovFin" onclick="go('fincash')">${head}`
+      +`<div class="empty" style="padding:16px">Reading the ledger…</div></div>`;
+  const r=fxRate();
+  const usCash=finSum('Banking'), usCr=finSum('Credit');
+  const htCash=finUsd('Haiti cash'), htCr=finUsd('Haiti credit');
+  const cash=usCash+htCash, cr=usCr+htCr, ov=cash+cr;
+  const sp=(a,b)=>`US ${money2(a)} · HT ${money2(b)}`;
+  const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div>`
+    +`<div class="v ${signCls(v)}">${money2(v)}</div><div class="u">${u}</div></div>`;
+  return `<div class="panel ovCard ovFin" onclick="go('fincash')">${head}`
+    +`<div class="hint">American and Haitian together — HTG at ${r} HTG / USD. Bills are kept out, as they are on the ledger.${esc(finBalNote())}</div>`
+    +`<div class="grid stats">`
+      +tile('Overall',ov,sp(usCash+usCr,htCash+htCr),'blue')
+      +tile('Cash &amp; checking',cash,sp(usCash,htCash),'green')
+      +tile('Credit',cr,sp(usCr,htCr),'red')
+    +`</div><div class="ovMore">Open the ledger →</div></div>`;
+}
 function overviewPage(){
   const t=today();
   const dateline=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
+  /* Three cards carry the day: what has to be done, what happened overnight, and where the
+     money stands. They are always drawn, in that order, even with nothing in them — a page
+     whose shape moves around depending on the data is a page you have to re-read. What
+     follows them appears only when it has something to say. */
+  const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
+  h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
+  if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
+  else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
+  h+=`</div>`;
   const briefs=list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
   h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
@@ -6025,11 +6077,7 @@ function overviewPage(){
     +`<div class="ovMore">Read the full brief →</div>`;
   else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
   h+=`</div>`;
-  const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
-  h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
-  if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
-  else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
-  h+=`</div>`;
+  h+=ovFinCard();
   const acts=list('acts').filter(actToday).sort(byStart);
   if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(actStart(i,DOW_TODAY()))||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
   const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
