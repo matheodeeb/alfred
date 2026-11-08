@@ -1000,7 +1000,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-08 · the totals outlive the lock';
+const BUILD='2026-11-08 · the caches stop crowding out his data';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1039,9 +1039,38 @@ function load(){
   catch(e){try{localStorage.alfred_state_broken=localStorage.alfred_state;storeErr='local data was corrupt — a copy was kept'}catch(x){}}
   try{const b=JSON.parse(localStorage.alfred_bulk||'null');if(b)Object.assign(S.items,b)}catch(e){}
 }
+/* What goes on the disk is capped before it is written, not pared back after a write has
+   already failed.
+
+   The shape of the data is the reason. The briefs come to five and a half megabytes across
+   137 of them, and the lexicon — a definitions cache — to nearly two more. Everything he
+   actually keeps here, every task and order and show and trip, is about a hundred
+   kilobytes. So on a phone with a five megabyte allowance the two caches decide whether
+   his real rows get saved at all, and until now they did: a quota error threw out of
+   writeStore and the whole save failed, his edits with it. Shedding ran afterwards and
+   usually rescued it, but "usually" is the wrong word for whether an edit survives being
+   typed.
+
+   So the lexicon is never written — it rebuilds itself from the cloud and is missed by
+   nobody — and only the newest handful of briefs are, which is what the Journal opens on
+   anyway. Anything with unsent changes is written regardless of either rule: a cap is for
+   caches, never for something of his that has not reached the cloud.
+
+   Memory still holds all of it for this session, so nothing disappears while he is reading.
+   The older briefs live in the cloud, which is where five megabytes of archive belongs. */
+const DISK_BRIEFS=20;
 function writeStore(){
-  const main={},bulk={};
-  for(const k in S.items){const it=S.items[k];(BULK.has(it.sec)?bulk:main)[k]=it}
+  const main={},bulk={},briefs=[];
+  for(const k in S.items){
+    const it=S.items[k];
+    if(!it.dirty){
+      if(it.sec==='lexicon')continue;
+      if(it.sec==='brief'){briefs.push(it);continue}
+    }
+    (BULK.has(it.sec)?bulk:main)[k]=it;
+  }
+  briefs.sort((a,b)=>((b.d&&b.d.date)||'').localeCompare((a.d&&a.d.date)||''));
+  briefs.slice(0,DISK_BRIEFS).forEach(it=>{bulk[it.id]=it});
   localStorage.alfred_state=JSON.stringify({items:main,lastPull:S.lastPull,lastSyncAt:S.lastSyncAt});
   localStorage.alfred_bulk=JSON.stringify(bulk);
 }
