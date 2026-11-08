@@ -294,6 +294,9 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
   .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
+  .linkWarn{border-color:var(--warn)}
+  .linkTip{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);
+    font-size:11.5px;line-height:1.65;color:var(--muted)}
   #askOv{z-index:120}                 /* it is asked ON TOP of whatever asked it */
   .askBody{white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:var(--muted);margin-top:8px}
   .btn.solidBad{background:var(--bad);border-color:var(--bad);color:#faf6ec}
@@ -964,6 +967,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     <div class="setRow"><span class="l">Pending changes</span><span class="v" id="setPend">—</span></div>
     <div class="setRow"><span class="l">Items stored</span><span class="v" id="setCount">—</span></div>
     <div class="setRow"><span class="l">On-device size</span><span class="v" id="setStore">—</span></div>
+    <div class="setRow"><span class="l">Storage kept</span><span class="v" id="setKeep">—</span></div>
     <div class="setRow"><span class="l">Last error</span><span class="v" id="setErr">—</span></div>
     <div class="setRow"><span class="l">Build</span><span class="v" id="setBuild">—</span></div>
   </div>
@@ -987,7 +991,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-06 · nav reordered';
+const BUILD='2026-11-08 · storage kept, link explained';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1084,6 +1088,24 @@ function flushSave(){
   console.warn('save failed after shedding everything expendable:',last);
   try{setPill()}catch(e){}
 }
+/* iOS is the reason this exists. Safari treats a website's stored data as cache it may
+   sweep up, and deletes it after about seven days of not opening the site — localStorage,
+   the service worker's cache, all of it. Alfred's rows go, and so does the cloud
+   connection, which is why a phone comes back empty and says "local only" with no sign of
+   what happened. A home-screen app is exempt; a tab is not. This asks the browser to treat
+   the copy as his rather than as rubbish, which costs nothing where the answer is no. */
+let storePersisted=null;
+async function keepStorage(){
+  try{
+    if(!navigator.storage||!navigator.storage.persist)return;
+    if(navigator.storage.persisted){storePersisted=await navigator.storage.persisted();if(storePersisted)return}
+    storePersisted=await navigator.storage.persist();
+  }catch(e){storePersisted=null}
+}
+const isStandalone=()=>!!(navigator.standalone||
+  (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches));
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||
+  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function save(now){
   savePending=true;
   if(now){clearTimeout(saveT);saveT=null;flushSave();return}
@@ -7383,6 +7405,20 @@ $('#siteBtn').onclick=e=>{
 $('#cfoLock').onclick=()=>cfoSignOut();
 $('#siteMenu').onclick=e=>e.stopPropagation();   // clicking inside it is not clicking away
 $$('#siteMenu button').forEach(b=>b.onclick=()=>goSite(b.dataset.s));
+/* With no cloud connection every page is empty and the only sign of it is a grey chip in
+   the corner reading "local only" — which looks exactly like an app with nothing in it.
+   Nothing IS lost: it is all in the cloud and this copy simply cannot reach it. So say
+   that, say what to do, and on an iPhone say the thing that stops it happening again. */
+function linkBanner(){
+  if(cfg)return'';
+  const tabOnIOS=isIOS()&&!isStandalone();
+  return `<div class="panel linkWarn">
+    <h2><span class="sw" style="background:var(--warn)"></span>This device is not linked to your cloud</h2>
+    <div class="hint">Nothing is lost — your rows are in the cloud, and this copy of Alfred has no way to reach them yet. Open the setup link from a device that is already linked, or put the connection in by hand.</div>
+    <button class="btn primary" style="margin-top:12px" onclick="document.getElementById('gearBtn').click()">Set up the connection</button>
+    ${tabOnIOS?`<div class="linkTip">On an iPhone, Safari throws a website's stored data away after about a week of not opening it — which is what unlinks this. Add Alfred to your Home Screen (Share → Add to Home Screen) and open it from there: a home-screen app keeps its data instead.</div>`:''}
+  </div>`;
+}
 function markNav(){
   $$('#nav > button').forEach(b=>b.classList.toggle('active',b.dataset.p===activePage));
   $$('.navGroup').forEach(g=>{
@@ -7432,7 +7468,7 @@ function renderActive(){
     return;
   }
   const sp=SPECIAL[activePage];
-  el.innerHTML=sp?sp.render():genList(activePage);
+  el.innerHTML=linkBanner()+(sp?sp.render():genList(activePage));
   if(sp?.bind)sp.bind(el);
   el.classList.add('active');
   /* Redrawing the tab you are already on — stepping a note count up or down, saving a
@@ -7542,6 +7578,9 @@ $('#gearBtn').onclick=()=>{
   $('#setCount').textContent=cfoAuthed()?`${rows} · ${cRows} ledger`:rows;
   const kb=((localStorage.alfred_state||'').length+(localStorage.alfred_bulk||'').length)/1024;
   $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
+  $('#setKeep').textContent=storePersisted===true?'yes — kept for good'
+    :storePersisted===false?(isIOS()&&!isStandalone()?'no — add to Home Screen':'no — the browser may clear it')
+    :'not known';
   $('#setErr').textContent=storeErr||syncErr||'none';
   $('#setBuild').textContent=BUILD;
   $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
@@ -7622,6 +7661,7 @@ $('#impFile').onchange=e=>{
   const recent=+localStorage.alfred_unlocked||0;
   if(!pinHash())showLock('set');
   else if(Date.now()-recent>GRACE)showLock('enter');
+  keepStorage();                                // before anything can be swept up
   vocabMirror();                                // words saved before this existed still upload
   sync();cfoSync();                             // …and the ledger, if the room is already open
   // Registering it was the whole of this before, which meant a version could go live and
