@@ -1363,9 +1363,16 @@ addEventListener('offline',()=>setPill());
 addEventListener('pageshow',e=>{if(e.persisted)syncSoon()});  // woken from the back/forward cache
 addEventListener('focus',()=>syncSoon());
 setInterval(()=>{if(document.visibilityState==='visible'){sync();cfoSync()}},45000);
-$('#pill').onclick=()=>{                             // tap the badge to pull now
+$('#pill').onclick=async()=>{                        // tap the badge: sync, then reload onto the newest version
   if(!cfg){$('#gearBtn').click();return}               // ...or, with no cloud set up, to go and set one
-  fails=0;sync();cfoSync();
+  fails=0;
+  // The installed app has no reload button, so this badge is the only way to ask for one.
+  // Sync comes first and the reload is skipped unless everything has reached the cloud —
+  // a reload with an edit still unsent would throw that edit away.
+  for(let n=0;n<100&&syncing;n++)await new Promise(r=>setTimeout(r,100));   // let one already in flight finish
+  try{await Promise.all([sync(),cfoSync()])}catch(e){}
+  const unsent=Object.values(S.items).some(i=>i.dirty)||cfoPending();
+  if(!unsent)location.reload();
 };
 
 /* ---------------- PIN ---------------- */

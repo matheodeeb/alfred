@@ -1,4 +1,4 @@
-const V = 'alfred-v39';
+const V = 'alfred-v40';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 // addAll is all-or-nothing: one missing file and the whole install rejects, the worker is
