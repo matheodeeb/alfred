@@ -1000,7 +1000,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-09 · bill size belongs to bills';
+const BUILD='2026-11-09 · where the money goes';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -5056,6 +5056,108 @@ function txPage(){
   }
   return h+genList('tx');
 }
+/* ---------------- Spending ----------------
+   The Transactions page is the ledger: one row per purchase, and a breakdown folded away
+   behind a heading because most visits there are looking for a row rather than a pattern.
+   This page is the other question — where the money actually goes — and it is the whole
+   page rather than a panel on one.
+
+   It reads the same rows and the same txIsSpend rule, so the two can never disagree: a card
+   payment or a transfer between his own accounts is movement, not spending, and counting it
+   would double what he spent. Nothing new is stored. */
+let SPENDMO=null;                       // null = the latest month with purchases in it
+function spendMonths(){
+  const s=new Set();
+  list('tx').filter(txIsSpend).forEach(i=>{
+    const d=String(i.d.date||'');if(/^\d{4}-\d{2}/.test(d))s.add(d.slice(0,7))});
+  return [...s].sort().reverse();
+}
+const spendLabel=m=>m?MONTHS[+m.slice(5,7)-1].slice(0,3)+' '+m.slice(0,4):'All time';
+function spendSetMo(m){SPENDMO=m;renderActive()}
+function spendingPage(){
+  plaidPullOnce();
+  const all=list('tx').filter(txIsSpend);
+  const months=spendMonths();
+  const cur=SPENDMO===null?(months[0]||''):SPENDMO;
+  const inMo=(rows,m)=>m?rows.filter(i=>String(i.d.date||'').slice(0,7)===m):rows;
+  const amt=i=>cfoUsd(i.d.amt,i.d.cur);
+  const sum=rows=>rows.reduce((s,i)=>s+amt(i),0);
+
+  let h=`<div class="segbar wrap" style="margin:12px 0 2px">`
+    +[['','All time'],...months.slice(0,12).map(m=>[m,spendLabel(m)])].map(([k,l])=>
+      `<button class="${cur===k?'active':''}" onclick="spendSetMo('${k}')">${esc(l)}</button>`).join('')
+    +`</div>`;
+
+  if(!all.length)
+    return h+`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Spending</h2>
+      <div class="empty" style="padding:18px">No purchases on the ledger yet. Import a statement on the Transactions page, or connect a card, and this fills itself in.</div></div>`;
+
+  const rows=inMo(all,cur), spent=sum(rows);
+  /* The month before, so the headline figure carries a direction rather than sitting there
+     alone. On "All time" there is nothing to compare against and the tile says so. */
+  const prevM=cur?months[months.indexOf(cur)+1]:null;
+  const prev=prevM?sum(inMo(all,prevM)):null;
+  const delta=prev!=null&&prev>0?((spent-prev)/prev*100):null;
+  /* A month still running would otherwise look like a cheap one. The daily rate says what
+     it is actually on course for. */
+  const nowMo=today().slice(0,7);
+  const days=cur?(cur===nowMo?+today().slice(8,10):new Date(+cur.slice(0,4),+cur.slice(5,7),0).getDate()):0;
+  const perDay=days?spent/days:0;
+
+  const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div>`
+    +`<div class="v">${v}</div><div class="u">${u}</div></div>`;
+  h+=`<div class="grid stats">`
+    +tile('Spent',money2(spent),cur?spendLabel(cur):`${months.length} month${months.length===1?'':'s'} on the ledger`,'orange')
+    +tile('Purchases',rows.length,cur&&days?money2(perDay)+' a day':'every card','blue')
+    +tile(cur?'vs last month':'Monthly average',
+      cur?(delta==null?'—':(delta>=0?'+':'')+delta.toFixed(0)+'%'):money2(spent/Math.max(1,months.length)),
+      cur?(prevM?spendLabel(prevM)+' · '+money2(prev):'nothing before it'):'across the whole ledger',
+      cur?(delta!=null&&delta>0?'red':'green'):'green')
+    +`</div>`;
+
+  const group=(key,fallback)=>{
+    const by={};rows.forEach(i=>{const k=String(i.d[key]||'').trim()||fallback;by[k]=(by[k]||0)+amt(i)});
+    return Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  };
+  const bars=(list,total)=>list.map(([k,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(k)}</span><span class="v">${money2(v)}</span></div>
+    <div class="cfoBar"><i style="width:${total>0?(v/total*100).toFixed(1):0}%"></i></div>
+    <div class="cfoGoalSub">${total>0?(v/total*100).toFixed(0):0}% of what you spent</div></div>`).join('');
+
+  const cats=group('cat','Uncategorised');
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Where it went</h2>
+    <div class="hint">${cur?spendLabel(cur):'Every month'} · ${rows.length} purchase${rows.length===1?'':'s'} · ${money2(spent)}. This is the list to cut from.</div>
+    ${rows.length?bars(cats,spent):`<div class="empty" style="padding:16px">Nothing spent in ${esc(spendLabel(cur))}.</div>`}</div>`;
+
+  if(rows.length){
+    const cards=group('card','Unassigned');
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>By card</h2>
+      ${cards.map(([k,v])=>`<div class="finRow" style="cursor:default"><span class="n">${esc(k)}</span><span class="v">${money2(v)}</span></div>`).join('')}
+      <div class="finTot"><span class="n">Total</span><span class="v">${money2(spent)}</span></div></div>`;
+
+    /* One merchant charging you twice a week is the thing a category total hides. */
+    const merch=group('desc','(no description)').slice(0,8);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Biggest merchants</h2>
+      <div class="hint">Where the most went, totalled per name.</div>
+      ${merch.map(([k,v])=>`<div class="finRow" style="cursor:default"><span class="n">${esc(k)}</span><span class="v">${money2(v)}</span></div>`).join('')}</div>`;
+
+    const big=rows.slice().sort((a,b)=>amt(b)-amt(a)).slice(0,8);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Biggest single purchases</h2>
+      ${big.map(i=>`<div class="finRow" onclick="openForm('tx','${i.id}')"><span class="n">${esc(i.d.desc||'—')}${i.d.date?`<span class="sub"> · ${fdate(i.d.date).replace(/^\w+, /,'')}</span>`:''}</span><span class="v">${money2(amt(i))}</span></div>`).join('')}</div>`;
+  }
+
+  /* The run of months, so a spike reads as a spike rather than as a number you have to
+     remember from the last time you looked. */
+  if(months.length>1){
+    const hist=months.slice(0,12).map(m=>[m,sum(inMo(all,m))]);
+    const top=Math.max(...hist.map(x=>x[1]),1);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Month by month</h2>
+      <div class="hint">Tap a month to read it.</div>
+      ${hist.map(([m,v])=>`<div class="cfoGoal" style="cursor:pointer" onclick="spendSetMo('${m}')">
+        <div class="cfoGoalTop"><span class="n">${spendLabel(m)}${m===cur?' ·':''}</span><span class="v">${money2(v)}</span></div>
+        <div class="cfoBar"><i style="width:${(v/top*100).toFixed(1)}%"></i></div></div>`).join('')}</div>`;
+  }
+  return h;
+}
 function cfoSpendMo(){const r=list('spend');if(!r.length)return 0;
   const mons=new Set(r.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
   return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons)}
@@ -6772,6 +6874,7 @@ const NAVS={
   {t:'Brief',p:'fincash'},
   {t:'CFO',p:'cfo'},
   {t:'Transactions',p:'tx'},
+  {t:'Spending',p:'spending'},
   {t:'Accounts',g:[['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
   {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
   {t:'Net worth',p:'networth'},
@@ -7430,6 +7533,7 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
   tx:{render:txPage,fab:'tx'},
+  spending:{render:spendingPage,fab:'tx'},   // + files a purchase, same as the ledger itself
   networth:{render:networthPage,fab:'assets'},
   // Past is two views of one section: the written list, or the same rows on the world.
   travpast:{render:travpastPage,bind:bindAtlas,fab:'travpast'},
