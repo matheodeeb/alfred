@@ -2174,7 +2174,6 @@ const AUTO_SRC=[                                  // stock page → where its sh
   {sec:'stock',  from:'Bathroom',    dest:'needs', pre:'need:auto:', par:1},
   {sec:'kitchen',from:'Living room', dest:'needs', pre:'need:auto:', par:1},
   {sec:'supp',   from:'Supplements', dest:'needs', pre:'need:auto:'},
-  {sec:'perfume',from:'Perfume',     dest:'wants', pre:'want:auto:'},
 ];
 function syncAutoOrders(){
   AUTO_SRC.forEach(src=>list(src.sec).forEach(it=>{
@@ -2807,9 +2806,9 @@ kitchen:{title:'Living room',freeze:1,color:'var(--green)',hint:'What\'s in the 
     return{t:esc(i.d.name),s:[esc(i.d.unit||''),par?'par '+par:'',esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
   empty:'Nothing tracked yet — hit + to add what you keep in the living room.'},
-perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection. Use − / + when one runs out or a new one arrives; anything at or below its reorder level also lands on Orders → Wants.',
+perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection. Use − / + when one runs out or a new one arrives. Nothing here lands on Orders by itself.',
   fields:[{k:'name',l:'Fragrance',t:'text',req:1},{k:'house',l:'House',t:'dyn',opt:['Dior','Yves Saint Laurent','Tom Ford','Davidoff','Houbigant','Maison Francis Kurkdjian','Diptyque','Prada','Atelier Rebul','Penhaligon’s']},
-          {k:'count',l:'Bottles',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'dresser, travel bag…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'notes, season, occasion…'}],
+          {k:'count',l:'Bottles',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'dresser, travel bag…'},{k:'price',l:'Retail price',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'notes, season, occasion…'}],
   chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   stats:it=>[{k:'Bottles',v:it.reduce((s,i)=>s+(+i.d.count||0),0),c:'var(--gold)'},
              {k:'Fragrances',v:it.length,u:new Set(it.map(i=>i.d.house).filter(Boolean)).size+' houses',c:'var(--acc)'}],
@@ -2819,7 +2818,7 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection
     // read as empty at a glance — same as the Bathroom and the Living room. Unlike them
     // there's no 'ok' pill: this is a collection you browse, and a green badge on
     // every bottle is noise. Nothing comes back for the × N duplicate count.
-    return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
+    return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||''),i.d.price?money(i.d.price):''].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'empty'}:(m>0&&c<=m)?{cls:'warn',txt:'buy'}:null}},
   empty:'Nothing here yet — hit + to add a bottle.'},
 jerseys:{title:'Jerseys',color:'var(--purple)',hint:'The shirt collection, filed by club and newest season first. A work in progress — hit + to add the rest.',
@@ -2871,7 +2870,7 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
     return r(a)-r(b)||a.localeCompare(b)},
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly. Perfume you\'ve run out of shows up here on its own.',
+wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly.',
   // Items and a total paid only mean anything once something has been ordered, so they
   // stay out of the way on an open want and appear the moment a row is an order.
   fields:[{k:'name',l:d=>wantIsGroup(d)?'What to call the order':'Item',t:'text',req:1},
