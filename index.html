@@ -1000,7 +1000,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-08 · the caches stop crowding out his data';
+const BUILD='2026-11-09 · bill size belongs to bills';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -3136,7 +3136,7 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
   empty:'Nothing recurring yet — hit + to add one.'},
 /* ---- the CFO room's sections. They live in cfo_items, not items. ---- */
 fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
-  fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
+  fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num',showIf:d=>d.grp==='Bills'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
           {k:'stmtDay',l:'Statement day of the month',t:'num',ph:'24'},
           {k:'dueDay',l:'Payment due day',t:'num',ph:'17'},
           {k:'card',l:'Statements column',t:'sel',opt:['',...CARD_SRC]}],
