@@ -248,6 +248,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .rinfo{min-width:0;flex:1}
   .rinfo .t{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
   .rinfo .s{font-family:"IBM Plex Mono";font-size:11px;margin-top:2px;color:var(--muted);overflow-wrap:anywhere}
+  .rinfo .s .shipLn{margin-top:3px}
   .rright{margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
   .row.nodet{cursor:default}
   .qtyStep{display:inline-flex;align-items:center;gap:6px}
@@ -2963,8 +2964,9 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
       badge:wantIsGroup(i.d)&&ls.length?ls.length:0,
       s:[tot?money(tot):'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
-         wantIsGroup(i.d)?'':esc(i.d.spec||''),
-         i.d.ship?'→ '+esc(i.d.ship):''].filter(Boolean).join(' · '),dim:!!i.d.got,
+         wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · ')
+        // Where it is going sits on its own line under the price and size, by nickname only.
+        +(i.d.ship?'<div class="shipLn">→ '+esc(i.d.ship)+'</div>':''),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
