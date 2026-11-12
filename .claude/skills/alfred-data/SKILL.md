@@ -85,7 +85,7 @@ perf:santal33               book:meditations     stock:dove
 
 Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `juice:` ·
 `perf:` · `supp:` · `stock:` · `kitchen:` · `book:` · `show:` · `movie:` · `course:` ·
-`proj:` · `recur:` · `travel:` · `brief:`
+`proj:` · `recur:` · `travel:` · `brief:` · `addr:`
 
 ## Sections and their fields
 
@@ -94,7 +94,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `todo` | To-do list | task, grp, gord, due, ord, notes |
 | `tlspoils` | Timeline → Spoils | date, name, cost, notes |
 | `travels` | Timeline → Travels / Past | place, trip, start, end, notes, lat, lon, cc |
-| `wants` | Wants | name, grp, spec, price, lines, paid, link, notes |
+| `wants` | Wants | name, grp, spec, ship, price, lines, paid, link, notes |
 | `needs` | To order | name, src, qty, price, link, notes |
 | `stock` | Bathroom | name, count, min, par, place |
 | `kitchen` | Living room | name, count, min, par, unit, notes |
@@ -148,6 +148,22 @@ Pin the town, not the country, whenever the name names one — "Lisbon, Portugal
 A row that really is a whole country (`place: 'Iceland'`) takes the country's own middle.
 Where a row names two towns, pin the first and say so; one row is one point. Four decimal places is
 plenty. Look coordinates up rather than recalling them where the place is small.
+
+**Every order says where it is being delivered, by nickname.** A `wants` row carries
+`ship`: the nickname of the delivery address ("Home - Miami"), never the street itself.
+The addresses live in his private address book, `addr` rows in `items`
+(`id` `addr:<slug>`, `data` `{nick, addr}`), and the Orders form offers those nicknames as
+a dropdown. When filing an order from a confirmation, a screenshot or a listing:
+
+1. Read the delivery address off it and look it up in `addr`, matching on the address
+   (street number, street, city, ZIP), not on spelling or punctuation.
+2. Found: set `ship` to that row's `nick`.
+3. Not found: stop and ask him what to call it. Show him the address and ask for the
+   nickname; never invent one. Once he answers, insert the `addr` row and set `ship`.
+4. No address on what he gave you: leave `ship` empty and say so in one line.
+
+Items that split off a group order on arrival inherit the order's `ship`. The address
+itself never goes in `notes`, `spec` or the repo; only the nickname shows on the page.
 
 **Received means in his hands.** A `wants` row moves open → ordered → received, and the
 last step is not the courier's word for it. A parcel marked delivered, sitting at a

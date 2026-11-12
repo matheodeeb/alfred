@@ -1183,6 +1183,8 @@ function put(sec,d,id){
 function kill(id){const B=stIn(id);if(!B)return;const it=B.items[id];
   it.del=true;it.up=stamp(it.up);it.dirty=1;if(B===S)save();queueSync()}
 function list(sec){return Object.values(stOf(sec).items).filter(i=>i.sec===sec&&!i.del)}
+// Delivery-address nicknames from his private address book (sec 'addr' rows {nick,addr}).
+function addrNicks(){return [...new Set(list('addr').map(i=>String(i.d.nick||'').trim()).filter(Boolean))]}
 function one(id){const B=stIn(id);if(!B)return null;const i=B.items[id];return (i&&!i.del)?i:null}
 
 /* ---------------- sync ---------------- */
@@ -1465,7 +1467,7 @@ function fieldHtml(f,v,sec,ctx){
   }
   if(f.t==='dyn'){
     const used=sec?[...new Set(list(secData(sec)).map(x=>x.d[f.k]).filter(Boolean))]:[];
-    const opts=[...new Set([...(f.opt||[]),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
+    const opts=[...new Set([...(typeof f.opt==='function'?f.opt():(f.opt||[])),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
     if(v&&!opts.includes(v))opts.unshift(v);
     return`<select ${base} onchange="dynSel(this)"><option value="">—</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}<option value="__new">+ Add new…</option></select>`+
       `<input id="f_${f.k}__new" class="dynNew" placeholder="New ${esc((f.l||'').toLowerCase())}…" style="display:none">`;
@@ -2427,6 +2429,7 @@ function receiveOne(id,n){
   const paidFor=Math.round((ls[n].price+share[n])*100)/100;
   put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),paid:paidFor,
     spec:String(ls[n].spec||'').trim()||it.d.spec||'',      // its own size, or the order's
+    ship:it.d.ship||'',
     done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today()},id+':'+uid());
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
   const rest=ls.filter((_,k)=>k!==n);
@@ -2666,7 +2669,7 @@ function receiveOrder(it){
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
     put('wants',{name:l.name,grp:lineGrp(l,it.d),paid:paid,link:it.d.link||'',
-      spec:String(l.spec||'').trim()||it.d.spec||'',
+      spec:String(l.spec||'').trim()||it.d.spec||'',ship:it.d.ship||'',
       done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when},it.id+':'+(n+1));
   });
   kill(it.id);
@@ -2884,6 +2887,10 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'otype',l:'Individual or group order',t:'sel',opt:['Individual order','Group order'],def:'Individual order'},
           {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
+          // Where it is being delivered, by the nickname he gave the address ("Home - Miami").
+          // The addresses themselves live only in his private address book (sec 'addr',
+          // {nick,addr}); this public page knows the nicknames, never a street.
+          {k:'ship',l:'Delivered to',t:'dyn',opt:addrNicks},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'lines',full:1},
           {k:'paid',l:d=>wantIsGroup(d)?'Total actually paid — the gap over the items is the tax and fees':'What it cost, all in',
@@ -2956,7 +2963,8 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
       badge:wantIsGroup(i.d)&&ls.length?ls.length:0,
       s:[tot?money(tot):'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
-         wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+         wantIsGroup(i.d)?'':esc(i.d.spec||''),
+         i.d.ship?'→ '+esc(i.d.ship):''].filter(Boolean).join(' · '),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
