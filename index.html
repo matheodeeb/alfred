@@ -324,6 +324,36 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ovMore{font-family:"IBM Plex Mono";font-size:11px;color:var(--acc);margin-top:9px}
   .ovLate{font-family:"IBM Plex Mono";font-size:11px;color:var(--bad);margin-top:9px}
   .ovStale{font-family:"IBM Plex Mono";font-size:11px;color:var(--warn);margin-top:9px}
+  /* Cholesterol — LDL */
+  .ldlLevers{display:flex;flex-direction:column;gap:7px}
+  .ldlLever{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+    background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:11px 12px;
+    color:var(--muted);font-family:"Public Sans",sans-serif;font-size:13.5px;transition:.12s}
+  .ldlLever .tick{flex:none;width:20px;height:20px;border-radius:6px;border:1px solid var(--line2);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--panel)}
+  .ldlLever.on{border-color:var(--ok);color:var(--txt)}
+  .ldlLever.on .tick{background:var(--ok);border-color:var(--ok);color:#faf6ec}
+  .ldlGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .ldlDay{aspect-ratio:1;border-radius:9px;border:1px solid var(--line2);background:var(--bg2);
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+  .ldlDay .dd{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted)}
+  .ldlDay .nn{font-family:"IBM Plex Mono";font-size:9px;color:var(--faint)}
+  .ldlDay.part{border-color:var(--warn)}
+  .ldlDay.full{background:var(--ok);border-color:var(--ok)}
+  .ldlDay.full .dd,.ldlDay.full .nn{color:#faf6ec}
+  .ldlDay.today{outline:2px solid var(--acc);outline-offset:1px}
+  .ldlSvg{width:100%;height:96px;display:block;margin-top:4px}
+  .ldlLine{fill:none;stroke:var(--red);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .ldlDot{fill:var(--red)}
+  .ldlGoal{stroke:var(--ok);stroke-width:1.5;stroke-dasharray:4 4}
+  .ldlEnds{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:4px}
+  .ldlTarget{width:140px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
+    padding:11px 12px;color:var(--txt);font-family:"IBM Plex Mono";font-size:15px}
+  .ldlTarget:focus{outline:none;border-color:var(--acc)}
+  .ldlWhy{padding:9px 0;border-bottom:1px solid var(--line)}
+  .ldlWhy:last-child{border-bottom:0}
+  .ldlWhy .n{font-size:13.5px;font-weight:600}
+  .ldlWhy .w{font-size:12px;color:var(--muted);line-height:1.55;margin-top:3px}
   .ovBody{font-size:13.5px;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   /* The ledger's figures keep the ledger's face on them, even out here in the house:
      squarer corners and columns of digits that line up, because money reads wrong when
@@ -1001,7 +1031,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-12 · the due date leads the ordering fields';
+const BUILD='2026-11-12 · a project to bring the LDL down';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2737,7 +2767,155 @@ function cycTxt(i){
   return{t:[c.st?'stmt '+cycDate(c.st):'',c.du?'due '+cycDate(c.du):'',late?'overdue':'']
     .filter(Boolean).join(' · '),late};
 }
+/* ---------------- Cholesterol — LDL ----------------
+   A project rather than a page of notes: a number to move, the levers that move it, and a
+   record of whether he actually pulled them. The two halves are deliberate. A blood panel
+   arrives every few months and says whether it worked; the daily log is the only thing
+   between those panels that tells him anything, and it is the part that is easy to let
+   slide. So the daily side is what the page opens on, and the readings sit under it.
+
+   The levers below are the mainstream dietary and lifestyle ones, with the ranges clinical
+   guidance generally quotes. They are general facts, not a prescription: what his own
+   target should be, and whether medication belongs in the plan, is between him and his
+   doctor, and the page says so rather than implying otherwise. */
+const LDL_LEVERS=[
+  {k:'sat',  l:'Saturated fat kept low',  w:'The single biggest dietary lever — replacing it with unsaturated fat moves LDL more than anything else on this list.'},
+  {k:'fib',  l:'10 g+ soluble fibre',     w:'Oats, beans, lentils, barley, psyllium. Binds cholesterol in the gut; roughly 5–10% off LDL at this dose.'},
+  {k:'fried',l:'No fried or processed meat', w:'Where most saturated and trans fat actually arrives. Charcuterie, bacon, sausage, anything deep-fried.'},
+  {k:'move', l:'30 min of exercise',      w:'Moves HDL and triglycerides more than LDL, but it changes the whole panel and the weight behind it.'},
+  {k:'plant',l:'Nuts, oats or sterols',   w:'A handful of nuts, or 2 g of plant sterols, each take a few percent off on their own.'},
+  {k:'alc',  l:'No alcohol',              w:'Raises triglycerides directly and brings calories that land on the rest of the panel.'},
+  {k:'med',  l:'Medication as prescribed',w:'Only if your doctor has prescribed something. Nothing here is a reason to start, stop or change a dose.'},
+];
+const LDL_TARGET_ID='ldl:target';
+const ldlTargetRow=()=>S.items[LDL_TARGET_ID];
+const ldlTarget=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.target);return v>0?v:100};
+function ldlSetTarget(v){
+  const n=Math.max(30,Math.min(300,+v||100));
+  put('ldl',{kind:'target',target:n},LDL_TARGET_ID);renderActive();
+}
+const ldlReads=()=>list('ldl').filter(i=>!i.d.kind&&i.d.date)
+  .sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+const ldlDayId=d=>'ldlday:'+d;
+const ldlDone=d=>{const r=S.items[ldlDayId(d)];
+  return (r&&!r.del&&String(r.d.done||'').split(',').filter(Boolean))||[]};
+function ldlToggle(k,d){
+  d=d||today();
+  const have=ldlDone(d);
+  const next=have.includes(k)?have.filter(x=>x!==k):have.concat([k]);
+  put('ldlday',{date:d,done:next.join(',')},ldlDayId(d));
+  renderActive();
+}
+/* Consecutive days ending today — or ending yesterday, so a streak is not declared broken
+   before the day it belongs to has been lived. A day counts when every lever he is actually
+   tracking is ticked; medication is excluded from the test, because a day is not a failure
+   for not taking a drug nobody prescribed. */
+const LDL_CORE=LDL_LEVERS.filter(l=>l.k!=='med').map(l=>l.k);
+const ldlFull=d=>{const got=ldlDone(d);return LDL_CORE.every(k=>got.includes(k))};
+function ldlStreak(){
+  const day=n=>{const x=new Date();x.setDate(x.getDate()-n);
+    return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+  let n=ldlFull(day(0))?0:1;                   // today still has hours left in it
+  let c=0;
+  for(;n<400;n++){if(!ldlFull(day(n)))break;c++}
+  return c;
+}
+/* The run of readings as a line. Hand-drawn because the page needs one small chart, not a
+   charting library, and because the target line is the point of it. */
+function ldlChart(rows,target){
+  if(rows.length<2)return'';
+  const W=320,H=96,P=6;
+  const vals=rows.map(r=>+r.d.ldl||0);
+  const lo=Math.min(target,...vals)-10, hi=Math.max(target,...vals)+10;
+  const x=i=>P+(W-2*P)*(rows.length===1?0.5:i/(rows.length-1));
+  const y=v=>P+(H-2*P)*(1-(v-lo)/Math.max(1,hi-lo));
+  const pts=vals.map((v,i)=>x(i)+','+y(v));
+  return `<svg class="ldlSvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" y1="${y(target).toFixed(1)}" x2="${W}" y2="${y(target).toFixed(1)}" class="ldlGoal"/>
+    <polyline points="${pts.join(' ')}" class="ldlLine"/>
+    ${vals.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" class="ldlDot"/>`).join('')}
+  </svg>`;
+}
+function ldlPage(){
+  const t=today();
+  const rows=ldlReads(), target=ldlTarget();
+  const last=rows[rows.length-1], first=rows[0];
+  const now=last?+last.d.ldl||0:null;
+  const drop=last&&first&&last!==first?now-(+first.d.ldl||0):null;
+  const gap=now!=null?now-target:null;
+  const got=ldlDone(t), core=LDL_CORE.filter(k=>got.includes(k)).length;
+  const streak=ldlStreak();
+
+  const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div><div class="v">${v}</div><div class="u">${u}</div></div>`;
+  let h=`<div class="grid stats">`
+    +tile('LDL now',now!=null?now:'—',last?fdate(last.d.date).replace(/^\w+, /,''):'no reading filed yet','red')
+    +tile('To target',now!=null?(gap<=0?'at target':gap+' to go'):'—',`target ${target} mg/dL`,gap!=null&&gap<=0?'green':'gold')
+    +tile('Since the first',drop!=null?(drop>0?'+':'')+drop:'—',drop!=null?'mg/dL across '+rows.length+' readings':'needs two readings',drop!=null&&drop<0?'green':'blue')
+    +tile('Streak',streak,streak===1?'clean day':'clean days','green')
+    +`</div>`;
+
+  // Today — the part that is actually in his hands this morning
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Today — ${core}/${LDL_CORE.length}</h2>
+    <div class="hint">Tap each one you have actually done. A day counts as clean only when all ${LDL_CORE.length} are in; medication is tracked but never decides the day.</div>
+    <div class="ldlLevers">${LDL_LEVERS.map(l=>`<button class="ldlLever${got.includes(l.k)?' on':''}" onclick="ldlToggle('${l.k}')">
+      <span class="tick">${got.includes(l.k)?'✓':''}</span><span class="n">${esc(l.l)}</span></button>`).join('')}</div></div>`;
+
+  // The fortnight behind him, so a slipping week is visible before the next panel says so
+  const days=[];for(let n=13;n>=0;n--){const x=new Date();x.setDate(x.getDate()-n);
+    days.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'))}
+  const kept=days.filter(ldlFull).length;
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Last 14 days</h2>
+    <div class="hint">${kept} of 14 clean. Tap a day to fill it in.</div>
+    <div class="ldlGrid">${days.map(d=>{
+      const n=LDL_CORE.filter(k=>ldlDone(d).includes(k)).length;
+      const cls=ldlFull(d)?'full':n?'part':'none';
+      return `<button class="ldlDay ${cls}${d===t?' today':''}" onclick="ldlOpenDay('${d}')" title="${d}">
+        <span class="dd">${+d.slice(8,10)}</span><span class="nn">${n}</span></button>`}).join('')}</div></div>`;
+
+  if(rows.length>1)
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>The line</h2>
+      <div class="hint">Every reading on file, against your target of ${target} mg/dL.</div>
+      ${ldlChart(rows,target)}
+      <div class="ldlEnds"><span>${esc(fdate(first.d.date).replace(/^\w+, /,''))} · ${+first.d.ldl||0}</span><span>${esc(fdate(last.d.date).replace(/^\w+, /,''))} · ${now}</span></div></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Target</h2>
+    <div class="hint">What you are aiming at, in mg/dL. Where that number should sit is your doctor's call, not this page's — general guidance puts optimal under 100, and lower again where there is added cardiac risk.</div>
+    <input class="ldlTarget" type="number" inputmode="numeric" value="${target}"
+      onchange="ldlSetTarget(this.value)"></div>`;
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>What actually moves it</h2>
+    <div class="hint">The levers above, and why each one is on the list. General information — it is not medical advice and it does not replace your doctor.</div>
+    ${LDL_LEVERS.map(l=>`<div class="ldlWhy"><div class="n">${esc(l.l)}</div><div class="w">${esc(l.w)}</div></div>`).join('')}</div>`;
+
+  return h+genList('ldl');
+}
+function ldlOpenDay(d){
+  const got=ldlDone(d);
+  LDLDAY=d;renderActive();
+  // the day opens as a sheet of the same levers, reusing the modal the rest of the app uses
+  const body=LDL_LEVERS.map(l=>`<button class="ldlLever${got.includes(l.k)?' on':''}" onclick="ldlToggle('${l.k}','${d}');ldlOpenDay('${d}')">
+    <span class="tick">${got.includes(l.k)?'✓':''}</span><span class="n">${esc(l.l)}</span></button>`).join('');
+  $('#mTitle').textContent=fdate(d);
+  $('#mBody').innerHTML=`<div class="hint" style="margin-bottom:10px">Tap each one you did that day.</div><div class="ldlLevers">${body}</div>`;
+  $('#mDel').style.display='none';$('#mSave').style.display='none';
+  ov('modalOv',1);
+}
+let LDLDAY=null;
 const MODS={
+ldl:{title:'Readings',color:'var(--red)',hint:'Every blood panel on file. Date and LDL are what the page reasons from; the rest is context.',
+  only:i=>!i.d.kind,                       // the target lives in this section but is not a reading
+  empty:'No panels filed yet — hit the + button after your next blood test.',
+  fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
+          {k:'ldl',l:'LDL (mg/dL)',t:'num',req:1},
+          {k:'total',l:'Total cholesterol',t:'num'},
+          {k:'hdl',l:'HDL',t:'num'},
+          {k:'trig',l:'Triglycerides',t:'num'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
+  card:i=>({t:'LDL '+(+i.d.ldl||0),
+    s:[fdate(i.d.date).replace(/^\w+, /,''),
+       i.d.total?'total '+i.d.total:'',i.d.hdl?'HDL '+i.d.hdl:'',i.d.trig?'trig '+i.d.trig:''].filter(Boolean).join(' · '),
+    pill:(+i.d.ldl||0)<=ldlTarget()?{cls:'ok',txt:'at target'}:{cls:'warn',txt:'+'+((+i.d.ldl||0)-ldlTarget())}})},
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
   formOut:d=>{if(!editCtx?.id)d.date=today();return d},
@@ -6898,6 +7076,7 @@ const NAVS={
   // is on order and what is in the house. The rest keeps the order it had.
   {t:'Overview',p:'overview'},
   {t:'To-do',p:'todo',cls:'todo'},
+  {t:'Cholesterol — LDL',p:'ldl'},
   {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants'],['Spoils','tlspoils']]},
   {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
@@ -7536,6 +7715,7 @@ function bindAtlas(){
 }
 
 const SPECIAL={overview:{render:overviewPage,fab:null},
+  ldl:{render:ldlPage,fab:'ldl'},        // + files a blood panel; the daily levers are tapped in place
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
   schedule:{render:schedulePage,fab:'acts'},

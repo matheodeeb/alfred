@@ -105,6 +105,8 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `juice` | Juice recipes | name, ing, notes |
 | `shows` | Shows | name, genre, pri, seasons, eps, epmin, len, plat, status, season, rel, notes |
 | `movies` | Movies | name, genre, pri, runtime, status, rel, notes |
+| `ldl` | Cholesterol — LDL (readings) | date, ldl, total, hdl, trig, notes |
+| `ldlday` | Cholesterol — LDL (daily levers) | date, done |
 | `books` | Books | name, author, cat, pri, pages, len, status, prog, notes |
 | `courses` | To learn | name, topic, src, status, prog, notes |
 | `projects` | Projects | project, name, when, wk, mon, start, end, status, notes |
@@ -164,6 +166,16 @@ a dropdown. When filing an order from a confirmation, a screenshot or a listing:
 
 Items that split off a group order on arrival inherit the order's `ship`. The address
 itself never goes in `notes`, `spec` or the repo; only the nickname shows on the page.
+
+**The LDL page is two sections.** `ldl` holds blood panels — one row per test, `date` and
+`ldl` (mg/dL) required, the rest of the panel optional. One row in that section is not a
+reading: `ldl:target` carries `{"kind":"target","target":100}` and is the number the page
+aims at. Never file a reading with a `kind`, and never change the target unless he asks.
+
+`ldlday` is the daily tick-list, one row per day, id `ldlday:YYYY-MM-DD`. `done` is a
+comma-separated list of lever keys — `sat`, `fib`, `fried`, `move`, `plant`, `alc`, `med` —
+and a day counts as clean when all of those except `med` are present. It is his own record
+of what he did; fill it in only when he says what he did, never inferred from anything else.
 
 **Received means in his hands.** A `wants` row moves open → ordered → received, and the
 last step is not the courier's word for it. A parcel marked delivered, sitting at a
