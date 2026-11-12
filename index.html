@@ -350,6 +350,19 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlTarget{width:140px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
     padding:11px 12px;color:var(--txt);font-family:"IBM Plex Mono";font-size:15px}
   .ldlTarget:focus{outline:none;border-color:var(--acc)}
+  .ldlGoalRow{display:flex;gap:12px;flex-wrap:wrap}
+  .ldlFld{display:flex;flex-direction:column;gap:5px}
+  .ldlFld span{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .ldlPace{font-family:"IBM Plex Mono";font-size:11px;line-height:1.6;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .ldlPace.good{color:var(--ok)} .ldlPace.behind{color:var(--warn)}
+  .ldlCat{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+  .ldlCat:first-of-type{margin-top:2px}
+  .ldlRule{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px}
+  .ldlRule:last-child{border-bottom:0}
+  .ldlRule .mk{flex:none;width:16px;font-weight:700;font-family:"IBM Plex Mono";font-size:12px}
+  .ldlRule.yes .mk{color:var(--ok)} .ldlRule.no .mk{color:var(--bad)}
+  .ldlRule.no .n{color:var(--muted)}
+  .ldlRule .aim{font-family:"IBM Plex Mono";font-size:11px;color:var(--faint)}
   .ldlWhy{padding:9px 0;border-bottom:1px solid var(--line)}
   .ldlWhy:last-child{border-bottom:0}
   .ldlWhy .n{font-size:13.5px;font-weight:600}
@@ -1031,7 +1044,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-12 · a project to bring the LDL down';
+const BUILD='2026-11-12 · the goal has a date, and rules of his own';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2790,9 +2803,30 @@ const LDL_LEVERS=[
 const LDL_TARGET_ID='ldl:target';
 const ldlTargetRow=()=>S.items[LDL_TARGET_ID];
 const ldlTarget=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.target);return v>0?v:100};
+const ldlBy=()=>{const r=ldlTargetRow();return (r&&r.d&&r.d.by)||''};
 function ldlSetTarget(v){
   const n=Math.max(30,Math.min(300,+v||100));
   put('ldl',{kind:'target',target:n},LDL_TARGET_ID);renderActive();
+}
+function ldlSetBy(v){put('ldl',{kind:'target',by:String(v||'')},LDL_TARGET_ID);renderActive()}
+/* A deadline turns a wish into a rate. Knowing he is 45 points out is one thing; knowing
+   that is 15 a month with eleven weeks left is the thing that decides what today looks
+   like. The pace is worked from where he started rather than from today's number, so a bad
+   fortnight shows up as falling behind instead of quietly resetting the goal. */
+function ldlPlan(){
+  const by=ldlBy(); if(!by)return null;
+  const rows=ldlReads(); if(!rows.length)return null;
+  const target=ldlTarget();
+  const now=+rows[rows.length-1].d.ldl||0, from=+rows[0].d.ldl||0;
+  const t=today();
+  const days=Math.round((new Date(by+'T12:00:00')-new Date(t+'T12:00:00'))/864e5);
+  const togo=now-target;
+  const perMo=days>0?togo/(days/30.44):null;
+  // where he ought to be by now, if the drop were spread evenly across the run
+  const total=Math.max(1,Math.round((new Date(by+'T12:00:00')-new Date((rows[0].d.date)+'T12:00:00'))/864e5));
+  const gone=Math.max(0,Math.min(total,Math.round((new Date(t+'T12:00:00')-new Date((rows[0].d.date)+'T12:00:00'))/864e5)));
+  const due=from-(from-target)*(gone/total);
+  return {by,days,togo,perMo,now,from,target,due,ahead:now<=due};
 }
 const ldlReads=()=>list('ldl').filter(i=>!i.d.kind&&i.d.date)
   .sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
@@ -2878,10 +2912,41 @@ function ldlPage(){
       ${ldlChart(rows,target)}
       <div class="ldlEnds"><span>${esc(fdate(first.d.date).replace(/^\w+, /,''))} · ${+first.d.ldl||0}</span><span>${esc(fdate(last.d.date).replace(/^\w+, /,''))} · ${now}</span></div></div>`;
 
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Target</h2>
-    <div class="hint">What you are aiming at, in mg/dL. Where that number should sit is your doctor's call, not this page's — general guidance puts optimal under 100, and lower again where there is added cardiac risk.</div>
-    <input class="ldlTarget" type="number" inputmode="numeric" value="${target}"
-      onchange="ldlSetTarget(this.value)"></div>`;
+  const plan=ldlPlan();
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>The goal</h2>
+    <div class="hint">What you are aiming at and by when. Where that number should sit is your doctor's call, not this page's.</div>
+    <div class="ldlGoalRow">
+      <label class="ldlFld"><span>Target mg/dL</span>
+        <input class="ldlTarget" type="number" inputmode="numeric" value="${target}" onchange="ldlSetTarget(this.value)"></label>
+      <label class="ldlFld"><span>By</span>
+        <input class="ldlTarget" type="date" value="${esc(ldlBy())}" onchange="ldlSetBy(this.value)"></label>
+    </div>`;
+  if(plan)h+=`<div class="ldlPace ${plan.ahead?'good':'behind'}">${
+      plan.days>0
+        ?`${plan.togo<=0?'At target with ':''}${plan.days} day${plan.days===1?'':'s'} left`
+          +(plan.togo>0?` · ${plan.togo} mg/dL to go · about ${plan.perMo.toFixed(0)} a month from here`:'')
+          +(plan.togo>0?` · an even run puts you at ${Math.round(plan.due)} today, and you are at ${plan.now}`:'')
+        :`The date has passed — ${plan.togo<=0?'and you made it':'you are '+plan.togo+' mg/dL short'}`}</div>`;
+  h+=`</div>`;
+
+  // His own rules, in his own words — the thing he will actually read before ordering lunch
+  const rules=list('ldlrule');
+  h+=`<div class="panel"><h2 style="justify-content:space-between"><span><span class="sw" style="background:var(--purple)"></span>Do's and don'ts</span>
+      <button class="btn sm" onclick="event.stopPropagation();openForm('ldlrule')">Add</button></h2>
+    <div class="hint">Your rules for this run — hours in the gym, what you are taking, what you are off, what you are leaning on. Tap one to edit it.</div>`;
+  if(!rules.length)h+=`<div class="empty" style="padding:16px">Nothing set yet. Add the first rule — a weekly minimum, a vitamin, a food you are cutting.</div>`;
+  else{
+    const cats=[...new Set(rules.map(i=>(i.d.cat||'Other')))].sort();
+    h+=cats.map(c=>{
+      const mine=rules.filter(i=>(i.d.cat||'Other')===c)
+        .sort((a,b)=>(a.d.kind==='Don’t')-(b.d.kind==='Don’t')||(a.d.rule||'').localeCompare(b.d.rule||''));
+      return `<div class="ldlCat">${esc(c)}</div>`+mine.map(i=>{
+        const no=i.d.kind==='Don’t';
+        return `<div class="ldlRule ${no?'no':'yes'}" onclick="openForm('ldlrule','${i.id}')">
+          <span class="mk">${no?'✕':'✓'}</span>
+          <span class="n">${esc(i.d.rule||'')}${i.d.aim?`<span class="aim"> · ${esc(i.d.aim)}</span>`:''}</span></div>`}).join('')}).join('');
+  }
+  h+=`</div>`;
 
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>What actually moves it</h2>
     <div class="hint">The levers above, and why each one is on the list. General information — it is not medical advice and it does not replace your doctor.</div>
@@ -2916,6 +2981,16 @@ ldl:{title:'Readings',color:'var(--red)',hint:'Every blood panel on file. Date a
     s:[fdate(i.d.date).replace(/^\w+, /,''),
        i.d.total?'total '+i.d.total:'',i.d.hdl?'HDL '+i.d.hdl:'',i.d.trig?'trig '+i.d.trig:''].filter(Boolean).join(' · '),
     pill:(+i.d.ldl||0)<=ldlTarget()?{cls:'ok',txt:'at target'}:{cls:'warn',txt:'+'+((+i.d.ldl||0)-ldlTarget())}})},
+ldlrule:{title:'Do’s and don’ts',color:'var(--purple)',hint:'',
+  fields:[{k:'rule',l:'The rule',t:'text',req:1,ph:'Gym 5× a week · No fried food · Omega-3 daily'},
+          {k:'kind',l:'Do or don’t',t:'sel',opt:['Do','Don’t'],def:'Do'},
+          {k:'cat',l:'Group',t:'dyn',opt:['Exercise','Food to cut','Food to lean on','Supplements','Habits'],req:1},
+          {k:'aim',l:'The number, if it has one',t:'text',ph:'5 hrs/week · 2 g/day · under 10 g'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>i.d.cat||'Other',
+  chips:[{l:'All',f:()=>1},{l:'Do',f:i=>i.d.kind!=='Don’t'},{l:'Don’t',f:i=>i.d.kind==='Don’t'}],
+  card:i=>({t:esc(i.d.rule||''),s:esc(i.d.aim||''),
+    pill:{cls:i.d.kind==='Don’t'?'bad':'ok',txt:esc(i.d.kind||'Do')}})},
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
   formOut:d=>{if(!editCtx?.id)d.date=today();return d},
