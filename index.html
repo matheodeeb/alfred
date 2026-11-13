@@ -350,13 +350,21 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlTarget{width:140px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
     padding:11px 12px;color:var(--txt);font-family:"IBM Plex Mono";font-size:15px}
   .ldlTarget:focus{outline:none;border-color:var(--acc)}
-  .ldlRun{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:14px}
-  .ldlRunTop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-  .ldlRunTop .l{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:15px}
-  .ldlRunTop .r{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted)}
-  .ldlRunBar{height:9px;border-radius:999px;background:var(--bg2);border:1px solid var(--line2);overflow:hidden;margin-top:10px}
+  .ldlHead{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;margin-top:14px}
+  .ldlNums{display:flex;align-items:center;gap:14px}
+  .ldlNums .side{flex:1;min-width:0}
+  .ldlNums .side.right{text-align:right}
+  .ldlNums .v{font-family:"IBM Plex Mono";font-weight:600;font-size:34px;line-height:1;color:var(--red)}
+  .ldlNums .v.none{color:var(--faint)}
+  .ldlNums .v.goal{color:var(--ok)}
+  .ldlNums .k{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:7px}
+  .ldlNums .arr{flex:none;font-family:"IBM Plex Mono";font-size:16px;color:var(--line2)}
+  .ldlRunBar{height:8px;border-radius:999px;background:var(--bg2);border:1px solid var(--line2);overflow:hidden;margin-top:18px}
   .ldlRunBar i{display:block;height:100%;background:var(--acc);border-radius:999px;transition:width .3s}
-  .ldlRunEnds{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:6px}
+  .ldlRunEnds{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+    font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:7px}
+  .ldlRunEnds .mid{color:var(--muted)}
+  @media(max-width:380px){.ldlNums .v{font-size:29px}}
   .ldlGoalRow{display:flex;gap:12px;flex-wrap:wrap}
   .ldlFld{display:flex;flex-direction:column;gap:5px}
   .ldlFld span{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -1066,7 +1074,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · the saturated fat ceiling, in food';
+const BUILD='2026-11-13 · one card at the top, not three';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2949,22 +2957,31 @@ function ldlPage(){
   const gap=now!=null?now-target:null;
   const got=ldlDone(t), core=LDL_CORE.filter(k=>got.includes(k)).length;
 
-  const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div><div class="v">${v}</div><div class="u">${u}</div></div>`;
   /* The run itself, before anything else on the page: how much of the time between the day
      he started and the last day before the appointment has already gone. It is the one
      thing that moves without him, and it is the reason the rest of the page matters today
      rather than in February. */
+  /* Three boxes stacked at the top — a bar in its own card, then two tiles — said one
+     thing each and spent a third of the screen doing it. They are one card now, because
+     they are one sentence: this is where you are, that is where you are going, and this is
+     how much of the time between them has gone.
+
+     The day count went with the framing. "Day one of 108" and "108 days left" are the same
+     fact twice, and the one that tells him anything is the one counting down. */
   const run=ldlRun();
-  let h='';
-  if(run)h+=`<div class="ldlRun">
-      <div class="ldlRunTop"><span class="l">${run.gone===0?'Day one':'Day '+(run.gone+1)} of ${run.total+1}</span>
-        <span class="r">${run.left} day${run.left===1?'':'s'} left</span></div>
-      <div class="ldlRunBar"><i style="width:${run.pct.toFixed(1)}%"></i></div>
-      <div class="ldlRunEnds"><span>${esc(fdate(run.start).replace(/^\w+, /,''))}</span><span>${esc(fdate(run.by).replace(/^\w+, /,''))}</span></div>
-    </div>`;
-  h+=`<div class="grid stats">`
-    +tile('LDL now',now!=null?now:'—',last?fdate(last.d.date).replace(/^\w+, /,''):'no reading filed yet','red')
-    +tile('To target',now!=null?(gap<=0?'at target':gap+' to go'):'—',`target ${target} mg/dL`,gap!=null&&gap<=0?'green':'gold')
+  const short=d=>esc(fdate(d).replace(/^\w+, /,'').replace(/, \d{4}$/,''));
+  let h=`<div class="ldlHead">
+      <div class="ldlNums">
+        <div class="side"><div class="v${now==null?' none':''}">${now!=null?now:'—'}</div>
+          <div class="k">${last?'LDL · '+short(last.d.date):'no reading yet'}</div></div>
+        <div class="arr">→</div>
+        <div class="side right"><div class="v goal">${target}</div>
+          <div class="k">${now==null?'target':gap<=0?'at target':gap+' to go'}</div></div>
+      </div>`
+    +(run?`<div class="ldlRunBar"><i style="width:${run.pct.toFixed(1)}%"></i></div>
+      <div class="ldlRunEnds"><span>${short(run.start)}</span>
+        <span class="mid">${run.left} day${run.left===1?'':'s'} left</span>
+        <span>${short(run.by)}</span></div>`:'')
     +`</div>`;
 
   // Today — the part that is actually in his hands this morning
