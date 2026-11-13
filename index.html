@@ -1074,7 +1074,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · saturated fat gets its own page';
+const BUILD='2026-11-13 · a menu measured against the ceiling';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -3088,6 +3088,51 @@ function ldlFatPage(){
       ${LDL_FAT_LOW.map(r=>fatRow(r,0)).join('')}
       <div class="note" style="margin-top:12px">Figures are approximate, from standard composition tables, and are here to make the ceiling legible rather than to be added up exactly. General information, not medical advice.</div></div>`;
 }
+/* The menu. The ceiling is a number until something on a plate is measured against it, and
+   this is where that happens: every meal carries its own saturated fat, drawn as a share of
+   his ceiling, so a day can be assembled by looking rather than by arithmetic.
+
+   Breakfast, lunch and dinner get a running total of the lightest way through the day and
+   the heaviest, because the question a menu actually answers is not "is this meal fine" but
+   "can I still eat dinner after that lunch". */
+const LDL_SLOTS=['Breakfast','Lunch','Dinner','Snacks'];
+const ldlSlot=d=>LDL_SLOTS.includes((d&&d.slot)||'')?d.slot:'Dinner';
+const ldlMealSat=i=>+((i.d&&i.d.sat))||0;
+function ldlMenuPage(){
+  const cap=ldlSatCap(ldlKcal());
+  const meals=list('ldlmeal');
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Against ${cap}g a day</h2>
+    <div class="hint">Every meal here carries its own saturated fat, so a day can be put together by eye. The bar on each one is its share of your ceiling.</div>`;
+  if(meals.length){
+    /* The lightest and heaviest way through a day, from what is actually on the menu. Snacks
+       are left out of both: they are the thing he adds on top, not a slot he has to fill. */
+    const core=LDL_SLOTS.filter(s=>s!=='Snacks');
+    const have=core.filter(s=>meals.some(i=>ldlSlot(i.d)===s));
+    if(have.length){
+      const low=have.reduce((n,s)=>n+Math.min(...meals.filter(i=>ldlSlot(i.d)===s).map(ldlMealSat)),0);
+      const high=have.reduce((n,s)=>n+Math.max(...meals.filter(i=>ldlSlot(i.d)===s).map(ldlMealSat)),0);
+      h+=`<div class="ldlMath">Lightest day on the menu: <b>${low.toFixed(1)}g</b>${low<=cap?'':' — already over'} ·
+        heaviest: <b>${high.toFixed(1)}g</b>${high<=cap?' — every combination fits':' — some combinations do not fit'}${
+        have.length<core.length?` · only ${have.join(' and ').toLowerCase()} filled in so far`:''}</div>`;
+    }
+  }
+  h+=`</div>`;
+  h+=LDL_SLOTS.map(slot=>{
+    const mine=meals.filter(i=>ldlSlot(i.d)===slot).sort((a,b)=>ldlMealSat(a)-ldlMealSat(b));
+    return `<div class="panel"><h2 style="justify-content:space-between">
+        <span><span class="sw" style="background:var(--green)"></span>${slot}</span>
+        <button class="btn sm" onclick="event.stopPropagation();openForm('ldlmeal',null,{slot:'${slot}'})">Add</button></h2>`
+      +(mine.length?mine.map(i=>{
+        const g=ldlMealSat(i), over=g>cap;
+        return `<div class="ldlFat" style="cursor:pointer" onclick="openForm('ldlmeal','${i.id}')">
+          <span class="n">${esc(i.d.name||'')}</span>
+          <span class="sv">${i.d.fib?esc(i.d.fib)+'g fibre':''}</span>
+          <span class="g ${over?'hi':'lo'}">${g?g+'g':'—'}</span>
+          <span class="sh"><i class="${over?'hi':'lo'}" style="width:${Math.min(100,g/cap*100).toFixed(0)}%"></i></span></div>`}).join('')
+        :`<div class="ldlNone">Nothing yet.</div>`)
+      +`</div>`}).join('');
+  return h;
+}
 function ldlOpenDay(d){
   const got=ldlDone(d);
   LDLDAY=d;renderActive();
@@ -3125,6 +3170,18 @@ ldlrule:{title:'Do’s and don’ts',color:'var(--purple)',hint:'',
   chips:[{l:'All',f:()=>1},{l:'Habits',f:i=>ldlSide(i.d)==='Habits'},{l:'Eats',f:i=>ldlSide(i.d)==='Eats'}],
   card:i=>({t:esc(i.d.rule||''),s:esc(i.d.aim||''),
     pill:{cls:ldlIsNo(i.d)?'bad':'ok',txt:ldlIsNo(i.d)?'Don’t':'Do'}})},
+ldlmeal:{title:'Meal',color:'var(--green)',hint:'',
+  fields:[{k:'name',l:'Meal',t:'text',req:1,ph:'Oats with walnuts · Grilled salmon and greens'},
+          {k:'slot',l:'When',t:'sel',opt:LDL_SLOTS,def:'Dinner'},
+          {k:'sat',l:'Saturated fat (g)',t:'num',ph:'per serving'},
+          {k:'fib',l:'Soluble fibre (g)',t:'num',ph:'optional'},
+          {k:'ing',l:'Ingredients',t:'ta',full:1,ph:'One per line'},
+          {k:'steps',l:'How',t:'ta',full:1,ph:'One step per line'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>ldlSlot(i.d),
+  chips:[{l:'All',f:()=>1}].concat(LDL_SLOTS.map(s=>({l:s,f:i=>ldlSlot(i.d)===s,hideEmpty:1}))),
+  card:i=>({t:esc(i.d.name||''),s:esc(i.d.ing?String(i.d.ing).split('\n')[0]:''),
+    pill:{cls:ldlMealSat(i)>ldlSatCap(ldlKcal())?'bad':'ok',txt:ldlMealSat(i)?ldlMealSat(i)+'g':'—'}})},
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
   formOut:d=>{if(!editCtx?.id)d.date=today();return d},
@@ -7285,7 +7342,7 @@ const NAVS={
   // is on order and what is in the house. The rest keeps the order it had.
   {t:'Overview',p:'overview'},
   {t:'To-do',p:'todo',cls:'todo'},
-  {t:'Cholesterol — LDL',g:[['Overview','ldl'],['Saturated fat','ldlfat']]},
+  {t:'Cholesterol — LDL',g:[['Overview','ldl'],['Menu','ldlmenu'],['Saturated fat','ldlfat']]},
   {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants'],['Spoils','tlspoils']]},
   {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
@@ -7925,6 +7982,7 @@ function bindAtlas(){
 
 const SPECIAL={overview:{render:overviewPage,fab:null},
   ldl:{render:ldlPage,fab:'ldl'},        // + files a blood panel; the daily levers are tapped in place
+  ldlmenu:{render:ldlMenuPage,fab:'ldlmeal'},
   ldlfat:{render:ldlFatPage,fab:null},   // a reference page: nothing here is his to add
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},

@@ -108,6 +108,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `ldl` | Cholesterol — LDL (readings) | date, ldl, total, hdl, trig, notes |
 | `ldlday` | Cholesterol — LDL (daily levers) | date, done |
 | `ldlrule` | Cholesterol — LDL (do's and don'ts) | rule, side, kind, aim, notes |
+| `ldlmeal` | Cholesterol — LDL (menu) | name, slot, sat, fib, ing, steps, notes |
 | `books` | Books | name, author, cat, pri, pages, len, status, prog, notes |
 | `courses` | To learn | name, topic, src, status, prog, notes |
 | `projects` | Projects | project, name, when, wk, mon, start, end, status, notes |
@@ -179,6 +180,12 @@ one). `kind` is `Do` or `Don’t` — with the typographic apostrophe, which is 
 writes. `aim` holds the number where there is one ("5 hrs/week", "once a week at most").
 Rows written before the split carried a free-text `cat` instead; those still read correctly
 and do not need converting.
+
+`ldlmeal` is the LDL menu, one row per meal. `slot` is `Breakfast`, `Lunch`, `Dinner` or
+`Snacks`; `sat` is saturated fat in grams per serving and is what the page measures against
+his ceiling, so fill it in whenever the recipe is known. `fib` is soluble fibre, optional.
+`ing` and `steps` are newline-separated. This is separate from the house's own `menu` and
+`food` sections, which are not about cholesterol.
 
 `ldlday` is the daily tick-list, one row per day, id `ldlday:YYYY-MM-DD`. `done` is a
 comma-separated list of lever keys — `sat`, `fib`, `fried`, `move`, `plant`, `alc`, `med` —
