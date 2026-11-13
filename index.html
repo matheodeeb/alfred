@@ -350,6 +350,13 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlTarget{width:140px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
     padding:11px 12px;color:var(--txt);font-family:"IBM Plex Mono";font-size:15px}
   .ldlTarget:focus{outline:none;border-color:var(--acc)}
+  .ldlRun{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:14px}
+  .ldlRunTop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .ldlRunTop .l{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:15px}
+  .ldlRunTop .r{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted)}
+  .ldlRunBar{height:9px;border-radius:999px;background:var(--bg2);border:1px solid var(--line2);overflow:hidden;margin-top:10px}
+  .ldlRunBar i{display:block;height:100%;background:var(--acc);border-radius:999px;transition:width .3s}
+  .ldlRunEnds{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:6px}
   .ldlGoalRow{display:flex;gap:12px;flex-wrap:wrap}
   .ldlFld{display:flex;flex-direction:column;gap:5px}
   .ldlFld span{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -1045,7 +1052,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · habits and eats, kept apart';
+const BUILD='2026-11-13 · the run, and how much of it is gone';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2817,6 +2824,20 @@ const LDL_TARGET_ID='ldl:target';
 const ldlTargetRow=()=>S.items[LDL_TARGET_ID];
 const ldlTarget=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.target);return v>0?v:100};
 const ldlBy=()=>{const r=ldlTargetRow();return (r&&r.d&&r.d.by)||''};
+/* The day the run started. Stored, because it is a decision rather than a fact that can be
+   derived: the first reading on file may be months older than the day he decided to do
+   something about it, and the bar is about the run, not the record. */
+const ldlStart=()=>{const r=ldlTargetRow();return (r&&r.d&&r.d.start)||(ldlReads()[0]||{d:{}}).d.date||today()};
+function ldlRun(){
+  const by=ldlBy(); if(!by)return null;
+  const s=ldlStart(), t=today();
+  const dayN=x=>new Date(x+'T12:00:00').getTime();
+  const total=Math.round((dayN(by)-dayN(s))/864e5);
+  if(!(total>0))return null;
+  const gone=Math.round((dayN(t)-dayN(s))/864e5);
+  const pct=Math.max(0,Math.min(100,gone/total*100));
+  return {start:s,by,total,gone:Math.max(0,gone),left:Math.max(0,total-gone),pct};
+}
 function ldlSetTarget(v){
   const n=Math.max(30,Math.min(300,+v||100));
   put('ldl',{kind:'target',target:n},LDL_TARGET_ID);renderActive();
@@ -2894,7 +2915,19 @@ function ldlPage(){
   const streak=ldlStreak();
 
   const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div><div class="v">${v}</div><div class="u">${u}</div></div>`;
-  let h=`<div class="grid stats">`
+  /* The run itself, before anything else on the page: how much of the time between the day
+     he started and the last day before the appointment has already gone. It is the one
+     thing that moves without him, and it is the reason the rest of the page matters today
+     rather than in February. */
+  const run=ldlRun();
+  let h='';
+  if(run)h+=`<div class="ldlRun">
+      <div class="ldlRunTop"><span class="l">${run.gone===0?'Day one':'Day '+(run.gone+1)} of ${run.total+1}</span>
+        <span class="r">${run.left} day${run.left===1?'':'s'} left</span></div>
+      <div class="ldlRunBar"><i style="width:${run.pct.toFixed(1)}%"></i></div>
+      <div class="ldlRunEnds"><span>${esc(fdate(run.start).replace(/^\w+, /,''))}</span><span>${esc(fdate(run.by).replace(/^\w+, /,''))}</span></div>
+    </div>`;
+  h+=`<div class="grid stats">`
     +tile('LDL now',now!=null?now:'—',last?fdate(last.d.date).replace(/^\w+, /,''):'no reading filed yet','red')
     +tile('To target',now!=null?(gap<=0?'at target':gap+' to go'):'—',`target ${target} mg/dL`,gap!=null&&gap<=0?'green':'gold')
     +tile('Since the first',drop!=null?(drop>0?'+':'')+drop:'—',drop!=null?'mg/dL across '+rows.length+' readings':'needs two readings',drop!=null&&drop<0?'green':'blue')
