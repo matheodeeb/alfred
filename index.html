@@ -1074,7 +1074,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · one card at the top, not three';
+const BUILD='2026-11-13 · saturated fat gets its own page';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -3056,34 +3056,37 @@ function ldlPage(){
             :'Nothing yet — a food you are cutting back, or one you want more of.'}</div>`)
       +`</div>`}).join('');
 
-  // Saturated fat, which is the lever the other levers are mostly describing
-  const kcal=ldlKcal(), cap=ldlSatCap(kcal), loose=ldlSatCap(kcal,LDL_SAT_LOOSE);
-  const fatRow=([n,sv,g],over)=>`<div class="ldlFat"><span class="n">${esc(n)}</span>
-    <span class="sv">${esc(sv)}</span>
-    <span class="g ${over?'hi':'lo'}">${g}g</span>
-    <span class="sh"><i class="${over?'hi':'lo'}" style="width:${Math.min(100,g/cap*100).toFixed(0)}%"></i></span></div>`;
-  h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Saturated fat</h2>
-    <div class="hint">The one lever that moves LDL more than the rest put together. Your ceiling is a share of what you eat in a day, so it starts with the calories.</div>
-    <div class="ldlGoalRow">
-      <label class="ldlFld"><span>Calories a day</span>
-        <input class="ldlTarget" type="number" inputmode="numeric" value="${kcal}" onchange="ldlSetKcal(this.value)"></label>
-      <div class="ldlCap"><div class="num">${cap}g</div><div class="sub">a day, at most</div></div>
-    </div>
-    <div class="ldlMath">(${kcal} × 6%) ÷ 9 = ${cap}g · fat carries 9 calories a gram.
-      6% is the stricter figure for actively lowering LDL; the general guideline is 10%, which would be ${loose}g.</div>
-    <div class="ldlCat">Where it hides</div>
-    <div class="hint" style="margin:0 0 6px">Per ordinary serving, against your ${cap}g ceiling — a full bar is a day's worth in one sitting.</div>
-    ${LDL_FAT_HIGH.map(r=>fatRow(r,1)).join('')}
-    <div class="ldlCat">Lean on these instead</div>
-    <div class="hint" style="margin:0 0 6px">Same scale. These are where the protein and the fat can come from without spending the ceiling.</div>
-    ${LDL_FAT_LOW.map(r=>fatRow(r,0)).join('')}
-    <div class="note" style="margin-top:12px">Figures are approximate, from standard composition tables, and are here to make the ceiling legible rather than to be added up exactly. General information, not medical advice.</div></div>`;
-
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>What actually moves it</h2>
     <div class="hint">The levers above, and why each one is on the list. General information — it is not medical advice and it does not replace your doctor.</div>
     ${LDL_LEVERS.map(l=>`<div class="ldlWhy"><div class="n">${esc(l.l)}</div><div class="w">${esc(l.w)}</div></div>`).join('')}</div>`;
 
   return h+genList('ldl');
+}
+/* Saturated fat on its own page, because it is not a panel on a dashboard — it is the lever
+   the others are mostly describing, and two lists of two dozen foods each is a thing he
+   opens and reads rather than scrolls past on the way to the day's ticks. */
+function ldlFatPage(){
+  const kcal=ldlKcal(), cap=ldlSatCap(kcal), loose=ldlSatCap(kcal,LDL_SAT_LOOSE);
+  const fatRow=([n,sv,g],over)=>`<div class="ldlFat"><span class="n">${esc(n)}</span>
+    <span class="sv">${esc(sv)}</span>
+    <span class="g ${over?'hi':'lo'}">${g}g</span>
+    <span class="sh"><i class="${over?'hi':'lo'}" style="width:${Math.min(100,g/cap*100).toFixed(0)}%"></i></span></div>`;
+  return `<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Your ceiling</h2>
+      <div class="hint">The one lever that moves LDL more than the rest put together. Your ceiling is a share of what you eat in a day, so it starts with the calories.</div>
+      <div class="ldlGoalRow">
+        <label class="ldlFld"><span>Calories a day</span>
+          <input class="ldlTarget" type="number" inputmode="numeric" value="${kcal}" onchange="ldlSetKcal(this.value)"></label>
+        <div class="ldlCap"><div class="num">${cap}g</div><div class="sub">a day, at most</div></div>
+      </div>
+      <div class="ldlMath">(${kcal} × 6%) ÷ 9 = ${cap}g · fat carries 9 calories a gram.
+        6% is the stricter figure for actively lowering LDL; the general guideline is 10%, which would be ${loose}g.</div></div>`
+    +`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Where it hides</h2>
+      <div class="hint">Per ordinary serving, against your ${cap}g ceiling — a full bar is a day's worth in one sitting.</div>
+      ${LDL_FAT_HIGH.map(r=>fatRow(r,1)).join('')}</div>`
+    +`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Lean on these instead</h2>
+      <div class="hint">Same scale. These are where the protein and the fat can come from without spending the ceiling.</div>
+      ${LDL_FAT_LOW.map(r=>fatRow(r,0)).join('')}
+      <div class="note" style="margin-top:12px">Figures are approximate, from standard composition tables, and are here to make the ceiling legible rather than to be added up exactly. General information, not medical advice.</div></div>`;
 }
 function ldlOpenDay(d){
   const got=ldlDone(d);
@@ -7282,7 +7285,7 @@ const NAVS={
   // is on order and what is in the house. The rest keeps the order it had.
   {t:'Overview',p:'overview'},
   {t:'To-do',p:'todo',cls:'todo'},
-  {t:'Cholesterol — LDL',p:'ldl'},
+  {t:'Cholesterol — LDL',g:[['Overview','ldl'],['Saturated fat','ldlfat']]},
   {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
   {t:'Orders',g:[['Necessities','needs'],['Wants','wants'],['Spoils','tlspoils']]},
   {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
@@ -7922,6 +7925,7 @@ function bindAtlas(){
 
 const SPECIAL={overview:{render:overviewPage,fab:null},
   ldl:{render:ldlPage,fab:'ldl'},        // + files a blood panel; the daily levers are tapped in place
+  ldlfat:{render:ldlFatPage,fab:null},   // a reference page: nothing here is his to add
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
   schedule:{render:schedulePage,fab:'acts'},
