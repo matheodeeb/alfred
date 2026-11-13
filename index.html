@@ -1052,7 +1052,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · the run, and how much of it is gone';
+const BUILD='2026-11-13 · two tiles under the bar';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2874,20 +2874,11 @@ function ldlToggle(k,d){
   put('ldlday',{date:d,done:next.join(',')},ldlDayId(d));
   renderActive();
 }
-/* Consecutive days ending today — or ending yesterday, so a streak is not declared broken
-   before the day it belongs to has been lived. A day counts when every lever he is actually
-   tracking is ticked; medication is excluded from the test, because a day is not a failure
-   for not taking a drug nobody prescribed. */
+/* A day counts as clean when every lever he is actually tracking is ticked. Medication is
+   excluded from the test, because a day is not a failure for not taking a drug nobody
+   prescribed. */
 const LDL_CORE=LDL_LEVERS.filter(l=>l.k!=='med').map(l=>l.k);
 const ldlFull=d=>{const got=ldlDone(d);return LDL_CORE.every(k=>got.includes(k))};
-function ldlStreak(){
-  const day=n=>{const x=new Date();x.setDate(x.getDate()-n);
-    return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
-  let n=ldlFull(day(0))?0:1;                   // today still has hours left in it
-  let c=0;
-  for(;n<400;n++){if(!ldlFull(day(n)))break;c++}
-  return c;
-}
 /* The run of readings as a line. Hand-drawn because the page needs one small chart, not a
    charting library, and because the target line is the point of it. */
 function ldlChart(rows,target){
@@ -2909,10 +2900,8 @@ function ldlPage(){
   const rows=ldlReads(), target=ldlTarget();
   const last=rows[rows.length-1], first=rows[0];
   const now=last?+last.d.ldl||0:null;
-  const drop=last&&first&&last!==first?now-(+first.d.ldl||0):null;
   const gap=now!=null?now-target:null;
   const got=ldlDone(t), core=LDL_CORE.filter(k=>got.includes(k)).length;
-  const streak=ldlStreak();
 
   const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div><div class="v">${v}</div><div class="u">${u}</div></div>`;
   /* The run itself, before anything else on the page: how much of the time between the day
@@ -2930,8 +2919,6 @@ function ldlPage(){
   h+=`<div class="grid stats">`
     +tile('LDL now',now!=null?now:'—',last?fdate(last.d.date).replace(/^\w+, /,''):'no reading filed yet','red')
     +tile('To target',now!=null?(gap<=0?'at target':gap+' to go'):'—',`target ${target} mg/dL`,gap!=null&&gap<=0?'green':'gold')
-    +tile('Since the first',drop!=null?(drop>0?'+':'')+drop:'—',drop!=null?'mg/dL across '+rows.length+' readings':'needs two readings',drop!=null&&drop<0?'green':'blue')
-    +tile('Streak',streak,streak===1?'clean day':'clean days','green')
     +`</div>`;
 
   // Today — the part that is actually in his hands this morning
