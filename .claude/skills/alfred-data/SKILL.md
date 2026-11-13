@@ -107,6 +107,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `movies` | Movies | name, genre, pri, runtime, status, rel, notes |
 | `ldl` | Cholesterol — LDL (readings) | date, ldl, total, hdl, trig, notes |
 | `ldlday` | Cholesterol — LDL (daily levers) | date, done |
+| `ldlrule` | Cholesterol — LDL (do's and don'ts) | rule, side, kind, aim, notes |
 | `books` | Books | name, author, cat, pri, pages, len, status, prog, notes |
 | `courses` | To learn | name, topic, src, status, prog, notes |
 | `projects` | Projects | project, name, when, wk, mon, start, end, status, notes |
@@ -171,6 +172,13 @@ itself never goes in `notes`, `spec` or the repo; only the nickname shows on the
 `ldl` (mg/dL) required, the rest of the panel optional. One row in that section is not a
 reading: `ldl:target` carries `{"kind":"target","target":100}` and is the number the page
 aims at. Never file a reading with a `kind`, and never change the target unless he asks.
+
+`ldlrule` is his own do's and don'ts, in two halves. `side` is `Habits` (what he does —
+training, supplements, what he is stopping) or `Eats` (the foods themselves, named one by
+one). `kind` is `Do` or `Don’t` — with the typographic apostrophe, which is what the form
+writes. `aim` holds the number where there is one ("5 hrs/week", "once a week at most").
+Rows written before the split carried a free-text `cat` instead; those still read correctly
+and do not need converting.
 
 `ldlday` is the daily tick-list, one row per day, id `ldlday:YYYY-MM-DD`. `done` is a
 comma-separated list of lever keys — `sat`, `fib`, `fried`, `move`, `plant`, `alc`, `med` —

@@ -357,6 +357,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlPace.good{color:var(--ok)} .ldlPace.behind{color:var(--warn)}
   .ldlCat{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
   .ldlCat:first-of-type{margin-top:2px}
+  .ldlNone{font-size:12.5px;color:var(--faint);padding:6px 0 8px}
   .ldlRule{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px}
   .ldlRule:last-child{border-bottom:0}
   .ldlRule .mk{flex:none;width:16px;font-weight:700;font-family:"IBM Plex Mono";font-size:12px}
@@ -1044,7 +1045,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-12 · the goal has a date, and rules of his own';
+const BUILD='2026-11-13 · habits and eats, kept apart';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2800,6 +2801,18 @@ const LDL_LEVERS=[
   {k:'alc',  l:'No alcohol',              w:'Raises triglycerides directly and brings calories that land on the rest of the panel.'},
   {k:'med',  l:'Medication as prescribed',w:'Only if your doctor has prescribed something. Nothing here is a reason to start, stop or change a dose.'},
 ];
+/* A rule is one of two things and the page shows them apart, so the side is read through a
+   function rather than off the field. Rows written under the first shape carried a free-text
+   `cat` instead; the food ones are mapped across and anything else is behaviour, so nothing
+   has to be re-entered and no row can land nowhere. */
+const LDL_SIDES=['Habits','Eats'];
+const ldlSide=d=>{
+  const s=(d&&d.side)||'';
+  if(LDL_SIDES.includes(s))return s;
+  return /food|eat|meal|drink/i.test(String((d&&d.cat)||''))?'Eats':'Habits';
+};
+const ldlIsNo=d=>(d&&d.kind)==='Don’t'||(d&&d.kind)==="Don't";
+const ldlRuleSort=(a,b)=>(a.d.rule||'').localeCompare(b.d.rule||'');
 const LDL_TARGET_ID='ldl:target';
 const ldlTargetRow=()=>S.items[LDL_TARGET_ID];
 const ldlTarget=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.target);return v>0?v:100};
@@ -2929,24 +2942,36 @@ function ldlPage(){
         :`The date has passed — ${plan.togo<=0?'and you made it':'you are '+plan.togo+' mg/dL short'}`}</div>`;
   h+=`</div>`;
 
-  // His own rules, in his own words — the thing he will actually read before ordering lunch
+  /* His own rules, in two halves, because they answer two different questions.
+
+     Habits are behaviour: what he does with a week, what he swallows every morning, what
+     he stops doing. Cardio, fish oil, no junk food.
+
+     Eats are the foods themselves, named one by one, and they come out of the habits
+     rather than standing apart from them: too much red meat, not enough fish. A habit says
+     "eat better"; an Eat says which thing, so the rule survives contact with a menu. */
   const rules=list('ldlrule');
-  h+=`<div class="panel"><h2 style="justify-content:space-between"><span><span class="sw" style="background:var(--purple)"></span>Do's and don'ts</span>
-      <button class="btn sm" onclick="event.stopPropagation();openForm('ldlrule')">Add</button></h2>
-    <div class="hint">Your rules for this run — hours in the gym, what you are taking, what you are off, what you are leaning on. Tap one to edit it.</div>`;
-  if(!rules.length)h+=`<div class="empty" style="padding:16px">Nothing set yet. Add the first rule — a weekly minimum, a vitamin, a food you are cutting.</div>`;
-  else{
-    const cats=[...new Set(rules.map(i=>(i.d.cat||'Other')))].sort();
-    h+=cats.map(c=>{
-      const mine=rules.filter(i=>(i.d.cat||'Other')===c)
-        .sort((a,b)=>(a.d.kind==='Don’t')-(b.d.kind==='Don’t')||(a.d.rule||'').localeCompare(b.d.rule||''));
-      return `<div class="ldlCat">${esc(c)}</div>`+mine.map(i=>{
-        const no=i.d.kind==='Don’t';
-        return `<div class="ldlRule ${no?'no':'yes'}" onclick="openForm('ldlrule','${i.id}')">
-          <span class="mk">${no?'✕':'✓'}</span>
-          <span class="n">${esc(i.d.rule||'')}${i.d.aim?`<span class="aim"> · ${esc(i.d.aim)}</span>`:''}</span></div>`}).join('')}).join('');
-  }
-  h+=`</div>`;
+  const SIDES=[['Habits','What you do — training, supplements, the things you are stopping.','var(--purple)'],
+               ['Eats','The foods themselves, one by one. What you are cutting back, what you want more of.','var(--green)']];
+  h+=SIDES.map(([side,blurb,col])=>{
+    const mine=rules.filter(i=>ldlSide(i.d)===side);
+    const dos=mine.filter(i=>!ldlIsNo(i.d)).sort(ldlRuleSort);
+    const nos=mine.filter(i=>ldlIsNo(i.d)).sort(ldlRuleSort);
+    const row=i=>{const no=ldlIsNo(i.d);
+      return `<div class="ldlRule ${no?'no':'yes'}" onclick="openForm('ldlrule','${i.id}')">
+        <span class="mk">${no?'✕':'✓'}</span>
+        <span class="n">${esc(i.d.rule||'')}${i.d.aim?`<span class="aim"> · ${esc(i.d.aim)}</span>`:''}</span></div>`};
+    return `<div class="panel"><h2 style="justify-content:space-between">
+        <span><span class="sw" style="background:${col}"></span>${side}</span>
+        <button class="btn sm" onclick="event.stopPropagation();openForm('ldlrule',null,{side:'${side}'})">Add</button></h2>
+      <div class="hint">${blurb} Tap one to edit it.</div>`
+      +(mine.length
+        ?`<div class="ldlCat">Do</div>`+(dos.length?dos.map(row).join(''):`<div class="ldlNone">Nothing yet.</div>`)
+         +`<div class="ldlCat">Don’t</div>`+(nos.length?nos.map(row).join(''):`<div class="ldlNone">Nothing yet.</div>`)
+        :`<div class="empty" style="padding:16px">${side==='Habits'
+            ?'Nothing yet — a weekly minimum, a vitamin, something you are stopping.'
+            :'Nothing yet — a food you are cutting back, or one you want more of.'}</div>`)
+      +`</div>`}).join('');
 
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>What actually moves it</h2>
     <div class="hint">The levers above, and why each one is on the list. General information — it is not medical advice and it does not replace your doctor.</div>
@@ -2982,15 +3007,15 @@ ldl:{title:'Readings',color:'var(--red)',hint:'Every blood panel on file. Date a
        i.d.total?'total '+i.d.total:'',i.d.hdl?'HDL '+i.d.hdl:'',i.d.trig?'trig '+i.d.trig:''].filter(Boolean).join(' · '),
     pill:(+i.d.ldl||0)<=ldlTarget()?{cls:'ok',txt:'at target'}:{cls:'warn',txt:'+'+((+i.d.ldl||0)-ldlTarget())}})},
 ldlrule:{title:'Do’s and don’ts',color:'var(--purple)',hint:'',
-  fields:[{k:'rule',l:'The rule',t:'text',req:1,ph:'Gym 5× a week · No fried food · Omega-3 daily'},
+  fields:[{k:'rule',l:'The rule',t:'text',req:1,ph:'Cardio · Fish oil · Red meat'},
+          {k:'side',l:'Habit or eat',t:'sel',opt:LDL_SIDES,def:'Habits'},
           {k:'kind',l:'Do or don’t',t:'sel',opt:['Do','Don’t'],def:'Do'},
-          {k:'cat',l:'Group',t:'dyn',opt:['Exercise','Food to cut','Food to lean on','Supplements','Habits'],req:1},
-          {k:'aim',l:'The number, if it has one',t:'text',ph:'5 hrs/week · 2 g/day · under 10 g'},
+          {k:'aim',l:'The number, if it has one',t:'text',ph:'5 hrs/week · 2 g/day · once a week at most'},
           {k:'notes',l:'Notes',t:'ta',full:1}],
-  group:i=>i.d.cat||'Other',
-  chips:[{l:'All',f:()=>1},{l:'Do',f:i=>i.d.kind!=='Don’t'},{l:'Don’t',f:i=>i.d.kind==='Don’t'}],
+  group:i=>ldlSide(i.d),
+  chips:[{l:'All',f:()=>1},{l:'Habits',f:i=>ldlSide(i.d)==='Habits'},{l:'Eats',f:i=>ldlSide(i.d)==='Eats'}],
   card:i=>({t:esc(i.d.rule||''),s:esc(i.d.aim||''),
-    pill:{cls:i.d.kind==='Don’t'?'bad':'ok',txt:esc(i.d.kind||'Do')}})},
+    pill:{cls:ldlIsNo(i.d)?'bad':'ok',txt:ldlIsNo(i.d)?'Don’t':'Do'}})},
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
   formOut:d=>{if(!editCtx?.id)d.date=today();return d},
