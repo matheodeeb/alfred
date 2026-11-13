@@ -365,6 +365,20 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlCat{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
   .ldlCat:first-of-type{margin-top:2px}
   .ldlNone{font-size:12.5px;color:var(--faint);padding:6px 0 8px}
+  .ldlCap{display:flex;flex-direction:column;justify-content:flex-end}
+  .ldlCap .num{font-family:"IBM Plex Mono";font-weight:600;font-size:28px;line-height:1;color:var(--orange)}
+  .ldlCap .sub{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:5px}
+  .ldlMath{font-family:"IBM Plex Mono";font-size:10.5px;line-height:1.7;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .ldlFat{display:grid;grid-template-columns:1fr auto 44px;grid-template-areas:"n sv g" "sh sh sh";
+    gap:2px 10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
+  .ldlFat:last-of-type{border-bottom:0}
+  .ldlFat .n{grid-area:n;font-size:13.5px}
+  .ldlFat .sv{grid-area:sv;font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint)}
+  .ldlFat .g{grid-area:g;font-family:"IBM Plex Mono";font-size:13px;text-align:right}
+  .ldlFat .g.hi{color:var(--bad)} .ldlFat .g.lo{color:var(--ok)}
+  .ldlFat .sh{grid-area:sh;height:4px;border-radius:999px;background:var(--bg2);overflow:hidden;margin-top:4px}
+  .ldlFat .sh i{display:block;height:100%;border-radius:999px}
+  .ldlFat .sh i.hi{background:var(--bad)} .ldlFat .sh i.lo{background:var(--ok)}
   .ldlRule{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px}
   .ldlRule:last-child{border-bottom:0}
   .ldlRule .mk{flex:none;width:16px;font-weight:700;font-family:"IBM Plex Mono";font-size:12px}
@@ -1052,7 +1066,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · two tiles under the bar';
+const BUILD='2026-11-13 · the saturated fat ceiling, in food';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2820,10 +2834,42 @@ const ldlSide=d=>{
 };
 const ldlIsNo=d=>(d&&d.kind)==='Don’t'||(d&&d.kind)==="Don't";
 const ldlRuleSort=(a,b)=>(a.d.rule||'').localeCompare(b.d.rule||'');
+/* Saturated fat, in grams, from the one number that decides it.
+
+   Fat carries 9 calories a gram, so a share of the day's calories converts straight into a
+   weight: kcal × share ÷ 9. The strict share is 6%, which is what cardiology guidance puts
+   on someone actively trying to bring LDL down; 10% is the general-population line and is
+   shown beside it so he can see which one he is holding himself to.
+
+   The grams below are per ordinary serving, rounded, from standard composition tables. They
+   are there to make the ceiling legible — a number like 16 g means nothing until you know
+   that two tablespoons of butter is most of it — not to be totted up to the decimal. */
+const LDL_SAT_PCT=0.06, LDL_SAT_LOOSE=0.10;
+const ldlSatCap=(kcal,pct)=>Math.round(kcal*(pct||LDL_SAT_PCT)/9);
+const LDL_FAT_HIGH=[
+  ['Coconut oil','1 tbsp',12],['Beef ribeye','6 oz',13],['Lamb chop','6 oz',11],
+  ['Ground beef 80/20','6 oz',12],['Pizza','2 slices',10],['Ice cream','1 cup',9],
+  ['Butter','1 tbsp',7],['Heavy cream','2 tbsp',7],['Palm oil','1 tbsp',7],
+  ['Croissant','1',7],['Cheddar','1 oz',6],['Pork sausage','2 links',6],
+  ['Fried chicken','1 breast',6],['Dark chocolate','1 oz',5],['Whole milk','1 cup',4.5],
+  ['Bacon','3 slices',4],['Egg','1 large',1.6],
+];
+const LDL_FAT_LOW=[
+  ['Egg whites','3',0],['Psyllium','1 tbsp',0],['Greek yoghurt 0%','1 cup',0],
+  ['Lentils / beans','1 cup',0.2],['Oats','1 cup cooked',0.5],['Tofu','100 g',0.7],
+  ['Almonds','1 oz',1],['Sardines','1 tin',1.3],['Walnuts','1 oz',1.7],
+  ['Chicken breast, skinless','6 oz',1.7],['Olive oil','1 tbsp',1.9],
+  ['Avocado','half',2.2],['Salmon','6 oz',3],
+];
 const LDL_TARGET_ID='ldl:target';
 const ldlTargetRow=()=>S.items[LDL_TARGET_ID];
 const ldlTarget=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.target);return v>0?v:100};
 const ldlBy=()=>{const r=ldlTargetRow();return (r&&r.d&&r.d.by)||''};
+const ldlKcal=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.kcal);return v>0?v:2400};
+function ldlSetKcal(v){
+  const n=Math.max(1000,Math.min(6000,+v||2400));
+  put('ldl',{kind:'target',kcal:n},LDL_TARGET_ID);renderActive();
+}
 /* The day the run started. Stored, because it is a decision rather than a fact that can be
    derived: the first reading on file may be months older than the day he decided to do
    something about it, and the bar is about the run, not the record. */
@@ -2992,6 +3038,29 @@ function ldlPage(){
             ?'Nothing yet — a weekly minimum, a vitamin, something you are stopping.'
             :'Nothing yet — a food you are cutting back, or one you want more of.'}</div>`)
       +`</div>`}).join('');
+
+  // Saturated fat, which is the lever the other levers are mostly describing
+  const kcal=ldlKcal(), cap=ldlSatCap(kcal), loose=ldlSatCap(kcal,LDL_SAT_LOOSE);
+  const fatRow=([n,sv,g],over)=>`<div class="ldlFat"><span class="n">${esc(n)}</span>
+    <span class="sv">${esc(sv)}</span>
+    <span class="g ${over?'hi':'lo'}">${g}g</span>
+    <span class="sh"><i class="${over?'hi':'lo'}" style="width:${Math.min(100,g/cap*100).toFixed(0)}%"></i></span></div>`;
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Saturated fat</h2>
+    <div class="hint">The one lever that moves LDL more than the rest put together. Your ceiling is a share of what you eat in a day, so it starts with the calories.</div>
+    <div class="ldlGoalRow">
+      <label class="ldlFld"><span>Calories a day</span>
+        <input class="ldlTarget" type="number" inputmode="numeric" value="${kcal}" onchange="ldlSetKcal(this.value)"></label>
+      <div class="ldlCap"><div class="num">${cap}g</div><div class="sub">a day, at most</div></div>
+    </div>
+    <div class="ldlMath">(${kcal} × 6%) ÷ 9 = ${cap}g · fat carries 9 calories a gram.
+      6% is the stricter figure for actively lowering LDL; the general guideline is 10%, which would be ${loose}g.</div>
+    <div class="ldlCat">Where it hides</div>
+    <div class="hint" style="margin:0 0 6px">Per ordinary serving, against your ${cap}g ceiling — a full bar is a day's worth in one sitting.</div>
+    ${LDL_FAT_HIGH.map(r=>fatRow(r,1)).join('')}
+    <div class="ldlCat">Lean on these instead</div>
+    <div class="hint" style="margin:0 0 6px">Same scale. These are where the protein and the fat can come from without spending the ceiling.</div>
+    ${LDL_FAT_LOW.map(r=>fatRow(r,0)).join('')}
+    <div class="note" style="margin-top:12px">Figures are approximate, from standard composition tables, and are here to make the ceiling legible rather than to be added up exactly. General information, not medical advice.</div></div>`;
 
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>What actually moves it</h2>
     <div class="hint">The levers above, and why each one is on the list. General information — it is not medical advice and it does not replace your doctor.</div>
