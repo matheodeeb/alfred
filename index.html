@@ -344,6 +344,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlDay.today{outline:2px solid var(--acc);outline-offset:1px}
   .ldlSvg{width:100%;height:96px;display:block;margin-top:4px}
   .ldlLine{fill:none;stroke:var(--red);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .ldlLine2{fill:none;stroke:var(--muted);stroke-width:1.4;opacity:.6;stroke-linejoin:round;stroke-linecap:round}
   .ldlDot{fill:var(--red)}
   .ldlGoal{stroke:var(--ok);stroke-width:1.5;stroke-dasharray:4 4}
   .ldlEnds{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:4px}
@@ -359,6 +360,10 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ldlNums .v.goal{color:var(--ok)}
   .ldlNums .k{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:7px}
   .ldlNums .arr{flex:none;font-family:"IBM Plex Mono";font-size:16px;color:var(--line2)}
+  .ldlSub{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .ldlSub .t{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .ldlSub .n{font-family:"IBM Plex Mono";font-size:15px;font-weight:600;margin-right:12px}
+  .ldlSub .n:last-child{margin-right:0}
   .ldlRunBar{height:8px;border-radius:999px;background:var(--bg2);border:1px solid var(--line2);overflow:hidden;margin-top:18px}
   .ldlRunBar i{display:block;height:100%;background:var(--acc);border-radius:999px;transition:width .3s}
   .ldlRunEnds{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
@@ -1074,7 +1079,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-13 · a menu measured against the ceiling';
+const BUILD='2026-11-17 · total leads, LDL rides beside it';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2905,7 +2910,7 @@ function ldlPlan(){
   const by=ldlBy(); if(!by)return null;
   const rows=ldlReads(); if(!rows.length)return null;
   const target=ldlTarget();
-  const now=+rows[rows.length-1].d.ldl||0, from=+rows[0].d.ldl||0;
+  const now=+rows[rows.length-1].d.total||0, from=+rows[0].d.total||0;
   const t=today();
   const days=Math.round((new Date(by+'T12:00:00')-new Date(t+'T12:00:00'))/864e5);
   const togo=now-target;
@@ -2934,26 +2939,41 @@ function ldlToggle(k,d){
 const LDL_CORE=LDL_LEVERS.filter(l=>l.k!=='med').map(l=>l.k);
 const ldlFull=d=>{const got=ldlDone(d);return LDL_CORE.every(k=>got.includes(k))};
 /* The run of readings as a line. Hand-drawn because the page needs one small chart, not a
-   charting library, and because the target line is the point of it. */
+   charting library, and because the objective line is the point of it.
+
+   Total is the line with the objective across it. LDL is drawn under it in a lighter stroke
+   rather than left off: the two moving together is the thing to look for, and a total that
+   drops while LDL holds would otherwise be invisible until the next appointment. */
 function ldlChart(rows,target){
   if(rows.length<2)return'';
   const W=320,H=96,P=6;
-  const vals=rows.map(r=>+r.d.ldl||0);
-  const lo=Math.min(target,...vals)-10, hi=Math.max(target,...vals)+10;
+  const tot=rows.map(r=>+r.d.total||0);
+  const ldl=rows.map(r=>+r.d.ldl||0);
+  const seen=tot.concat(ldl).filter(v=>v>0);
+  const lo=Math.min(target,...seen)-10, hi=Math.max(target,...seen)+10;
   const x=i=>P+(W-2*P)*(rows.length===1?0.5:i/(rows.length-1));
   const y=v=>P+(H-2*P)*(1-(v-lo)/Math.max(1,hi-lo));
-  const pts=vals.map((v,i)=>x(i)+','+y(v));
+  const line=(vals,cls)=>{
+    const pts=vals.map((v,i)=>v>0?x(i)+','+y(v):null).filter(Boolean);
+    return pts.length<2?'':`<polyline points="${pts.join(' ')}" class="${cls}"/>`};
   return `<svg class="ldlSvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
     <line x1="0" y1="${y(target).toFixed(1)}" x2="${W}" y2="${y(target).toFixed(1)}" class="ldlGoal"/>
-    <polyline points="${pts.join(' ')}" class="ldlLine"/>
-    ${vals.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" class="ldlDot"/>`).join('')}
+    ${line(ldl,'ldlLine2')}${line(tot,'ldlLine')}
+    ${tot.map((v,i)=>v>0?`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" class="ldlDot"/>`:'').join('')}
   </svg>`;
 }
 function ldlPage(){
   const t=today();
+  /* The number with the objective on it is total cholesterol, not LDL. The page is named
+     for LDL because that is the thing he is trying to move and the levers all act on it,
+     but the figure his doctor will read first — and the one his own goal was set against —
+     is the total, so that is what the head counts down and what the line plots. LDL rides
+     beside it, because a total that falls while LDL does not would be the wrong kind of
+     progress and he should be able to see that in one glance. */
   const rows=ldlReads(), target=ldlTarget();
   const last=rows[rows.length-1], first=rows[0];
-  const now=last?+last.d.ldl||0:null;
+  const now=last?+last.d.total||0:null;
+  const ldlNow=last?+last.d.ldl||0:null;
   const gap=now!=null?now-target:null;
   const got=ldlDone(t), core=LDL_CORE.filter(k=>got.includes(k)).length;
 
@@ -2973,11 +2993,15 @@ function ldlPage(){
   let h=`<div class="ldlHead">
       <div class="ldlNums">
         <div class="side"><div class="v${now==null?' none':''}">${now!=null?now:'—'}</div>
-          <div class="k">${last?'LDL · '+short(last.d.date):'no reading yet'}</div></div>
+          <div class="k">${last?'total · '+short(last.d.date):'no reading yet'}</div></div>
         <div class="arr">→</div>
         <div class="side right"><div class="v goal">${target}</div>
-          <div class="k">${now==null?'target':gap<=0?'at target':gap+' to go'}</div></div>
+          <div class="k">${now==null?'objective':gap<=0?'at objective':gap+' to go'}</div></div>
       </div>`
+    +(ldlNow?`<div class="ldlSub"><span class="t">LDL</span><span class="n">${ldlNow}</span>`
+      +(last.d.hdl?`<span class="t">HDL</span><span class="n">${+last.d.hdl||0}</span>`:'')
+      +(last.d.trig?`<span class="t">Trig</span><span class="n">${+last.d.trig||0}</span>`:'')
+      +`</div>`:'')
     +(run?`<div class="ldlRunBar"><i style="width:${run.pct.toFixed(1)}%"></i></div>
       <div class="ldlRunEnds"><span>${short(run.start)}</span>
         <span class="mid">${run.left} day${run.left===1?'':'s'} left</span>
@@ -3004,15 +3028,15 @@ function ldlPage(){
 
   if(rows.length>1)
     h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>The line</h2>
-      <div class="hint">Every reading on file, against your target of ${target} mg/dL.</div>
+      <div class="hint">Total cholesterol against your objective of ${target} mg/dL, with LDL under it in the lighter line.</div>
       ${ldlChart(rows,target)}
-      <div class="ldlEnds"><span>${esc(fdate(first.d.date).replace(/^\w+, /,''))} · ${+first.d.ldl||0}</span><span>${esc(fdate(last.d.date).replace(/^\w+, /,''))} · ${now}</span></div></div>`;
+      <div class="ldlEnds"><span>${esc(fdate(first.d.date).replace(/^\w+, /,''))} · ${+first.d.total||0}</span><span>${esc(fdate(last.d.date).replace(/^\w+, /,''))} · ${now}</span></div></div>`;
 
   const plan=ldlPlan();
   h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>The goal</h2>
-    <div class="hint">What you are aiming at and by when. Where that number should sit is your doctor's call, not this page's.</div>
+    <div class="hint">Total cholesterol you are aiming at, and by when. Where that number should sit is your doctor's call, not this page's.</div>
     <div class="ldlGoalRow">
-      <label class="ldlFld"><span>Target mg/dL</span>
+      <label class="ldlFld"><span>Total, mg/dL</span>
         <input class="ldlTarget" type="number" inputmode="numeric" value="${target}" onchange="ldlSetTarget(this.value)"></label>
       <label class="ldlFld"><span>By</span>
         <input class="ldlTarget" type="date" value="${esc(ldlBy())}" onchange="ldlSetBy(this.value)"></label>
@@ -3146,20 +3170,20 @@ function ldlOpenDay(d){
 }
 let LDLDAY=null;
 const MODS={
-ldl:{title:'Readings',color:'var(--red)',hint:'Every blood panel on file. Date and LDL are what the page reasons from; the rest is context.',
-  only:i=>!i.d.kind,                       // the target lives in this section but is not a reading
+ldl:{title:'Readings',color:'var(--red)',hint:'Every blood panel on file. Date and total cholesterol are what the page reasons from; LDL rides beside it and the rest is context.',
+  only:i=>!i.d.kind,                       // the objective lives in this section but is not a reading
   empty:'No panels filed yet — hit the + button after your next blood test.',
   fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
-          {k:'ldl',l:'LDL (mg/dL)',t:'num',req:1},
-          {k:'total',l:'Total cholesterol',t:'num'},
+          {k:'total',l:'Total cholesterol (mg/dL)',t:'num',req:1},
+          {k:'ldl',l:'LDL',t:'num'},
           {k:'hdl',l:'HDL',t:'num'},
           {k:'trig',l:'Triglycerides',t:'num'},
           {k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
-  card:i=>({t:'LDL '+(+i.d.ldl||0),
+  card:i=>({t:'Total '+(+i.d.total||0),
     s:[fdate(i.d.date).replace(/^\w+, /,''),
-       i.d.total?'total '+i.d.total:'',i.d.hdl?'HDL '+i.d.hdl:'',i.d.trig?'trig '+i.d.trig:''].filter(Boolean).join(' · '),
-    pill:(+i.d.ldl||0)<=ldlTarget()?{cls:'ok',txt:'at target'}:{cls:'warn',txt:'+'+((+i.d.ldl||0)-ldlTarget())}})},
+       i.d.ldl?'LDL '+i.d.ldl:'',i.d.hdl?'HDL '+i.d.hdl:'',i.d.trig?'trig '+i.d.trig:''].filter(Boolean).join(' · '),
+    pill:(+i.d.total||0)<=ldlTarget()?{cls:'ok',txt:'at objective'}:{cls:'warn',txt:'+'+((+i.d.total||0)-ldlTarget())}})},
 ldlrule:{title:'Do’s and don’ts',color:'var(--purple)',hint:'',
   fields:[{k:'rule',l:'The rule',t:'text',req:1,ph:'Cardio · Fish oil · Red meat'},
           {k:'side',l:'Habit or eat',t:'sel',opt:LDL_SIDES,def:'Habits'},

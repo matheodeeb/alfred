@@ -105,7 +105,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `juice` | Juice recipes | name, ing, notes |
 | `shows` | Shows | name, genre, pri, seasons, eps, epmin, len, plat, status, season, rel, notes |
 | `movies` | Movies | name, genre, pri, runtime, status, rel, notes |
-| `ldl` | Cholesterol — LDL (readings) | date, ldl, total, hdl, trig, notes |
+| `ldl` | Cholesterol — LDL (readings) | date, total, ldl, hdl, trig, notes |
 | `ldlday` | Cholesterol — LDL (daily levers) | date, done |
 | `ldlrule` | Cholesterol — LDL (do's and don'ts) | rule, side, kind, aim, notes |
 | `ldlmeal` | Cholesterol — LDL (menu) | name, slot, sat, fib, ing, steps, notes |
@@ -171,8 +171,15 @@ itself never goes in `notes`, `spec` or the repo; only the nickname shows on the
 
 **The LDL page is two sections.** `ldl` holds blood panels — one row per test, `date` and
 `ldl` (mg/dL) required, the rest of the panel optional. One row in that section is not a
-reading: `ldl:target` carries `{"kind":"target","target":100}` and is the number the page
-aims at. Never file a reading with a `kind`, and never change the target unless he asks.
+reading: `ldl:target` carries `{"kind":"target","target":200,"by":"2027-02-28","start":"2026-11-13","kcal":2400}`
+— the objective is **total cholesterol**, not LDL, along with the run's dates and the daily
+calories the saturated-fat ceiling is worked from. Never file a reading with a `kind`, and
+never change any of those unless he asks.
+
+On a reading, `total` is the figure the page counts down and plots; `ldl` rides beside it.
+A lab printout lists them under names like "Cholest SerPl-mCnc" (total) and "LDLc SerPl
+Calc-mCnc" (LDL) — read them off carefully, because they are easy to swap and he has done
+so himself in conversation.
 
 `ldlrule` is his own do's and don'ts, in two halves. `side` is `Habits` (what he does —
 training, supplements, what he is stopping) or `Eats` (the foods themselves, named one by
