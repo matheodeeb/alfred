@@ -1079,7 +1079,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-11-17 · bimonthly, on the 1st and the 15th';
+const BUILD='2026-11-17 · twice a month, by date or by Monday';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1885,6 +1885,7 @@ function syncRecurFields(){
   if(!monthly)an.value=GAP_ANCHOR;                  // a weekly job has no day of the month
   show('anchor',monthly);
   show('dom',monthly&&an.value==='A day of the month');
+  show('bimo',ev.value===BIMO);                     // twice a month: dates, or Mondays
 }
 function syncOrdField(){
   const wrap=document.getElementById('fw_ord'), sel=document.getElementById('f_ord');
@@ -2426,17 +2427,35 @@ const ANCHOR_SEL=[GAP_ANCHOR,'First day of the month','Last day of the month','A
    A month is two slots, so a slot is just a number: year × 24 + month × 2 + (0 for the 1st,
    1 for the 15th). Counting rounds becomes adding one, and the month and year roll over on
    their own. */
-const BIMO='Bimonthly', BIMO_DAYS=[1,15], BIMO_NOTE='1st & 15th';
+/* Twice a month comes in two shapes, and the difference matters to whoever has to do the
+   job. Dates — the 1st and the 15th — suit anything that follows a statement. Weekdays —
+   the first and third Monday — suit anything that has to happen at a desk, and they are
+   what he wants for the finances: a clear week off in between, always on the same day of
+   the week, never landing on a Sunday.
+
+   Neither is biweekly. Fourteen days from the last tick drifts through the month and ends
+   up on the 29th, then the 13th; these two hold their place. */
+const BIMO='Bimonthly';
+const BIMO_DATE='1st & 15th', BIMO_MON='1st & 3rd Monday';
+const BIMO_SEL=[BIMO_DATE,BIMO_MON];
+const bimoMode=d=>d&&d.bimo===BIMO_MON?BIMO_MON:BIMO_DATE;
 const isBimo=d=>everyOf(d)===BIMO;
 const bimoIdx=(y,m,h)=>y*24+m*2+h;
-const bimoAt=i=>{const y=Math.floor(i/24), r=i-y*24, m=Math.floor(r/2), h=r-m*2;
-  return y+'-'+String(m+1).padStart(2,'0')+'-'+String(BIMO_DAYS[h]).padStart(2,'0')};
+// The first Monday of a month, then a fortnight on for the third. The third is always in
+// the month: a first Monday falls on the 7th at the latest, so the third is by the 21st.
+const firstMon=(y,m)=>1+((8-new Date(y,m,1).getDay())%7);
+function bimoAt(i,mode){
+  const y=Math.floor(i/24), r=i-y*24, m=Math.floor(r/2), h=r-m*2;
+  const day=mode===BIMO_MON?firstMon(y,m)+h*14:[1,15][h];
+  return y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
 function bimoNext(r){
+  const mode=bimoMode(r.d);
   if(!r.d.last){                                   // never done: the next slot still to come
     const t=today(), n=new Date(t+'T12:00:00');
     let i=bimoIdx(n.getFullYear(),n.getMonth(),0);
-    while(bimoAt(i)<t)i++;
-    return bimoAt(i);
+    while(bimoAt(i,mode)<t)i++;
+    return bimoAt(i,mode);
   }
   const l=new Date(r.d.last+'T12:00:00'); if(isNaN(l))return today();
   // Which round did that finish? The slot nearest the day it was actually done, so a job
@@ -2444,10 +2463,10 @@ function bimoNext(r){
   const base=bimoIdx(l.getFullYear(),l.getMonth(),0);
   let best=base, bd=Infinity;
   for(let k=-2;k<=2;k++){
-    const gap=Math.abs(new Date(bimoAt(base+k)+'T12:00:00')-l);
+    const gap=Math.abs(new Date(bimoAt(base+k,mode)+'T12:00:00')-l);
     if(gap<bd){bd=gap;best=base+k}
   }
-  return bimoAt(best+1);
+  return bimoAt(best+1,mode);
 }
 const ord=n=>n+(n%100>=11&&n%100<=13?'th':{1:'st',2:'nd',3:'rd'}[n%10]||'th');
 const anchorShort=d=>d.anchor==='First day of the month'?'1st'
@@ -3617,9 +3636,10 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its 
     ||ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
   card:i=>({t:esc(i.d.name),s:[esc(whenLabel(i.d)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
     pill:i.d.done?{cls:'mut',txt:'done'}:{cls:i.d.status==='In progress'?'ok':'acc',txt:esc(i.d.status||'')}})},
-recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose; a bimonthly one comes round twice a month, on the 1st and the 15th.',
+recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose; a bimonthly one comes round twice a month, either on the 1st and the 15th or on the first and third Monday.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
           {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Bimonthly','Monthly','Quarterly','Biyearly','Yearly'],def:'Weekly'},
+          {k:'bimo',l:'Which two days',t:'sel',opt:BIMO_SEL,def:BIMO_DATE},
           {k:'anchor',l:'When to do it',t:'sel',opt:ANCHOR_SEL,def:GAP_ANCHOR},
           {k:'dom',l:'Which day',t:'num',ph:'15'},
           {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -3637,7 +3657,7 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
            {k:'Recurring jobs',v:it.length,u:paused?paused+' paused':'',c:'var(--purple)'}]},
   card:i=>{const due=recurDue(i),next=recurNext(i);
     const days=Math.round((new Date(next+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
-    return{t:esc(i.d.name),s:[esc(everyOf(i.d)),esc(isBimo(i.d)?BIMO_NOTE:recurAnchored(i)?anchorShort(i.d):''),
+    return{t:esc(i.d.name),s:[esc(everyOf(i.d)),esc(isBimo(i.d)?bimoMode(i.d):recurAnchored(i)?anchorShort(i.d):''),
         i.d.paused?'paused':(i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done')].filter(Boolean).join(' · '),
       dim:!due,
       act:{txt:i.d.paused?'▶ Resume':'❚❚ Pause',fn:`recurPause('${i.id}')`,cls:i.d.paused?'ordBtn pausedBtn':'ordBtn'},
