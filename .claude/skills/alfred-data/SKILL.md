@@ -85,7 +85,7 @@ perf:santal33               book:meditations     stock:dove
 
 Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `juice:` ·
 `perf:` · `supp:` · `stock:` · `kitchen:` · `book:` · `show:` · `movie:` · `course:` ·
-`proj:` · `recur:` · `travel:` · `brief:`
+`proj:` · `recur:` · `travel:` · `brief:` · `addr:`
 
 ## Sections and their fields
 
@@ -94,7 +94,7 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `todo` | To-do list | task, grp, gord, due, ord, notes |
 | `tlspoils` | Timeline → Spoils | date, name, cost, notes |
 | `travels` | Timeline → Travels / Past | place, trip, start, end, notes, lat, lon, cc |
-| `wants` | Wants | name, grp, spec, price, lines, paid, link, notes |
+| `wants` | Wants | name, grp, spec, ship, price, lines, paid, link, notes |
 | `needs` | To order | name, src, qty, price, link, notes |
 | `stock` | Bathroom | name, count, min, par, place |
 | `kitchen` | Living room | name, count, min, par, unit, notes |
@@ -105,6 +105,10 @@ Prefixes in use: `tl:` spoils · `want:` · `need:` · `food:` · `menu:` · `ju
 | `juice` | Juice recipes | name, ing, notes |
 | `shows` | Shows | name, genre, pri, seasons, eps, epmin, len, plat, status, season, rel, notes |
 | `movies` | Movies | name, genre, pri, runtime, status, rel, notes |
+| `ldl` | Cholesterol — LDL (readings) | date, total, ldl, hdl, trig, notes |
+| `ldlday` | Cholesterol — LDL (daily levers) | date, done |
+| `ldlrule` | Cholesterol — LDL (do's and don'ts) | rule, side, kind, aim, notes |
+| `ldlmeal` | Cholesterol — LDL (menu) | name, slot, sat, fib, ing, steps, notes |
 | `books` | Books | name, author, cat, pri, pages, len, status, prog, notes |
 | `courses` | To learn | name, topic, src, status, prog, notes |
 | `projects` | Projects | project, name, when, wk, mon, start, end, status, notes |
@@ -148,6 +152,52 @@ Pin the town, not the country, whenever the name names one — "Lisbon, Portugal
 A row that really is a whole country (`place: 'Iceland'`) takes the country's own middle.
 Where a row names two towns, pin the first and say so; one row is one point. Four decimal places is
 plenty. Look coordinates up rather than recalling them where the place is small.
+
+**Every order says where it is being delivered, by nickname.** A `wants` row carries
+`ship`: the nickname of the delivery address ("Home - Miami"), never the street itself.
+The addresses live in his private address book, `addr` rows in `items`
+(`id` `addr:<slug>`, `data` `{nick, addr}`), and the Orders form offers those nicknames as
+a dropdown. When filing an order from a confirmation, a screenshot or a listing:
+
+1. Read the delivery address off it and look it up in `addr`, matching on the address
+   (street number, street, city, ZIP), not on spelling or punctuation.
+2. Found: set `ship` to that row's `nick`.
+3. Not found: stop and ask him what to call it. Show him the address and ask for the
+   nickname; never invent one. Once he answers, insert the `addr` row and set `ship`.
+4. No address on what he gave you: leave `ship` empty and say so in one line.
+
+Items that split off a group order on arrival inherit the order's `ship`. The address
+itself never goes in `notes`, `spec` or the repo; only the nickname shows on the page.
+
+**The LDL page is two sections.** `ldl` holds blood panels — one row per test, `date` and
+`ldl` (mg/dL) required, the rest of the panel optional. One row in that section is not a
+reading: `ldl:target` carries `{"kind":"target","target":200,"by":"2027-02-28","start":"2026-11-13","kcal":2400}`
+— the objective is **total cholesterol**, not LDL, along with the run's dates and the daily
+calories the saturated-fat ceiling is worked from. Never file a reading with a `kind`, and
+never change any of those unless he asks.
+
+On a reading, `total` is the figure the page counts down and plots; `ldl` rides beside it.
+A lab printout lists them under names like "Cholest SerPl-mCnc" (total) and "LDLc SerPl
+Calc-mCnc" (LDL) — read them off carefully, because they are easy to swap and he has done
+so himself in conversation.
+
+`ldlrule` is his own do's and don'ts, in two halves. `side` is `Habits` (what he does —
+training, supplements, what he is stopping) or `Eats` (the foods themselves, named one by
+one). `kind` is `Do` or `Don’t` — with the typographic apostrophe, which is what the form
+writes. `aim` holds the number where there is one ("5 hrs/week", "once a week at most").
+Rows written before the split carried a free-text `cat` instead; those still read correctly
+and do not need converting.
+
+`ldlmeal` is the LDL menu, one row per meal. `slot` is `Breakfast`, `Lunch`, `Dinner` or
+`Snacks`; `sat` is saturated fat in grams per serving and is what the page measures against
+his ceiling, so fill it in whenever the recipe is known. `fib` is soluble fibre, optional.
+`ing` and `steps` are newline-separated. This is separate from the house's own `menu` and
+`food` sections, which are not about cholesterol.
+
+`ldlday` is the daily tick-list, one row per day, id `ldlday:YYYY-MM-DD`. `done` is a
+comma-separated list of lever keys — `sat`, `fib`, `fried`, `move`, `plant`, `alc`, `med` —
+and a day counts as clean when all of those except `med` are present. It is his own record
+of what he did; fill it in only when he says what he did, never inferred from anything else.
 
 **Received means in his hands.** A `wants` row moves open → ordered → received, and the
 last step is not the courier's word for it. A parcel marked delivered, sitting at a

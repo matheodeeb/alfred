@@ -248,6 +248,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .rinfo{min-width:0;flex:1}
   .rinfo .t{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
   .rinfo .s{font-family:"IBM Plex Mono";font-size:11px;margin-top:2px;color:var(--muted);overflow-wrap:anywhere}
+  .rinfo .s .shipLn{margin-top:3px}
   .rright{margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
   .row.nodet{cursor:default}
   .qtyStep{display:inline-flex;align-items:center;gap:6px}
@@ -294,6 +295,9 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--acc)}
   .fhint{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
   .modal .foot{display:flex;gap:10px;margin-top:18px}
+  .linkWarn{border-color:var(--warn)}
+  .linkTip{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);
+    font-size:11.5px;line-height:1.65;color:var(--muted)}
   #askOv{z-index:120}                 /* it is asked ON TOP of whatever asked it */
   .askBody{white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:var(--muted);margin-top:8px}
   .btn.solidBad{background:var(--bad);border-color:var(--bad);color:#faf6ec}
@@ -318,7 +322,94 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
   .ovRow .d{font-family:"IBM Plex Mono";font-size:10.5px;color:var(--muted);flex:none;min-width:52px}
   .ovRow .d.hot{color:var(--bad);font-weight:600}
   .ovMore{font-family:"IBM Plex Mono";font-size:11px;color:var(--acc);margin-top:9px}
+  .ovLate{font-family:"IBM Plex Mono";font-size:11px;color:var(--bad);margin-top:9px}
+  .ovStale{font-family:"IBM Plex Mono";font-size:11px;color:var(--warn);margin-top:9px}
+  /* Cholesterol — LDL */
+  .ldlLevers{display:flex;flex-direction:column;gap:7px}
+  .ldlLever{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+    background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:11px 12px;
+    color:var(--muted);font-family:"Public Sans",sans-serif;font-size:13.5px;transition:.12s}
+  .ldlLever .tick{flex:none;width:20px;height:20px;border-radius:6px;border:1px solid var(--line2);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--panel)}
+  .ldlLever.on{border-color:var(--ok);color:var(--txt)}
+  .ldlLever.on .tick{background:var(--ok);border-color:var(--ok);color:#faf6ec}
+  .ldlGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .ldlDay{aspect-ratio:1;border-radius:9px;border:1px solid var(--line2);background:var(--bg2);
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+  .ldlDay .dd{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted)}
+  .ldlDay .nn{font-family:"IBM Plex Mono";font-size:9px;color:var(--faint)}
+  .ldlDay.part{border-color:var(--warn)}
+  .ldlDay.full{background:var(--ok);border-color:var(--ok)}
+  .ldlDay.full .dd,.ldlDay.full .nn{color:#faf6ec}
+  .ldlDay.today{outline:2px solid var(--acc);outline-offset:1px}
+  .ldlSvg{width:100%;height:96px;display:block;margin-top:4px}
+  .ldlLine{fill:none;stroke:var(--red);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .ldlLine2{fill:none;stroke:var(--muted);stroke-width:1.4;opacity:.6;stroke-linejoin:round;stroke-linecap:round}
+  .ldlDot{fill:var(--red)}
+  .ldlGoal{stroke:var(--ok);stroke-width:1.5;stroke-dasharray:4 4}
+  .ldlEnds{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:4px}
+  .ldlTarget{width:140px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
+    padding:11px 12px;color:var(--txt);font-family:"IBM Plex Mono";font-size:15px}
+  .ldlTarget:focus{outline:none;border-color:var(--acc)}
+  .ldlHead{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;margin-top:14px}
+  .ldlNums{display:flex;align-items:center;gap:14px}
+  .ldlNums .side{flex:1;min-width:0}
+  .ldlNums .side.right{text-align:right}
+  .ldlNums .v{font-family:"IBM Plex Mono";font-weight:600;font-size:34px;line-height:1;color:var(--red)}
+  .ldlNums .v.none{color:var(--faint)}
+  .ldlNums .v.goal{color:var(--ok)}
+  .ldlNums .k{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:7px}
+  .ldlNums .arr{flex:none;font-family:"IBM Plex Mono";font-size:16px;color:var(--line2)}
+  .ldlSub{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .ldlSub .t{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .ldlSub .n{font-family:"IBM Plex Mono";font-size:15px;font-weight:600;margin-right:12px}
+  .ldlSub .n:last-child{margin-right:0}
+  .ldlRunBar{height:8px;border-radius:999px;background:var(--bg2);border:1px solid var(--line2);overflow:hidden;margin-top:18px}
+  .ldlRunBar i{display:block;height:100%;background:var(--acc);border-radius:999px;transition:width .3s}
+  .ldlRunEnds{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+    font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:7px}
+  .ldlRunEnds .mid{color:var(--muted)}
+  @media(max-width:380px){.ldlNums .v{font-size:29px}}
+  .ldlGoalRow{display:flex;gap:12px;flex-wrap:wrap}
+  .ldlFld{display:flex;flex-direction:column;gap:5px}
+  .ldlFld span{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .ldlPace{font-family:"IBM Plex Mono";font-size:11px;line-height:1.6;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .ldlPace.good{color:var(--ok)} .ldlPace.behind{color:var(--warn)}
+  .ldlCat{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+  .ldlCat:first-of-type{margin-top:2px}
+  .ldlNone{font-size:12.5px;color:var(--faint);padding:6px 0 8px}
+  .ldlCap{display:flex;flex-direction:column;justify-content:flex-end}
+  .ldlCap .num{font-family:"IBM Plex Mono";font-weight:600;font-size:28px;line-height:1;color:var(--orange)}
+  .ldlCap .sub{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);margin-top:5px}
+  .ldlMath{font-family:"IBM Plex Mono";font-size:10.5px;line-height:1.7;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .ldlFat{display:grid;grid-template-columns:1fr auto 44px;grid-template-areas:"n sv g" "sh sh sh";
+    gap:2px 10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
+  .ldlFat:last-of-type{border-bottom:0}
+  .ldlFat .n{grid-area:n;font-size:13.5px}
+  .ldlFat .sv{grid-area:sv;font-family:"IBM Plex Mono";font-size:10.5px;color:var(--faint)}
+  .ldlFat .g{grid-area:g;font-family:"IBM Plex Mono";font-size:13px;text-align:right}
+  .ldlFat .g.hi{color:var(--bad)} .ldlFat .g.lo{color:var(--ok)}
+  .ldlFat .sh{grid-area:sh;height:4px;border-radius:999px;background:var(--bg2);overflow:hidden;margin-top:4px}
+  .ldlFat .sh i{display:block;height:100%;border-radius:999px}
+  .ldlFat .sh i.hi{background:var(--bad)} .ldlFat .sh i.lo{background:var(--ok)}
+  .ldlRule{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px}
+  .ldlRule:last-child{border-bottom:0}
+  .ldlRule .mk{flex:none;width:16px;font-weight:700;font-family:"IBM Plex Mono";font-size:12px}
+  .ldlRule.yes .mk{color:var(--ok)} .ldlRule.no .mk{color:var(--bad)}
+  .ldlRule.no .n{color:var(--muted)}
+  .ldlRule .aim{font-family:"IBM Plex Mono";font-size:11px;color:var(--faint)}
+  .ldlWhy{padding:9px 0;border-bottom:1px solid var(--line)}
+  .ldlWhy:last-child{border-bottom:0}
+  .ldlWhy .n{font-size:13.5px;font-weight:600}
+  .ldlWhy .w{font-size:12px;color:var(--muted);line-height:1.55;margin-top:3px}
   .ovBody{font-size:13.5px;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  /* The ledger's figures keep the ledger's face on them, even out here in the house:
+     squarer corners and columns of digits that line up, because money reads wrong when
+     the thousands wander. */
+  .ovFin .stat{border-radius:5px}
+  .ovFin .stat .v{font-variant-numeric:tabular-nums;font-size:21px}
+  .ovFin .stat .u{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+  @media(max-width:420px){.ovFin .stat .v{font-size:19px}}
   /* day picker */
   .dayPick{display:flex;gap:6px;flex-wrap:wrap}
   .dayBtn{width:44px;height:36px;border-radius:8px;border:1px solid var(--line2);background:var(--bg2);color:var(--muted);font-family:"IBM Plex Mono";font-size:11px;cursor:pointer;transition:.12s}
@@ -964,6 +1055,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
     <div class="setRow"><span class="l">Pending changes</span><span class="v" id="setPend">—</span></div>
     <div class="setRow"><span class="l">Items stored</span><span class="v" id="setCount">—</span></div>
     <div class="setRow"><span class="l">On-device size</span><span class="v" id="setStore">—</span></div>
+    <div class="setRow"><span class="l">Storage kept</span><span class="v" id="setKeep">—</span></div>
     <div class="setRow"><span class="l">Last error</span><span class="v" id="setErr">—</span></div>
     <div class="setRow"><span class="l">Build</span><span class="v" id="setBuild">—</span></div>
   </div>
@@ -987,7 +1079,7 @@ if(top!==self){try{top.location=self.location}catch(e){document.documentElement.
 /* Which build is in front of you, shown in Settings. There is no build step to stamp this
    automatically, so it is bumped by hand with each change — its whole job is to answer
    "is this actually the new version?" without guessing from behaviour. */
-const BUILD='2026-10-22 · brief voice on gemini';
+const BUILD='2026-11-17 · twice a month, by date or by Monday';
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1026,9 +1118,38 @@ function load(){
   catch(e){try{localStorage.alfred_state_broken=localStorage.alfred_state;storeErr='local data was corrupt — a copy was kept'}catch(x){}}
   try{const b=JSON.parse(localStorage.alfred_bulk||'null');if(b)Object.assign(S.items,b)}catch(e){}
 }
+/* What goes on the disk is capped before it is written, not pared back after a write has
+   already failed.
+
+   The shape of the data is the reason. The briefs come to five and a half megabytes across
+   137 of them, and the lexicon — a definitions cache — to nearly two more. Everything he
+   actually keeps here, every task and order and show and trip, is about a hundred
+   kilobytes. So on a phone with a five megabyte allowance the two caches decide whether
+   his real rows get saved at all, and until now they did: a quota error threw out of
+   writeStore and the whole save failed, his edits with it. Shedding ran afterwards and
+   usually rescued it, but "usually" is the wrong word for whether an edit survives being
+   typed.
+
+   So the lexicon is never written — it rebuilds itself from the cloud and is missed by
+   nobody — and only the newest handful of briefs are, which is what the Journal opens on
+   anyway. Anything with unsent changes is written regardless of either rule: a cap is for
+   caches, never for something of his that has not reached the cloud.
+
+   Memory still holds all of it for this session, so nothing disappears while he is reading.
+   The older briefs live in the cloud, which is where five megabytes of archive belongs. */
+const DISK_BRIEFS=20;
 function writeStore(){
-  const main={},bulk={};
-  for(const k in S.items){const it=S.items[k];(BULK.has(it.sec)?bulk:main)[k]=it}
+  const main={},bulk={},briefs=[];
+  for(const k in S.items){
+    const it=S.items[k];
+    if(!it.dirty){
+      if(it.sec==='lexicon')continue;
+      if(it.sec==='brief'){briefs.push(it);continue}
+    }
+    (BULK.has(it.sec)?bulk:main)[k]=it;
+  }
+  briefs.sort((a,b)=>((b.d&&b.d.date)||'').localeCompare((a.d&&a.d.date)||''));
+  briefs.slice(0,DISK_BRIEFS).forEach(it=>{bulk[it.id]=it});
   localStorage.alfred_state=JSON.stringify({items:main,lastPull:S.lastPull,lastSyncAt:S.lastSyncAt});
   localStorage.alfred_bulk=JSON.stringify(bulk);
 }
@@ -1084,6 +1205,24 @@ function flushSave(){
   console.warn('save failed after shedding everything expendable:',last);
   try{setPill()}catch(e){}
 }
+/* iOS is the reason this exists. Safari treats a website's stored data as cache it may
+   sweep up, and deletes it after about seven days of not opening the site — localStorage,
+   the service worker's cache, all of it. Alfred's rows go, and so does the cloud
+   connection, which is why a phone comes back empty and says "local only" with no sign of
+   what happened. A home-screen app is exempt; a tab is not. This asks the browser to treat
+   the copy as his rather than as rubbish, which costs nothing where the answer is no. */
+let storePersisted=null;
+async function keepStorage(){
+  try{
+    if(!navigator.storage||!navigator.storage.persist)return;
+    if(navigator.storage.persisted){storePersisted=await navigator.storage.persisted();if(storePersisted)return}
+    storePersisted=await navigator.storage.persist();
+  }catch(e){storePersisted=null}
+}
+const isStandalone=()=>!!(navigator.standalone||
+  (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches));
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||
+  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function save(now){
   savePending=true;
   if(now){clearTimeout(saveT);saveT=null;flushSave();return}
@@ -1123,6 +1262,8 @@ function put(sec,d,id){
 function kill(id){const B=stIn(id);if(!B)return;const it=B.items[id];
   it.del=true;it.up=stamp(it.up);it.dirty=1;if(B===S)save();queueSync()}
 function list(sec){return Object.values(stOf(sec).items).filter(i=>i.sec===sec&&!i.del)}
+// Delivery-address nicknames from his private address book (sec 'addr' rows {nick,addr}).
+function addrNicks(){return [...new Set(list('addr').map(i=>String(i.d.nick||'').trim()).filter(Boolean))]}
 function one(id){const B=stIn(id);if(!B)return null;const i=B.items[id];return (i&&!i.del)?i:null}
 
 /* ---------------- sync ---------------- */
@@ -1200,6 +1341,10 @@ async function cfoSync(){
       snap.forEach(([x,u])=>{if(x.up===u)delete x.dirty});
     }
     SC.lastSyncAt=Date.now();cfoErr='';cfoFails=0;clearTimeout(cfoRetryTimer);
+    /* The Overview's saved totals are refreshed here as well as when the card draws, so a
+       session that ends while he is on another page still leaves today's figures behind
+       rather than last week's. */
+    finSnapSave();
   }catch(e){
     /* The ledger is held in memory and never written to this device, on purpose — so a
        push that fails is not merely late, it is the only copy of that edit, and a reload
@@ -1211,7 +1356,10 @@ async function cfoSync(){
     cfoRetry();
   }
   cfoSyncing=false;setPill();
-  if(changed&&SITE==='cfo')renderActive();
+  /* The Overview reads the ledger too now, so a pull that moves a balance has to reach it.
+     Before this the house's front page would sit on whatever the figures were when it was
+     drawn, which on a phone left open overnight is yesterday's money. */
+  if(changed&&(SITE==='cfo'||activePage==='overview'))renderActive();
   if(cfoAgain){cfoAgain=false;cfoSync()}
 }
 // Online/offline is decided by what actually happened on the wire, not by navigator.onLine:
@@ -1296,9 +1444,16 @@ addEventListener('offline',()=>setPill());
 addEventListener('pageshow',e=>{if(e.persisted)syncSoon()});  // woken from the back/forward cache
 addEventListener('focus',()=>syncSoon());
 setInterval(()=>{if(document.visibilityState==='visible'){sync();cfoSync()}},45000);
-$('#pill').onclick=()=>{                             // tap the badge to pull now
+$('#pill').onclick=async()=>{                        // tap the badge: sync, then reload onto the newest version
   if(!cfg){$('#gearBtn').click();return}               // ...or, with no cloud set up, to go and set one
-  fails=0;sync();cfoSync();
+  fails=0;
+  // The installed app has no reload button, so this badge is the only way to ask for one.
+  // Sync comes first and the reload is skipped unless everything has reached the cloud —
+  // a reload with an edit still unsent would throw that edit away.
+  for(let n=0;n<100&&syncing;n++)await new Promise(r=>setTimeout(r,100));   // let one already in flight finish
+  try{await Promise.all([sync(),cfoSync()])}catch(e){}
+  const unsent=Object.values(S.items).some(i=>i.dirty)||cfoPending();
+  if(!unsent)location.reload();
 };
 
 /* ---------------- PIN ---------------- */
@@ -1391,7 +1546,7 @@ function fieldHtml(f,v,sec,ctx){
   }
   if(f.t==='dyn'){
     const used=sec?[...new Set(list(secData(sec)).map(x=>x.d[f.k]).filter(Boolean))]:[];
-    const opts=[...new Set([...(f.opt||[]),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
+    const opts=[...new Set([...(typeof f.opt==='function'?f.opt():(f.opt||[])),...used].map(x=>String(x)))].sort((a,b)=>a.localeCompare(b));
     if(v&&!opts.includes(v))opts.unshift(v);
     return`<select ${base} onchange="dynSel(this)"><option value="">—</option>${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}<option value="__new">+ Add new…</option></select>`+
       `<input id="f_${f.k}__new" class="dynNew" placeholder="New ${esc((f.l||'').toLowerCase())}…" style="display:none">`;
@@ -1730,6 +1885,7 @@ function syncRecurFields(){
   if(!monthly)an.value=GAP_ANCHOR;                  // a weekly job has no day of the month
   show('anchor',monthly);
   show('dom',monthly&&an.value==='A day of the month');
+  show('bimo',ev.value===BIMO);                     // twice a month: dates, or Mondays
 }
 function syncOrdField(){
   const wrap=document.getElementById('fw_ord'), sel=document.getElementById('f_ord');
@@ -2107,7 +2263,6 @@ const AUTO_SRC=[                                  // stock page → where its sh
   {sec:'stock',  from:'Bathroom',    dest:'needs', pre:'need:auto:', par:1},
   {sec:'kitchen',from:'Living room', dest:'needs', pre:'need:auto:', par:1},
   {sec:'supp',   from:'Supplements', dest:'needs', pre:'need:auto:'},
-  {sec:'perfume',from:'Perfume',     dest:'wants', pre:'want:auto:'},
 ];
 function syncAutoOrders(){
   AUTO_SRC.forEach(src=>list(src.sec).forEach(it=>{
@@ -2264,6 +2419,55 @@ const MONTH_STEP={Monthly:1,Quarterly:3,Biyearly:6,Yearly:12};
 const everyOf=d=>{const v=d.every||'Weekly';return v==='Twice a year'?'Biyearly':v};
 const GAP_ANCHOR='A set gap after the last one';
 const ANCHOR_SEL=[GAP_ANCHOR,'First day of the month','Last day of the month','A day of the month'];
+/* Bimonthly means twice a month here, on the 1st and the 15th, and it is fixed rather than
+   anchored: the whole point of asking for it is that both days are already decided. The word
+   is famously ambiguous — it also means every two months — so the card and the form both say
+   "1st & 15th" beside it rather than leaving the reader to guess.
+
+   A month is two slots, so a slot is just a number: year × 24 + month × 2 + (0 for the 1st,
+   1 for the 15th). Counting rounds becomes adding one, and the month and year roll over on
+   their own. */
+/* Twice a month comes in two shapes, and the difference matters to whoever has to do the
+   job. Dates — the 1st and the 15th — suit anything that follows a statement. Weekdays —
+   the first and third Monday — suit anything that has to happen at a desk, and they are
+   what he wants for the finances: a clear week off in between, always on the same day of
+   the week, never landing on a Sunday.
+
+   Neither is biweekly. Fourteen days from the last tick drifts through the month and ends
+   up on the 29th, then the 13th; these two hold their place. */
+const BIMO='Bimonthly';
+const BIMO_DATE='1st & 15th', BIMO_MON='1st & 3rd Monday';
+const BIMO_SEL=[BIMO_DATE,BIMO_MON];
+const bimoMode=d=>d&&d.bimo===BIMO_MON?BIMO_MON:BIMO_DATE;
+const isBimo=d=>everyOf(d)===BIMO;
+const bimoIdx=(y,m,h)=>y*24+m*2+h;
+// The first Monday of a month, then a fortnight on for the third. The third is always in
+// the month: a first Monday falls on the 7th at the latest, so the third is by the 21st.
+const firstMon=(y,m)=>1+((8-new Date(y,m,1).getDay())%7);
+function bimoAt(i,mode){
+  const y=Math.floor(i/24), r=i-y*24, m=Math.floor(r/2), h=r-m*2;
+  const day=mode===BIMO_MON?firstMon(y,m)+h*14:[1,15][h];
+  return y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+function bimoNext(r){
+  const mode=bimoMode(r.d);
+  if(!r.d.last){                                   // never done: the next slot still to come
+    const t=today(), n=new Date(t+'T12:00:00');
+    let i=bimoIdx(n.getFullYear(),n.getMonth(),0);
+    while(bimoAt(i,mode)<t)i++;
+    return bimoAt(i,mode);
+  }
+  const l=new Date(r.d.last+'T12:00:00'); if(isNaN(l))return today();
+  // Which round did that finish? The slot nearest the day it was actually done, so a job
+  // ticked a little early or a little late still lands the next one on schedule.
+  const base=bimoIdx(l.getFullYear(),l.getMonth(),0);
+  let best=base, bd=Infinity;
+  for(let k=-2;k<=2;k++){
+    const gap=Math.abs(new Date(bimoAt(base+k,mode)+'T12:00:00')-l);
+    if(gap<bd){bd=gap;best=base+k}
+  }
+  return bimoAt(best+1,mode);
+}
 const ord=n=>n+(n%100>=11&&n%100<=13?'th':{1:'st',2:'nd',3:'rd'}[n%10]||'th');
 const anchorShort=d=>d.anchor==='First day of the month'?'1st'
   :d.anchor==='Last day of the month'?'last day'
@@ -2354,6 +2558,7 @@ function receiveOne(id,n){
   const paidFor=Math.round((ls[n].price+share[n])*100)/100;
   put('wants',{name:ls[n].name,grp:lineGrp(ls[n],it.d),paid:paidFor,
     spec:String(ls[n].spec||'').trim()||it.d.spec||'',      // its own size, or the order's
+    ship:it.d.ship||'',
     done:1,doneAt:it.d.doneAt||today(),got:1,gotAt:today()},id+':'+uid());
   const gKey=MODS.wants.group(it);                  // read before the row can change under us
   const rest=ls.filter((_,k)=>k!==n);
@@ -2593,7 +2798,7 @@ function receiveOrder(it){
   ls.forEach((l,n)=>{
     const paid=Math.round((l.price+share[n])*100)/100;
     put('wants',{name:l.name,grp:lineGrp(l,it.d),paid:paid,link:it.d.link||'',
-      spec:String(l.spec||'').trim()||it.d.spec||'',
+      spec:String(l.spec||'').trim()||it.d.spec||'',ship:it.d.ship||'',
       done:1,doneAt:it.d.doneAt||when,got:1,gotAt:when},it.id+':'+(n+1));
   });
   kill(it.id);
@@ -2660,7 +2865,397 @@ function cycTxt(i){
   return{t:[c.st?'stmt '+cycDate(c.st):'',c.du?'due '+cycDate(c.du):'',late?'overdue':'']
     .filter(Boolean).join(' · '),late};
 }
+/* ---------------- Cholesterol — LDL ----------------
+   A project rather than a page of notes: a number to move, the levers that move it, and a
+   record of whether he actually pulled them. The two halves are deliberate. A blood panel
+   arrives every few months and says whether it worked; the daily log is the only thing
+   between those panels that tells him anything, and it is the part that is easy to let
+   slide. So the daily side is what the page opens on, and the readings sit under it.
+
+   The levers below are the mainstream dietary and lifestyle ones, with the ranges clinical
+   guidance generally quotes. They are general facts, not a prescription: what his own
+   target should be, and whether medication belongs in the plan, is between him and his
+   doctor, and the page says so rather than implying otherwise. */
+const LDL_LEVERS=[
+  {k:'sat',  l:'Saturated fat kept low',  w:'The single biggest dietary lever — replacing it with unsaturated fat moves LDL more than anything else on this list.'},
+  {k:'fib',  l:'10 g+ soluble fibre',     w:'Oats, beans, lentils, barley, psyllium. Binds cholesterol in the gut; roughly 5–10% off LDL at this dose.'},
+  {k:'fried',l:'No fried or processed meat', w:'Where most saturated and trans fat actually arrives. Charcuterie, bacon, sausage, anything deep-fried.'},
+  {k:'move', l:'30 min of exercise',      w:'Moves HDL and triglycerides more than LDL, but it changes the whole panel and the weight behind it.'},
+  {k:'plant',l:'Nuts, oats or sterols',   w:'A handful of nuts, or 2 g of plant sterols, each take a few percent off on their own.'},
+  {k:'alc',  l:'No alcohol',              w:'Raises triglycerides directly and brings calories that land on the rest of the panel.'},
+  {k:'med',  l:'Medication as prescribed',w:'Only if your doctor has prescribed something. Nothing here is a reason to start, stop or change a dose.'},
+];
+/* A rule is one of two things and the page shows them apart, so the side is read through a
+   function rather than off the field. Rows written under the first shape carried a free-text
+   `cat` instead; the food ones are mapped across and anything else is behaviour, so nothing
+   has to be re-entered and no row can land nowhere. */
+const LDL_SIDES=['Habits','Eats'];
+const ldlSide=d=>{
+  const s=(d&&d.side)||'';
+  if(LDL_SIDES.includes(s))return s;
+  return /food|eat|meal|drink/i.test(String((d&&d.cat)||''))?'Eats':'Habits';
+};
+const ldlIsNo=d=>(d&&d.kind)==='Don’t'||(d&&d.kind)==="Don't";
+const ldlRuleSort=(a,b)=>(a.d.rule||'').localeCompare(b.d.rule||'');
+/* Saturated fat, in grams, from the one number that decides it.
+
+   Fat carries 9 calories a gram, so a share of the day's calories converts straight into a
+   weight: kcal × share ÷ 9. The strict share is 6%, which is what cardiology guidance puts
+   on someone actively trying to bring LDL down; 10% is the general-population line and is
+   shown beside it so he can see which one he is holding himself to.
+
+   The grams below are per ordinary serving, rounded, from standard composition tables. They
+   are there to make the ceiling legible — a number like 16 g means nothing until you know
+   that two tablespoons of butter is most of it — not to be totted up to the decimal. */
+const LDL_SAT_PCT=0.06, LDL_SAT_LOOSE=0.10;
+const ldlSatCap=(kcal,pct)=>Math.round(kcal*(pct||LDL_SAT_PCT)/9);
+const LDL_FAT_HIGH=[
+  ['Coconut oil','1 tbsp',12],['Beef ribeye','6 oz',13],['Lamb chop','6 oz',11],
+  ['Ground beef 80/20','6 oz',12],['Pizza','2 slices',10],['Ice cream','1 cup',9],
+  ['Butter','1 tbsp',7],['Heavy cream','2 tbsp',7],['Palm oil','1 tbsp',7],
+  ['Croissant','1',7],['Cheddar','1 oz',6],['Pork sausage','2 links',6],
+  ['Fried chicken','1 breast',6],['Dark chocolate','1 oz',5],['Whole milk','1 cup',4.5],
+  ['Bacon','3 slices',4],['Egg','1 large',1.6],
+];
+const LDL_FAT_LOW=[
+  ['Egg whites','3',0],['Psyllium','1 tbsp',0],['Greek yoghurt 0%','1 cup',0],
+  ['Lentils / beans','1 cup',0.2],['Oats','1 cup cooked',0.5],['Tofu','100 g',0.7],
+  ['Almonds','1 oz',1],['Sardines','1 tin',1.3],['Walnuts','1 oz',1.7],
+  ['Chicken breast, skinless','6 oz',1.7],['Olive oil','1 tbsp',1.9],
+  ['Avocado','half',2.2],['Salmon','6 oz',3],
+];
+const LDL_TARGET_ID='ldl:target';
+const ldlTargetRow=()=>S.items[LDL_TARGET_ID];
+const ldlTarget=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.target);return v>0?v:100};
+const ldlBy=()=>{const r=ldlTargetRow();return (r&&r.d&&r.d.by)||''};
+const ldlKcal=()=>{const r=ldlTargetRow();const v=+(r&&r.d&&r.d.kcal);return v>0?v:2400};
+function ldlSetKcal(v){
+  const n=Math.max(1000,Math.min(6000,+v||2400));
+  put('ldl',{kind:'target',kcal:n},LDL_TARGET_ID);renderActive();
+}
+/* The day the run started. Stored, because it is a decision rather than a fact that can be
+   derived: the first reading on file may be months older than the day he decided to do
+   something about it, and the bar is about the run, not the record. */
+const ldlStart=()=>{const r=ldlTargetRow();return (r&&r.d&&r.d.start)||(ldlReads()[0]||{d:{}}).d.date||today()};
+function ldlRun(){
+  const by=ldlBy(); if(!by)return null;
+  const s=ldlStart(), t=today();
+  const dayN=x=>new Date(x+'T12:00:00').getTime();
+  const total=Math.round((dayN(by)-dayN(s))/864e5);
+  if(!(total>0))return null;
+  const gone=Math.round((dayN(t)-dayN(s))/864e5);
+  const pct=Math.max(0,Math.min(100,gone/total*100));
+  return {start:s,by,total,gone:Math.max(0,gone),left:Math.max(0,total-gone),pct};
+}
+function ldlSetTarget(v){
+  const n=Math.max(30,Math.min(300,+v||100));
+  put('ldl',{kind:'target',target:n},LDL_TARGET_ID);renderActive();
+}
+function ldlSetBy(v){put('ldl',{kind:'target',by:String(v||'')},LDL_TARGET_ID);renderActive()}
+/* A deadline turns a wish into a rate. Knowing he is 45 points out is one thing; knowing
+   that is 15 a month with eleven weeks left is the thing that decides what today looks
+   like. The pace is worked from where he started rather than from today's number, so a bad
+   fortnight shows up as falling behind instead of quietly resetting the goal. */
+function ldlPlan(){
+  const by=ldlBy(); if(!by)return null;
+  const rows=ldlReads(); if(!rows.length)return null;
+  const target=ldlTarget();
+  const now=+rows[rows.length-1].d.total||0, from=+rows[0].d.total||0;
+  const t=today();
+  const days=Math.round((new Date(by+'T12:00:00')-new Date(t+'T12:00:00'))/864e5);
+  const togo=now-target;
+  const perMo=days>0?togo/(days/30.44):null;
+  // where he ought to be by now, if the drop were spread evenly across the run
+  const total=Math.max(1,Math.round((new Date(by+'T12:00:00')-new Date((rows[0].d.date)+'T12:00:00'))/864e5));
+  const gone=Math.max(0,Math.min(total,Math.round((new Date(t+'T12:00:00')-new Date((rows[0].d.date)+'T12:00:00'))/864e5)));
+  const due=from-(from-target)*(gone/total);
+  return {by,days,togo,perMo,now,from,target,due,ahead:now<=due};
+}
+const ldlReads=()=>list('ldl').filter(i=>!i.d.kind&&i.d.date)
+  .sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||''));
+const ldlDayId=d=>'ldlday:'+d;
+const ldlDone=d=>{const r=S.items[ldlDayId(d)];
+  return (r&&!r.del&&String(r.d.done||'').split(',').filter(Boolean))||[]};
+function ldlToggle(k,d){
+  d=d||today();
+  const have=ldlDone(d);
+  const next=have.includes(k)?have.filter(x=>x!==k):have.concat([k]);
+  put('ldlday',{date:d,done:next.join(',')},ldlDayId(d));
+  renderActive();
+}
+/* A day counts as clean when every lever he is actually tracking is ticked. Medication is
+   excluded from the test, because a day is not a failure for not taking a drug nobody
+   prescribed. */
+const LDL_CORE=LDL_LEVERS.filter(l=>l.k!=='med').map(l=>l.k);
+const ldlFull=d=>{const got=ldlDone(d);return LDL_CORE.every(k=>got.includes(k))};
+/* The run of readings as a line. Hand-drawn because the page needs one small chart, not a
+   charting library, and because the objective line is the point of it.
+
+   Total is the line with the objective across it. LDL is drawn under it in a lighter stroke
+   rather than left off: the two moving together is the thing to look for, and a total that
+   drops while LDL holds would otherwise be invisible until the next appointment. */
+function ldlChart(rows,target){
+  if(rows.length<2)return'';
+  const W=320,H=96,P=6;
+  const tot=rows.map(r=>+r.d.total||0);
+  const ldl=rows.map(r=>+r.d.ldl||0);
+  const seen=tot.concat(ldl).filter(v=>v>0);
+  const lo=Math.min(target,...seen)-10, hi=Math.max(target,...seen)+10;
+  const x=i=>P+(W-2*P)*(rows.length===1?0.5:i/(rows.length-1));
+  const y=v=>P+(H-2*P)*(1-(v-lo)/Math.max(1,hi-lo));
+  const line=(vals,cls)=>{
+    const pts=vals.map((v,i)=>v>0?x(i)+','+y(v):null).filter(Boolean);
+    return pts.length<2?'':`<polyline points="${pts.join(' ')}" class="${cls}"/>`};
+  return `<svg class="ldlSvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" y1="${y(target).toFixed(1)}" x2="${W}" y2="${y(target).toFixed(1)}" class="ldlGoal"/>
+    ${line(ldl,'ldlLine2')}${line(tot,'ldlLine')}
+    ${tot.map((v,i)=>v>0?`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" class="ldlDot"/>`:'').join('')}
+  </svg>`;
+}
+function ldlPage(){
+  const t=today();
+  /* The number with the objective on it is total cholesterol, not LDL. The page is named
+     for LDL because that is the thing he is trying to move and the levers all act on it,
+     but the figure his doctor will read first — and the one his own goal was set against —
+     is the total, so that is what the head counts down and what the line plots. LDL rides
+     beside it, because a total that falls while LDL does not would be the wrong kind of
+     progress and he should be able to see that in one glance. */
+  const rows=ldlReads(), target=ldlTarget();
+  const last=rows[rows.length-1], first=rows[0];
+  const now=last?+last.d.total||0:null;
+  const ldlNow=last?+last.d.ldl||0:null;
+  const gap=now!=null?now-target:null;
+  const got=ldlDone(t), core=LDL_CORE.filter(k=>got.includes(k)).length;
+
+  /* The run itself, before anything else on the page: how much of the time between the day
+     he started and the last day before the appointment has already gone. It is the one
+     thing that moves without him, and it is the reason the rest of the page matters today
+     rather than in February. */
+  /* Three boxes stacked at the top — a bar in its own card, then two tiles — said one
+     thing each and spent a third of the screen doing it. They are one card now, because
+     they are one sentence: this is where you are, that is where you are going, and this is
+     how much of the time between them has gone.
+
+     The day count went with the framing. "Day one of 108" and "108 days left" are the same
+     fact twice, and the one that tells him anything is the one counting down. */
+  const run=ldlRun();
+  const short=d=>esc(fdate(d).replace(/^\w+, /,'').replace(/, \d{4}$/,''));
+  let h=`<div class="ldlHead">
+      <div class="ldlNums">
+        <div class="side"><div class="v${now==null?' none':''}">${now!=null?now:'—'}</div>
+          <div class="k">${last?'total · '+short(last.d.date):'no reading yet'}</div></div>
+        <div class="arr">→</div>
+        <div class="side right"><div class="v goal">${target}</div>
+          <div class="k">${now==null?'objective':gap<=0?'at objective':gap+' to go'}</div></div>
+      </div>`
+    +(ldlNow?`<div class="ldlSub"><span class="t">LDL</span><span class="n">${ldlNow}</span>`
+      +(last.d.hdl?`<span class="t">HDL</span><span class="n">${+last.d.hdl||0}</span>`:'')
+      +(last.d.trig?`<span class="t">Trig</span><span class="n">${+last.d.trig||0}</span>`:'')
+      +`</div>`:'')
+    +(run?`<div class="ldlRunBar"><i style="width:${run.pct.toFixed(1)}%"></i></div>
+      <div class="ldlRunEnds"><span>${short(run.start)}</span>
+        <span class="mid">${run.left} day${run.left===1?'':'s'} left</span>
+        <span>${short(run.by)}</span></div>`:'')
+    +`</div>`;
+
+  // Today — the part that is actually in his hands this morning
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Today — ${core}/${LDL_CORE.length}</h2>
+    <div class="hint">Tap each one you have actually done. A day counts as clean only when all ${LDL_CORE.length} are in; medication is tracked but never decides the day.</div>
+    <div class="ldlLevers">${LDL_LEVERS.map(l=>`<button class="ldlLever${got.includes(l.k)?' on':''}" onclick="ldlToggle('${l.k}')">
+      <span class="tick">${got.includes(l.k)?'✓':''}</span><span class="n">${esc(l.l)}</span></button>`).join('')}</div></div>`;
+
+  // The fortnight behind him, so a slipping week is visible before the next panel says so
+  const days=[];for(let n=13;n>=0;n--){const x=new Date();x.setDate(x.getDate()-n);
+    days.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'))}
+  const kept=days.filter(ldlFull).length;
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--acc)"></span>Last 14 days</h2>
+    <div class="hint">${kept} of 14 clean. Tap a day to fill it in.</div>
+    <div class="ldlGrid">${days.map(d=>{
+      const n=LDL_CORE.filter(k=>ldlDone(d).includes(k)).length;
+      const cls=ldlFull(d)?'full':n?'part':'none';
+      return `<button class="ldlDay ${cls}${d===t?' today':''}" onclick="ldlOpenDay('${d}')" title="${d}">
+        <span class="dd">${+d.slice(8,10)}</span><span class="nn">${n}</span></button>`}).join('')}</div></div>`;
+
+  if(rows.length>1)
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>The line</h2>
+      <div class="hint">Total cholesterol against your objective of ${target} mg/dL, with LDL under it in the lighter line.</div>
+      ${ldlChart(rows,target)}
+      <div class="ldlEnds"><span>${esc(fdate(first.d.date).replace(/^\w+, /,''))} · ${+first.d.total||0}</span><span>${esc(fdate(last.d.date).replace(/^\w+, /,''))} · ${now}</span></div></div>`;
+
+  const plan=ldlPlan();
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>The goal</h2>
+    <div class="hint">Total cholesterol you are aiming at, and by when. Where that number should sit is your doctor's call, not this page's.</div>
+    <div class="ldlGoalRow">
+      <label class="ldlFld"><span>Total, mg/dL</span>
+        <input class="ldlTarget" type="number" inputmode="numeric" value="${target}" onchange="ldlSetTarget(this.value)"></label>
+      <label class="ldlFld"><span>By</span>
+        <input class="ldlTarget" type="date" value="${esc(ldlBy())}" onchange="ldlSetBy(this.value)"></label>
+    </div>`;
+  if(plan)h+=`<div class="ldlPace ${plan.ahead?'good':'behind'}">${
+      plan.days>0
+        ?`${plan.togo<=0?'At target with ':''}${plan.days} day${plan.days===1?'':'s'} left`
+          +(plan.togo>0?` · ${plan.togo} mg/dL to go · about ${plan.perMo.toFixed(0)} a month from here`:'')
+          +(plan.togo>0?` · an even run puts you at ${Math.round(plan.due)} today, and you are at ${plan.now}`:'')
+        :`The date has passed — ${plan.togo<=0?'and you made it':'you are '+plan.togo+' mg/dL short'}`}</div>`;
+  h+=`</div>`;
+
+  /* His own rules, in two halves, because they answer two different questions.
+
+     Habits are behaviour: what he does with a week, what he swallows every morning, what
+     he stops doing. Cardio, fish oil, no junk food.
+
+     Eats are the foods themselves, named one by one, and they come out of the habits
+     rather than standing apart from them: too much red meat, not enough fish. A habit says
+     "eat better"; an Eat says which thing, so the rule survives contact with a menu. */
+  const rules=list('ldlrule');
+  const SIDES=[['Habits','What you do — training, supplements, the things you are stopping.','var(--purple)'],
+               ['Eats','The foods themselves, one by one. What you are cutting back, what you want more of.','var(--green)']];
+  h+=SIDES.map(([side,blurb,col])=>{
+    const mine=rules.filter(i=>ldlSide(i.d)===side);
+    const dos=mine.filter(i=>!ldlIsNo(i.d)).sort(ldlRuleSort);
+    const nos=mine.filter(i=>ldlIsNo(i.d)).sort(ldlRuleSort);
+    const row=i=>{const no=ldlIsNo(i.d);
+      return `<div class="ldlRule ${no?'no':'yes'}" onclick="openForm('ldlrule','${i.id}')">
+        <span class="mk">${no?'✕':'✓'}</span>
+        <span class="n">${esc(i.d.rule||'')}${i.d.aim?`<span class="aim"> · ${esc(i.d.aim)}</span>`:''}</span></div>`};
+    return `<div class="panel"><h2 style="justify-content:space-between">
+        <span><span class="sw" style="background:${col}"></span>${side}</span>
+        <button class="btn sm" onclick="event.stopPropagation();openForm('ldlrule',null,{side:'${side}'})">Add</button></h2>
+      <div class="hint">${blurb} Tap one to edit it.</div>`
+      +(mine.length
+        ?`<div class="ldlCat">Do</div>`+(dos.length?dos.map(row).join(''):`<div class="ldlNone">Nothing yet.</div>`)
+         +`<div class="ldlCat">Don’t</div>`+(nos.length?nos.map(row).join(''):`<div class="ldlNone">Nothing yet.</div>`)
+        :`<div class="empty" style="padding:16px">${side==='Habits'
+            ?'Nothing yet — a weekly minimum, a vitamin, something you are stopping.'
+            :'Nothing yet — a food you are cutting back, or one you want more of.'}</div>`)
+      +`</div>`}).join('');
+
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--blue)"></span>What actually moves it</h2>
+    <div class="hint">The levers above, and why each one is on the list. General information — it is not medical advice and it does not replace your doctor.</div>
+    ${LDL_LEVERS.map(l=>`<div class="ldlWhy"><div class="n">${esc(l.l)}</div><div class="w">${esc(l.w)}</div></div>`).join('')}</div>`;
+
+  return h+genList('ldl');
+}
+/* Saturated fat on its own page, because it is not a panel on a dashboard — it is the lever
+   the others are mostly describing, and two lists of two dozen foods each is a thing he
+   opens and reads rather than scrolls past on the way to the day's ticks. */
+function ldlFatPage(){
+  const kcal=ldlKcal(), cap=ldlSatCap(kcal), loose=ldlSatCap(kcal,LDL_SAT_LOOSE);
+  const fatRow=([n,sv,g],over)=>`<div class="ldlFat"><span class="n">${esc(n)}</span>
+    <span class="sv">${esc(sv)}</span>
+    <span class="g ${over?'hi':'lo'}">${g}g</span>
+    <span class="sh"><i class="${over?'hi':'lo'}" style="width:${Math.min(100,g/cap*100).toFixed(0)}%"></i></span></div>`;
+  return `<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Your ceiling</h2>
+      <div class="hint">The one lever that moves LDL more than the rest put together. Your ceiling is a share of what you eat in a day, so it starts with the calories.</div>
+      <div class="ldlGoalRow">
+        <label class="ldlFld"><span>Calories a day</span>
+          <input class="ldlTarget" type="number" inputmode="numeric" value="${kcal}" onchange="ldlSetKcal(this.value)"></label>
+        <div class="ldlCap"><div class="num">${cap}g</div><div class="sub">a day, at most</div></div>
+      </div>
+      <div class="ldlMath">(${kcal} × 6%) ÷ 9 = ${cap}g · fat carries 9 calories a gram.
+        6% is the stricter figure for actively lowering LDL; the general guideline is 10%, which would be ${loose}g.</div></div>`
+    +`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Where it hides</h2>
+      <div class="hint">Per ordinary serving, against your ${cap}g ceiling — a full bar is a day's worth in one sitting.</div>
+      ${LDL_FAT_HIGH.map(r=>fatRow(r,1)).join('')}</div>`
+    +`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Lean on these instead</h2>
+      <div class="hint">Same scale. These are where the protein and the fat can come from without spending the ceiling.</div>
+      ${LDL_FAT_LOW.map(r=>fatRow(r,0)).join('')}
+      <div class="note" style="margin-top:12px">Figures are approximate, from standard composition tables, and are here to make the ceiling legible rather than to be added up exactly. General information, not medical advice.</div></div>`;
+}
+/* The menu. The ceiling is a number until something on a plate is measured against it, and
+   this is where that happens: every meal carries its own saturated fat, drawn as a share of
+   his ceiling, so a day can be assembled by looking rather than by arithmetic.
+
+   Breakfast, lunch and dinner get a running total of the lightest way through the day and
+   the heaviest, because the question a menu actually answers is not "is this meal fine" but
+   "can I still eat dinner after that lunch". */
+const LDL_SLOTS=['Breakfast','Lunch','Dinner','Snacks'];
+const ldlSlot=d=>LDL_SLOTS.includes((d&&d.slot)||'')?d.slot:'Dinner';
+const ldlMealSat=i=>+((i.d&&i.d.sat))||0;
+function ldlMenuPage(){
+  const cap=ldlSatCap(ldlKcal());
+  const meals=list('ldlmeal');
+  let h=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Against ${cap}g a day</h2>
+    <div class="hint">Every meal here carries its own saturated fat, so a day can be put together by eye. The bar on each one is its share of your ceiling.</div>`;
+  if(meals.length){
+    /* The lightest and heaviest way through a day, from what is actually on the menu. Snacks
+       are left out of both: they are the thing he adds on top, not a slot he has to fill. */
+    const core=LDL_SLOTS.filter(s=>s!=='Snacks');
+    const have=core.filter(s=>meals.some(i=>ldlSlot(i.d)===s));
+    if(have.length){
+      const low=have.reduce((n,s)=>n+Math.min(...meals.filter(i=>ldlSlot(i.d)===s).map(ldlMealSat)),0);
+      const high=have.reduce((n,s)=>n+Math.max(...meals.filter(i=>ldlSlot(i.d)===s).map(ldlMealSat)),0);
+      h+=`<div class="ldlMath">Lightest day on the menu: <b>${low.toFixed(1)}g</b>${low<=cap?'':' — already over'} ·
+        heaviest: <b>${high.toFixed(1)}g</b>${high<=cap?' — every combination fits':' — some combinations do not fit'}${
+        have.length<core.length?` · only ${have.join(' and ').toLowerCase()} filled in so far`:''}</div>`;
+    }
+  }
+  h+=`</div>`;
+  h+=LDL_SLOTS.map(slot=>{
+    const mine=meals.filter(i=>ldlSlot(i.d)===slot).sort((a,b)=>ldlMealSat(a)-ldlMealSat(b));
+    return `<div class="panel"><h2 style="justify-content:space-between">
+        <span><span class="sw" style="background:var(--green)"></span>${slot}</span>
+        <button class="btn sm" onclick="event.stopPropagation();openForm('ldlmeal',null,{slot:'${slot}'})">Add</button></h2>`
+      +(mine.length?mine.map(i=>{
+        const g=ldlMealSat(i), over=g>cap;
+        return `<div class="ldlFat" style="cursor:pointer" onclick="openForm('ldlmeal','${i.id}')">
+          <span class="n">${esc(i.d.name||'')}</span>
+          <span class="sv">${i.d.fib?esc(i.d.fib)+'g fibre':''}</span>
+          <span class="g ${over?'hi':'lo'}">${g?g+'g':'—'}</span>
+          <span class="sh"><i class="${over?'hi':'lo'}" style="width:${Math.min(100,g/cap*100).toFixed(0)}%"></i></span></div>`}).join('')
+        :`<div class="ldlNone">Nothing yet.</div>`)
+      +`</div>`}).join('');
+  return h;
+}
+function ldlOpenDay(d){
+  const got=ldlDone(d);
+  LDLDAY=d;renderActive();
+  // the day opens as a sheet of the same levers, reusing the modal the rest of the app uses
+  const body=LDL_LEVERS.map(l=>`<button class="ldlLever${got.includes(l.k)?' on':''}" onclick="ldlToggle('${l.k}','${d}');ldlOpenDay('${d}')">
+    <span class="tick">${got.includes(l.k)?'✓':''}</span><span class="n">${esc(l.l)}</span></button>`).join('');
+  $('#mTitle').textContent=fdate(d);
+  $('#mBody').innerHTML=`<div class="hint" style="margin-bottom:10px">Tap each one you did that day.</div><div class="ldlLevers">${body}</div>`;
+  $('#mDel').style.display='none';$('#mSave').style.display='none';
+  ov('modalOv',1);
+}
+let LDLDAY=null;
 const MODS={
+ldl:{title:'Readings',color:'var(--red)',hint:'Every blood panel on file. Date and total cholesterol are what the page reasons from; LDL rides beside it and the rest is context.',
+  only:i=>!i.d.kind,                       // the objective lives in this section but is not a reading
+  empty:'No panels filed yet — hit the + button after your next blood test.',
+  fields:[{k:'date',l:'Date',t:'date',req:1,def:()=>today()},
+          {k:'total',l:'Total cholesterol (mg/dL)',t:'num',req:1},
+          {k:'ldl',l:'LDL',t:'num'},
+          {k:'hdl',l:'HDL',t:'num'},
+          {k:'trig',l:'Triglycerides',t:'num'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
+  card:i=>({t:'Total '+(+i.d.total||0),
+    s:[fdate(i.d.date).replace(/^\w+, /,''),
+       i.d.ldl?'LDL '+i.d.ldl:'',i.d.hdl?'HDL '+i.d.hdl:'',i.d.trig?'trig '+i.d.trig:''].filter(Boolean).join(' · '),
+    pill:(+i.d.total||0)<=ldlTarget()?{cls:'ok',txt:'at objective'}:{cls:'warn',txt:'+'+((+i.d.total||0)-ldlTarget())}})},
+ldlrule:{title:'Do’s and don’ts',color:'var(--purple)',hint:'',
+  fields:[{k:'rule',l:'The rule',t:'text',req:1,ph:'Cardio · Fish oil · Red meat'},
+          {k:'side',l:'Habit or eat',t:'sel',opt:LDL_SIDES,def:'Habits'},
+          {k:'kind',l:'Do or don’t',t:'sel',opt:['Do','Don’t'],def:'Do'},
+          {k:'aim',l:'The number, if it has one',t:'text',ph:'5 hrs/week · 2 g/day · once a week at most'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>ldlSide(i.d),
+  chips:[{l:'All',f:()=>1},{l:'Habits',f:i=>ldlSide(i.d)==='Habits'},{l:'Eats',f:i=>ldlSide(i.d)==='Eats'}],
+  card:i=>({t:esc(i.d.rule||''),s:esc(i.d.aim||''),
+    pill:{cls:ldlIsNo(i.d)?'bad':'ok',txt:ldlIsNo(i.d)?'Don’t':'Do'}})},
+ldlmeal:{title:'Meal',color:'var(--green)',hint:'',
+  fields:[{k:'name',l:'Meal',t:'text',req:1,ph:'Oats with walnuts · Grilled salmon and greens'},
+          {k:'slot',l:'When',t:'sel',opt:LDL_SLOTS,def:'Dinner'},
+          {k:'sat',l:'Saturated fat (g)',t:'num',ph:'per serving'},
+          {k:'fib',l:'Soluble fibre (g)',t:'num',ph:'optional'},
+          {k:'ing',l:'Ingredients',t:'ta',full:1,ph:'One per line'},
+          {k:'steps',l:'How',t:'ta',full:1,ph:'One step per line'},
+          {k:'notes',l:'Notes',t:'ta',full:1}],
+  group:i=>ldlSlot(i.d),
+  chips:[{l:'All',f:()=>1}].concat(LDL_SLOTS.map(s=>({l:s,f:i=>ldlSlot(i.d)===s,hideEmpty:1}))),
+  card:i=>({t:esc(i.d.name||''),s:esc(i.d.ing?String(i.d.ing).split('\n')[0]:''),
+    pill:{cls:ldlMealSat(i)>ldlSatCap(ldlKcal())?'bad':'ok',txt:ldlMealSat(i)?ldlMealSat(i)+'g':'—'}})},
 briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap an entry to read it.',
   fields:[{k:'title',l:'Title',t:'text',req:1},{k:'txt',l:'Brief',t:'ta',full:1,req:1,ph:'What matters today…'}],
   formOut:d=>{if(!editCtx?.id)d.date=today();return d},
@@ -2668,7 +3263,7 @@ briefs:{title:'Journal',color:'var(--acc)',hint:'Quick notes for the day — tap
   card:i=>({t:esc(i.d.title||fdate(i.d.date)),s:i.d.date?fdate(i.d.date):''}),
   empty:'No entries yet. Tap + to write today\'s.'},
 todo:{title:'To-do list',color:'#ff6b6b',hint:'A timeline — month, then day. Tap a day to open it; today is open already.',
-  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'gord',l:'Section priority that day',t:'gord'},{k:'due',l:'Due',t:'date'},{k:'ord',l:'Task order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
+  fields:[{k:'task',l:'Task',t:'text',req:1},{k:'grp',l:'Section (blank = filed by month)',t:'dyn',opt:['Miami','Haiti','House','Work']},{k:'due',l:'Due',t:'date'},{k:'gord',l:'Section priority that day',t:'gord'},{k:'ord',l:'Task order that day',t:'ord'},{k:'notes',l:'Notes',t:'ta',full:1}],
   chips:[{l:'Open',f:i=>!i.d.done},{l:'Done',f:i=>i.d.done}],
   toggle:'done',stamp:'doneAt',
   group:i=>{const w=todoWhen(i);if(w){const d=new Date(w+'T12:00:00');
@@ -2740,9 +3335,9 @@ kitchen:{title:'Living room',freeze:1,color:'var(--green)',hint:'What\'s in the 
     return{t:esc(i.d.name),s:[esc(i.d.unit||''),par?'par '+par:'',esc(i.d.notes||'').slice(0,60)].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'out'}:c<=m?{cls:'warn',txt:'buy'}:{cls:'ok',txt:'ok'}}},
   empty:'Nothing tracked yet — hit + to add what you keep in the living room.'},
-perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection. Use − / + when one runs out or a new one arrives; anything at or below its reorder level also lands on Orders → Wants.',
+perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection. Use − / + when one runs out or a new one arrives. Nothing here lands on Orders by itself.',
   fields:[{k:'name',l:'Fragrance',t:'text',req:1},{k:'house',l:'House',t:'dyn',opt:['Dior','Yves Saint Laurent','Tom Ford','Davidoff','Houbigant','Maison Francis Kurkdjian','Diptyque','Prada','Atelier Rebul','Penhaligon’s']},
-          {k:'count',l:'Bottles',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'dresser, travel bag…'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'notes, season, occasion…'}],
+          {k:'count',l:'Bottles',t:'num'},{k:'min',l:'Reorder at',t:'num'},{k:'place',l:'Where',t:'text',ph:'dresser, travel bag…'},{k:'price',l:'Retail price',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1,ph:'notes, season, occasion…'}],
   chips:[{l:'Stock',f:()=>1},{l:'To buy',f:i=>(+i.d.count||0)<=(+i.d.min||0)}],
   stats:it=>[{k:'Bottles',v:it.reduce((s,i)=>s+(+i.d.count||0),0),c:'var(--gold)'},
              {k:'Fragrances',v:it.length,u:new Set(it.map(i=>i.d.house).filter(Boolean)).size+' houses',c:'var(--acc)'}],
@@ -2752,7 +3347,7 @@ perfume:{title:'Perfume',freeze:1,color:'var(--gold)',hint:'The whole collection
     // read as empty at a glance — same as the Bathroom and the Living room. Unlike them
     // there's no 'ok' pill: this is a collection you browse, and a green badge on
     // every bottle is noise. Nothing comes back for the × N duplicate count.
-    return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||'')].filter(Boolean).join(' · '),step:'count',
+    return{t:esc(i.d.name),s:[esc(i.d.house||''),esc(i.d.place||''),i.d.price?money(i.d.price):''].filter(Boolean).join(' · '),step:'count',
       pill:c===0?{cls:'bad',txt:'empty'}:(m>0&&c<=m)?{cls:'warn',txt:'buy'}:null}},
   empty:'Nothing here yet — hit + to add a bottle.'},
 jerseys:{title:'Jerseys',color:'var(--purple)',hint:'The shirt collection, filed by club and newest season first. A work in progress — hit + to add the rest.',
@@ -2804,13 +3399,17 @@ needs:{title:'To order — necessities',color:'var(--red)',hint:'Stuff the house
     return r(a)-r(b)||a.localeCompare(b)},
   card:i=>({t:esc(i.d.name),s:[i.d.price?money(i.d.price):'',esc(i.d.notes||'')].filter(Boolean).join(' · '),dim:!!i.d.done,
     pill:(+i.d.qty>0)?{cls:'acc',txt:'× '+(+i.d.qty)}:(i.d.link?{cls:'acc',txt:'link'}:null)})},
-wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly. Perfume you\'ve run out of shows up here on its own.',
+wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open want and it asks what else was on that order and what the bill came to — the gap over the items is the tax and delivery. The order stays one row until it arrives, then breaks into its items with that gap shared evenly.',
   // Items and a total paid only mean anything once something has been ordered, so they
   // stay out of the way on an open want and appear the moment a row is an order.
   fields:[{k:'name',l:d=>wantIsGroup(d)?'What to call the order':'Item',t:'text',req:1},
           {k:'grp',l:'Section',t:'dyn',opt:['Watches','Jerseys','Clothing','Shoes','Tech','House','Other']},
           {k:'otype',l:'Individual or group order',t:'sel',opt:['Individual order','Group order'],def:'Individual order'},
           {k:'spec',l:'Size, colour — the short version',t:'text',ph:'Size M · Green'},
+          // Where it is being delivered, by the nickname he gave the address ("Home - Miami").
+          // The addresses themselves live only in his private address book (sec 'addr',
+          // {nick,addr}); this public page knows the nicknames, never a street.
+          {k:'ship',l:'Delivered to',t:'dyn',opt:addrNicks},
           {k:'price',l:'Est. price',t:'money',showIf:d=>!d.done},
           {k:'lines',l:'Items in this order',t:'lines',full:1},
           {k:'paid',l:d=>wantIsGroup(d)?'Total actually paid — the gap over the items is the tax and fees':'What it cost, all in',
@@ -2883,7 +3482,9 @@ wants:{title:'Wants',color:'var(--acc)',hint:'Treats. No judgement. Tick an open
       badge:wantIsGroup(i.d)&&ls.length?ls.length:0,
       s:[tot?money(tot):'',
          wantFees(i.d)?'+'+money(wantFees(i.d))+' tax & fees':'',
-         wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · '),dim:!!i.d.got,
+         wantIsGroup(i.d)?'':esc(i.d.spec||'')].filter(Boolean).join(' · ')
+        // Where it is going sits on its own line under the price and size, by nickname only.
+        +(i.d.ship?'<div class="shipLn">→ '+esc(i.d.ship)+'</div>':''),dim:!!i.d.got,
       pill:i.d.got?{cls:'ok',txt:'received'}:i.d.done?{cls:'acc',txt:'ordered'}:(i.d.link?{cls:'acc',txt:'link'}:null)}}},
 juice:{title:'Juice recipes',color:'var(--green)',hint:'Recipes for the juicer.',
   fields:[{k:'name',l:'Juice',t:'text',req:1},{k:'ing',l:'Ingredients',t:'ta',full:1,ph:'one per line'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -2894,7 +3495,7 @@ food:{title:'Food recipes',color:'var(--orange)',hint:'Dishes the cook can make 
   group:i=>i.d.cat||'Other',
   sort:(a,b)=>(a.d.name||'').localeCompare(b.d.name||''),
   card:i=>({t:esc(i.d.name),s:esc((i.d.ing||'').split('\n').filter(Boolean).join(' · ').slice(0,120))})},
-tlspoils:{title:'Timeline — spoils',color:'var(--acc)',hint:'The treats — dated once you get them, undated while they\'re still on the list.',
+tlspoils:{title:'Orders — spoils',color:'var(--acc)',hint:'The treats — dated once you get them, undated while they\'re still on the list.',
   fields:[{k:'date',l:'Date',t:'date'},{k:'name',l:'What',t:'text',req:1},{k:'cost',l:'Cost',t:'money'},{k:'notes',l:'Notes',t:'ta',full:1}],
   sort:(a,b)=>(b.d.date||'').localeCompare(a.d.date||''),
   card:i=>({t:esc(i.d.name),s:[fdate(i.d.date),i.d.cost?money(i.d.cost):''].filter(Boolean).join(' · ')})},
@@ -3035,9 +3636,10 @@ projects:{title:'Projects',color:'var(--purple)',hint:'Tap a project to see its 
     ||ST_SEL.indexOf(a.d.status)-ST_SEL.indexOf(b.d.status),
   card:i=>({t:esc(i.d.name),s:[esc(whenLabel(i.d)),esc(i.d.notes||'').slice(0,70)].filter(Boolean).join(' — '),dim:!!i.d.done,
     pill:i.d.done?{cls:'mut',txt:'done'}:{cls:i.d.status==='In progress'?'ok':'acc',txt:esc(i.d.status||'')}})},
-recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose.',
+recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again. The next one always sits on your To-do list under its own date — tick it off and the one after that takes its place. A monthly job can be pinned to the first or last day of the month, or to a day you choose; a bimonthly one comes round twice a month, either on the 1st and the 15th or on the first and third Monday.',
   fields:[{k:'name',l:'Task',t:'text',req:1},{k:'who',l:'Who',t:'dyn',opt:['Personal','Staff'],def:'Staff'},{k:'paused',l:'Paused',t:'check'},
-          {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Monthly','Quarterly','Biyearly','Yearly'],def:'Weekly'},
+          {k:'every',l:'How often',t:'sel',opt:['Daily','Weekly','Biweekly','Bimonthly','Monthly','Quarterly','Biyearly','Yearly'],def:'Weekly'},
+          {k:'bimo',l:'Which two days',t:'sel',opt:BIMO_SEL,def:BIMO_DATE},
           {k:'anchor',l:'When to do it',t:'sel',opt:ANCHOR_SEL,def:GAP_ANCHOR},
           {k:'dom',l:'Which day',t:'num',ph:'15'},
           {k:'last',l:'Last done',t:'date'},{k:'notes',l:'Notes',t:'ta',full:1}],
@@ -3055,7 +3657,7 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
            {k:'Recurring jobs',v:it.length,u:paused?paused+' paused':'',c:'var(--purple)'}]},
   card:i=>{const due=recurDue(i),next=recurNext(i);
     const days=Math.round((new Date(next+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
-    return{t:esc(i.d.name),s:[esc(everyOf(i.d)),esc(recurAnchored(i)?anchorShort(i.d):''),
+    return{t:esc(i.d.name),s:[esc(everyOf(i.d)),esc(isBimo(i.d)?bimoMode(i.d):recurAnchored(i)?anchorShort(i.d):''),
         i.d.paused?'paused':(i.d.last?'last done '+fdate(i.d.last).replace(/^\w+, /,''):'never done')].filter(Boolean).join(' · '),
       dim:!due,
       act:{txt:i.d.paused?'▶ Resume':'❚❚ Pause',fn:`recurPause('${i.id}')`,cls:i.d.paused?'ordBtn pausedBtn':'ordBtn'},
@@ -3063,7 +3665,7 @@ recur:{title:'Recurring',color:'var(--purple)',hint:'Jobs that come round again.
   empty:'Nothing recurring yet — hit + to add one.'},
 /* ---- the CFO room's sections. They live in cfo_items, not items. ---- */
 fincash:{title:'Cash — accounts',color:'var(--green)',hint:'',
-  fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
+  fields:[{k:'name',l:'Account',t:'text',req:1},{k:'grp',l:'Section',t:'sel',opt:['Banking','Credit','Bills','FICO','Haiti cash','Haiti credit','Setting']},{k:'amt',l:'Amount / score',t:'money'},{k:'denom',l:'Bill size (20, 50…)',t:'num',showIf:d=>d.grp==='Bills'},{k:'cur',l:'Currency',t:'sel',opt:['USD','HTG']},
           {k:'stmtDay',l:'Statement day of the month',t:'num',ph:'24'},
           {k:'dueDay',l:'Payment due day',t:'num',ph:'17'},
           {k:'card',l:'Statements column',t:'sel',opt:['',...CARD_SRC]}],
@@ -3274,6 +3876,7 @@ cfg:{title:'cfg'}
 };
 const EVERY={Daily:1,Weekly:7,Biweekly:14,Monthly:30,Quarterly:90,Biyearly:182,Yearly:365};
 function recurNext(r){
+  if(isBimo(r.d))return bimoNext(r);               // fixed to the 1st and the 15th
   if(recurAnchored(r)){
     const step=MONTH_STEP[everyOf(r.d)];
     const at=c=>anchorIn(r.d,c.getFullYear(),c.getMonth());
@@ -4983,6 +5586,108 @@ function txPage(){
   }
   return h+genList('tx');
 }
+/* ---------------- Spending ----------------
+   The Transactions page is the ledger: one row per purchase, and a breakdown folded away
+   behind a heading because most visits there are looking for a row rather than a pattern.
+   This page is the other question — where the money actually goes — and it is the whole
+   page rather than a panel on one.
+
+   It reads the same rows and the same txIsSpend rule, so the two can never disagree: a card
+   payment or a transfer between his own accounts is movement, not spending, and counting it
+   would double what he spent. Nothing new is stored. */
+let SPENDMO=null;                       // null = the latest month with purchases in it
+function spendMonths(){
+  const s=new Set();
+  list('tx').filter(txIsSpend).forEach(i=>{
+    const d=String(i.d.date||'');if(/^\d{4}-\d{2}/.test(d))s.add(d.slice(0,7))});
+  return [...s].sort().reverse();
+}
+const spendLabel=m=>m?MONTHS[+m.slice(5,7)-1].slice(0,3)+' '+m.slice(0,4):'All time';
+function spendSetMo(m){SPENDMO=m;renderActive()}
+function spendingPage(){
+  plaidPullOnce();
+  const all=list('tx').filter(txIsSpend);
+  const months=spendMonths();
+  const cur=SPENDMO===null?(months[0]||''):SPENDMO;
+  const inMo=(rows,m)=>m?rows.filter(i=>String(i.d.date||'').slice(0,7)===m):rows;
+  const amt=i=>cfoUsd(i.d.amt,i.d.cur);
+  const sum=rows=>rows.reduce((s,i)=>s+amt(i),0);
+
+  let h=`<div class="segbar wrap" style="margin:12px 0 2px">`
+    +[['','All time'],...months.slice(0,12).map(m=>[m,spendLabel(m)])].map(([k,l])=>
+      `<button class="${cur===k?'active':''}" onclick="spendSetMo('${k}')">${esc(l)}</button>`).join('')
+    +`</div>`;
+
+  if(!all.length)
+    return h+`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Spending</h2>
+      <div class="empty" style="padding:18px">No purchases on the ledger yet. Import a statement on the Transactions page, or connect a card, and this fills itself in.</div></div>`;
+
+  const rows=inMo(all,cur), spent=sum(rows);
+  /* The month before, so the headline figure carries a direction rather than sitting there
+     alone. On "All time" there is nothing to compare against and the tile says so. */
+  const prevM=cur?months[months.indexOf(cur)+1]:null;
+  const prev=prevM?sum(inMo(all,prevM)):null;
+  const delta=prev!=null&&prev>0?((spent-prev)/prev*100):null;
+  /* A month still running would otherwise look like a cheap one. The daily rate says what
+     it is actually on course for. */
+  const nowMo=today().slice(0,7);
+  const days=cur?(cur===nowMo?+today().slice(8,10):new Date(+cur.slice(0,4),+cur.slice(5,7),0).getDate()):0;
+  const perDay=days?spent/days:0;
+
+  const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div>`
+    +`<div class="v">${v}</div><div class="u">${u}</div></div>`;
+  h+=`<div class="grid stats">`
+    +tile('Spent',money2(spent),cur?spendLabel(cur):`${months.length} month${months.length===1?'':'s'} on the ledger`,'orange')
+    +tile('Purchases',rows.length,cur&&days?money2(perDay)+' a day':'every card','blue')
+    +tile(cur?'vs last month':'Monthly average',
+      cur?(delta==null?'—':(delta>=0?'+':'')+delta.toFixed(0)+'%'):money2(spent/Math.max(1,months.length)),
+      cur?(prevM?spendLabel(prevM)+' · '+money2(prev):'nothing before it'):'across the whole ledger',
+      cur?(delta!=null&&delta>0?'red':'green'):'green')
+    +`</div>`;
+
+  const group=(key,fallback)=>{
+    const by={};rows.forEach(i=>{const k=String(i.d[key]||'').trim()||fallback;by[k]=(by[k]||0)+amt(i)});
+    return Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  };
+  const bars=(list,total)=>list.map(([k,v])=>`<div class="cfoGoal"><div class="cfoGoalTop"><span class="n">${esc(k)}</span><span class="v">${money2(v)}</span></div>
+    <div class="cfoBar"><i style="width:${total>0?(v/total*100).toFixed(1):0}%"></i></div>
+    <div class="cfoGoalSub">${total>0?(v/total*100).toFixed(0):0}% of what you spent</div></div>`).join('');
+
+  const cats=group('cat','Uncategorised');
+  h+=`<div class="panel"><h2><span class="sw" style="background:var(--orange)"></span>Where it went</h2>
+    <div class="hint">${cur?spendLabel(cur):'Every month'} · ${rows.length} purchase${rows.length===1?'':'s'} · ${money2(spent)}. This is the list to cut from.</div>
+    ${rows.length?bars(cats,spent):`<div class="empty" style="padding:16px">Nothing spent in ${esc(spendLabel(cur))}.</div>`}</div>`;
+
+  if(rows.length){
+    const cards=group('card','Unassigned');
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--purple)"></span>By card</h2>
+      ${cards.map(([k,v])=>`<div class="finRow" style="cursor:default"><span class="n">${esc(k)}</span><span class="v">${money2(v)}</span></div>`).join('')}
+      <div class="finTot"><span class="n">Total</span><span class="v">${money2(spent)}</span></div></div>`;
+
+    /* One merchant charging you twice a week is the thing a category total hides. */
+    const merch=group('desc','(no description)').slice(0,8);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--gold)"></span>Biggest merchants</h2>
+      <div class="hint">Where the most went, totalled per name.</div>
+      ${merch.map(([k,v])=>`<div class="finRow" style="cursor:default"><span class="n">${esc(k)}</span><span class="v">${money2(v)}</span></div>`).join('')}</div>`;
+
+    const big=rows.slice().sort((a,b)=>amt(b)-amt(a)).slice(0,8);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--red)"></span>Biggest single purchases</h2>
+      ${big.map(i=>`<div class="finRow" onclick="openForm('tx','${i.id}')"><span class="n">${esc(i.d.desc||'—')}${i.d.date?`<span class="sub"> · ${fdate(i.d.date).replace(/^\w+, /,'')}</span>`:''}</span><span class="v">${money2(amt(i))}</span></div>`).join('')}</div>`;
+  }
+
+  /* The run of months, so a spike reads as a spike rather than as a number you have to
+     remember from the last time you looked. */
+  if(months.length>1){
+    const hist=months.slice(0,12).map(m=>[m,sum(inMo(all,m))]);
+    const top=Math.max(...hist.map(x=>x[1]),1);
+    h+=`<div class="panel"><h2><span class="sw" style="background:var(--green)"></span>Month by month</h2>
+      <div class="hint">Tap a month to read it.</div>
+      ${hist.map(([m,v])=>`<div class="cfoGoal" style="cursor:pointer" onclick="spendSetMo('${m}')">
+        <div class="cfoGoalTop"><span class="n">${spendLabel(m)}${m===cur?' ·':''}</span><span class="v">${money2(v)}</span></div>
+        <div class="cfoBar"><i style="width:${(v/top*100).toFixed(1)}%"></i></div></div>`).join('')}</div>`;
+  }
+  return h;
+}
 function cfoSpendMo(){const r=list('spend');if(!r.length)return 0;
   const mons=new Set(r.map(i=>(i.d.year||'')+'|'+(i.d.month||''))).size;
   return r.reduce((s,i)=>s+cfoUsd(i.d.amt,i.d.cur),0)/Math.max(1,mons)}
@@ -5991,35 +6696,124 @@ function briefPage(){
   if(briefSel!=='archive'){const t=briefPick(briefDay(today()));if(t)return briefArticle(t)}
   return briefArchive();
 }
+/* The ledger's three figures, read from the CFO room's own rows and shown with both sides
+   of the house added together: the American accounts in dollars, the Haitian ones converted
+   at the rate the ledger itself keeps. Bills — physical cash on hand — stay out of it, the
+   same way they sit outside Cash & checking on the ledger's own page.
+
+   The card used to go blank the moment the ledger was locked, and it had to: the ledger is
+   held in memory and never written to this device, and the anon key is revoked on its table
+   outright, so a locked room has no copy of anything to show. That was a deliberate second
+   lock and he has asked for it to be opened — he wants the figures on the front page
+   whether the room is open or not.
+
+   So the totals, and only the totals, are kept. Seven numbers and a timestamp: the three
+   figures, the US and Haiti halves of each, and the rate. No account, no card, no name, no
+   balance of any single thing, no transaction, nothing that says where the money is. The
+   ledger itself still never touches the disk, and the room's lock still holds everything a
+   room holds — accounts, statements, transfers, subscriptions, the Plaid connections. What
+   it no longer hides is the sum.
+
+   Said plainly, because it is his to decide and not mine to bury: anyone who gets past the
+   house PIN can now read what he is worth to the nearest cent without the ledger's
+   password. That is the trade, and it is the whole of it. */
+const FIN_SNAP='alfred_fin';
+function finTotals(){
+  if(!cfoAuthed()||!list('fincash').length)return null;
+  return {usCash:finSum('Banking'),usCr:finSum('Credit'),
+    htCash:finUsd('Haiti cash'),htCr:finUsd('Haiti credit'),
+    rate:fxRate(),at:Date.now()};
+}
+function finSnapSave(){
+  const t=finTotals();if(!t)return;
+  try{localStorage[FIN_SNAP]=JSON.stringify(t)}catch(e){}
+}
+function finSnapRead(){
+  try{const j=JSON.parse(localStorage[FIN_SNAP]||'null');
+    return (j&&typeof j.usCash==='number')?j:null}catch(e){return null}
+}
+function finWhen(ts){
+  const d=new Date(+ts||0);if(isNaN(d)||!+ts)return'';
+  const sameDay=d.toDateString()===new Date().toDateString();
+  const clock=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return sameDay?clock:d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+clock;
+}
+function ovFinCard(){
+  const head=`<h2><span class="sw" style="background:var(--green)"></span>Finances</h2>`;
+  const live=finTotals();
+  if(live)finSnapSave();                 // every draw with the room open refreshes the copy
+  const t=live||finSnapRead();
+  if(!t)
+    return cfoAuthed()
+      ?`<div class="panel ovCard ovFin" onclick="go('fincash')">${head}`
+        +`<div class="empty" style="padding:16px">Reading the ledger…</div></div>`
+      :`<div class="panel ovCard ovFin" onclick="goSite('cfo')">${head}`
+        +`<div class="empty" style="padding:16px">No figures on this device yet. Sign in at the CFO desk once and they stay on this card.</div>`
+        +`<div class="ovMore">Open the CFO desk →</div></div>`;
+  const cash=t.usCash+t.htCash, cr=t.usCr+t.htCr, ov=cash+cr;
+  const sp=(a,b)=>`US ${money2(a)} · HT ${money2(b)}`;
+  const tile=(k,v,u,c)=>`<div class="stat" style="--accent:var(--${c})"><div class="k">${k}</div>`
+    +`<div class="v ${signCls(v)}">${money2(v)}</div><div class="u">${u}</div></div>`;
+  /* A figure read an hour ago and a figure read last Tuesday look identical, so the card
+     says which it is. Open, it reports when the banks were last read; locked, when these
+     numbers themselves were taken — and it stops calling them current. */
+  const hint=live
+    ?`American and Haitian together — HTG at ${t.rate} HTG / USD. Bills are kept out, as they are on the ledger.${esc(finBalNote())}`
+    :`American and Haitian together — HTG at ${t.rate} HTG / USD. Bills are kept out.`;
+  return `<div class="panel ovCard ovFin" onclick="${live?`go('fincash')`:`goSite('cfo')`}">${head}`
+    +`<div class="hint">${hint}</div>`
+    +`<div class="grid stats">`
+      +tile('Overall',ov,sp(t.usCash+t.usCr,t.htCash+t.htCr),'blue')
+      +tile('Cash &amp; checking',cash,sp(t.usCash,t.htCash),'green')
+      +tile('Credit',cr,sp(t.usCr,t.htCr),'red')
+    +`</div>`
+    +(live?`<div class="ovMore">Open the ledger →</div>`
+          :`<div class="ovStale">Ledger locked · figures as of ${finWhen(t.at)} — sign in for the live ones →</div>`)
+    +`</div>`;
+}
 function overviewPage(){
   const t=today();
   const dateline=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   let h=`<div class="ovHead">${dateline}</div><div class="ovSub">The day at a glance — tap a card to open its page</div>`;
+  /* Three cards and no more: what has to be done, what happened overnight, and where the
+     money stands. They are always drawn, in that order, even with nothing in them — a page
+     whose shape moves around depending on the data is a page you have to re-read.
+
+     What used to follow them — activities, low stock, the living room, payroll, the next
+     trip, birthdays — was a noticeboard pinned to the front door, and every one of those
+     has its own page that says it better. The Overview is not an index of the app. */
+  /* Today means today. Yesterday's unfinished work belongs on the To-do page, which holds
+     all of it in order — a front page that lets the backlog pile up stops being a view of
+     the day and becomes the list again. The count of what is late still shows, in one line:
+     eleven tasks quietly dropped is not a tidier page, only a less honest one.
+
+     The left column used to say "today" on every row, which it now would on all of them.
+     It carries the task's section instead — the same Miami / Haiti / House / Work the
+     To-do page files it under — and the rows come in that page's own order for the day,
+     so the card is the top of the list rather than a differently sorted copy of it. */
+  const open=list('todo').filter(i=>!i.d.done&&i.d.due);
+  const tds=open.filter(i=>i.d.due===t).sort((a,b)=>
+    grpRankFor(t,(a.d.grp||'').trim()||'General')-grpRankFor(t,(b.d.grp||'').trim()||'General')
+    ||(+a.d.ord||0)-(+b.d.ord||0)
+    ||(a.d.task||'').localeCompare(b.d.task||''));
+  const late=open.filter(i=>i.d.due<t).length;
+  h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
+  if(tds.length)h+=tds.slice(0,8).map(i=>`<div class="ovRow"><span class="d">${esc((i.d.grp||'').trim())}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>8?`<div class="ovMore">+${tds.length-8} more →</div>`:'');
+  else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
+  if(late)h+=`<div class="ovLate">${late} still open from before →</div>`;
+  h+=`</div>`;
   const briefs=list('brief').filter(b=>b.d.date).sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||''));
   const b=briefs[0];
   h+=`<div class="panel ovCard" onclick="briefSel=null;go('brief')"><h2><span class="sw" style="background:var(--gold)"></span>Daily brief</h2>`;
-  if(b)h+=`<div class="hint">${fdate(b.d.date)}${briefTxt(b,'title')?' — '+esc(briefTxt(b,'title')):''}</div>`
-    +`<div class="ovBody">Catch up on today's coverage — the world, the markets, and what moved overnight. A few minutes, written fresh each morning.</div>`
+  /* The headline is the only part of this card that changes from one day to the next, so it
+     takes the body and the standing description drops to the subtitle, where a sentence
+     that reads the same every morning belongs. */
+  if(b)h+=`<div class="hint">${fdate(b.d.date)} — catch up on today's coverage: the world, the markets, and what moved overnight. A few minutes, written fresh each morning.</div>`
+    +(briefTxt(b,'title')?`<div class="ovBody">${esc(briefTxt(b,'title'))}</div>`:'')
     +`<div class="ovMore">Read the full brief →</div>`;
   else h+=`<div class="empty" style="padding:16px">No brief yet — your agent posts here every morning.</div>`;
   h+=`</div>`;
-  const tds=list('todo').filter(i=>!i.d.done&&i.d.due&&i.d.due<=t).sort((a,b)=>(a.d.due||'').localeCompare(b.d.due||''));
-  h+=`<div class="panel ovCard" onclick="go('todo')"><h2><span class="sw" style="background:#b8543f"></span>To-do today</h2>`;
-  if(tds.length)h+=tds.slice(0,6).map(i=>`<div class="ovRow"><span class="d ${i.d.due<t?'hot':''}">${i.d.due<t?'overdue':'today'}</span><span>${esc(i.d.task)}</span></div>`).join('')+(tds.length>6?`<div class="ovMore">+${tds.length-6} more →</div>`:'');
-  else h+=`<div class="empty" style="padding:16px">Nothing due today.</div>`;
-  h+=`</div>`;
-  const acts=list('acts').filter(actToday).sort(byStart);
-  if(acts.length)h+=`<div class="panel ovCard" onclick="go('schedule')"><h2><span class="sw" style="background:var(--green)"></span>Today's activities</h2>${acts.map(i=>`<div class="ovRow"><span class="d">${fmtT(actStart(i,DOW_TODAY()))||'—'}</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
-  const low=list('stock').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(low.length)h+=`<div class="panel ovCard" onclick="go('stock')"><h2><span class="sw" style="background:var(--orange)"></span>Stock running low</h2>${low.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}</div>`;
-  const kb=list('kitchen').filter(i=>(+i.d.count||0)<=(+i.d.min||0));
-  if(kb.length)h+=`<div class="panel ovCard" onclick="go('kitchen')"><h2><span class="sw" style="background:var(--green)"></span>Living room — to buy</h2>${kb.slice(0,6).map(i=>`<div class="ovRow"><span class="d">${+i.d.count||0} left</span><span>${esc(i.d.name)}</span></div>`).join('')}${kb.length>6?`<div class="ovMore">+${kb.length-6} more →</div>`:''}</div>`;
-  const pd=list('payroll').filter(i=>!paidThis(i));
-  if(pd.length)h+=`<div class="panel ovCard" onclick="go('payroll')"><h2><span class="sw" style="background:var(--green)"></span>Payroll — ${pd.length} to pay</h2>${pd.slice(0,5).map(i=>`<div class="ovRow"><span class="d">${i.d.payday?'day '+i.d.payday:''}</span><span>${esc(i.d.name)}${i.d.amt?' · '+money(i.d.amt):''}</span></div>`).join('')}</div>`;
-  const tr=list('travels').filter(i=>!i.d.done&&tripWhen(i.d)>=t).sort((a,b)=>tripWhen(a.d).localeCompare(tripWhen(b.d)))[0];
-  if(tr)h+=`<div class="panel ovCard" onclick="go('travels')"><h2><span class="sw" style="background:var(--blue)"></span>Next trip</h2><div class="ovRow"><span class="d">${fdate(tripWhen(tr.d))}</span><span>${esc(tr.d.place)}</span></div></div>`;
-  const bd=list('bdays').map(i=>({i,dd:daysToBday(i.d.date)})).filter(x=>x.dd!=null&&x.dd<=14).sort((a,b)=>a.dd-b.dd);
-  if(bd.length)h+=`<div class="panel ovCard" onclick="go('bdays')"><h2><span class="sw" style="background:var(--purple)"></span>Birthdays coming up</h2>${bd.map(x=>`<div class="ovRow"><span class="d">${x.dd===0?'today!':'in '+x.dd+'d'}</span><span>${esc(x.i.d.name)}</span></div>`).join('')}</div>`;
+  h+=ovFinCard();
   return h;
 }
 
@@ -6613,23 +7407,26 @@ const NAVS={
   {t:'Brief',p:'fincash'},
   {t:'CFO',p:'cfo'},
   {t:'Transactions',p:'tx'},
+  {t:'Spending',p:'spending'},
   {t:'Accounts',g:[['Statements','finstmt'],['Transfers','fintx'],['Investments','invest']]},
   {t:'Committed',g:[['Subscriptions','finsub'],['Payroll','payroll']]},
   {t:'Net worth',p:'networth'},
   {t:'Service',p:'service'},
  ],
  main:[
+  // What he reaches for most, nearest the front: the list, then what he is watching, what
+  // is on order and what is in the house. The rest keeps the order it had.
   {t:'Overview',p:'overview'},
   {t:'To-do',p:'todo',cls:'todo'},
+  {t:'Cholesterol — LDL',g:[['Overview','ldl'],['Menu','ldlmenu'],['Saturated fat','ldlfat']]},
+  {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
+  {t:'Orders',g:[['Necessities','needs'],['Wants','wants'],['Spoils','tlspoils']]},
+  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
   {t:'Recurring',p:'recur'},
   {t:'Journal',p:'briefs'},
   {t:'Nutrition',g:[['Menu de la maison','menu'],['Food recipes','food'],['Juice recipes','juice'],['Supplements','supp']]},
-  {t:'Stock',g:[['Bathroom','stock'],['Living room','kitchen'],['Perfume','perfume'],['Jerseys','jerseys']]},
-  {t:'Orders',g:[['Necessities','needs'],['Wants','wants']]},
-  {t:'Staff',g:[['Payroll','payroll'],['Birthdays','bdays']]},
   {t:'Schedule',p:'schedule'},
-  {t:'Timeline',g:[['Travels','travels'],['Past','travpast'],['Spoils','tlspoils']]},
-  {t:'Entertainment',g:[['Shows','shows'],['Movies','movies']]},
+  {t:'Timeline',g:[['Travels','travels'],['Past','travpast']]},
   {t:'Learnings',g:[['Books','books'],['To learn','courses']]},
   {t:'Projects',p:'projects'},
  ],
@@ -7260,6 +8057,9 @@ function bindAtlas(){
 }
 
 const SPECIAL={overview:{render:overviewPage,fab:null},
+  ldl:{render:ldlPage,fab:'ldl'},        // + files a blood panel; the daily levers are tapped in place
+  ldlmenu:{render:ldlMenuPage,fab:'ldlmeal'},
+  ldlfat:{render:ldlFatPage,fab:null},   // a reference page: nothing here is his to add
   brief:{render:briefPage,fab:'brief'},
   menu:{render:menuPage,fab:'menu'},
   schedule:{render:schedulePage,fab:'acts'},
@@ -7270,6 +8070,7 @@ const SPECIAL={overview:{render:overviewPage,fab:null},
   finstmt:{render:finstmtPage,fab:'finstmt'},
   fintx:{render:fintxPage,fab:'fintx'},
   tx:{render:txPage,fab:'tx'},
+  spending:{render:spendingPage,fab:'tx'},   // + files a purchase, same as the ledger itself
   networth:{render:networthPage,fab:'assets'},
   // Past is two views of one section: the written list, or the same rows on the world.
   travpast:{render:travpastPage,bind:bindAtlas,fab:'travpast'},
@@ -7382,6 +8183,20 @@ $('#siteBtn').onclick=e=>{
 $('#cfoLock').onclick=()=>cfoSignOut();
 $('#siteMenu').onclick=e=>e.stopPropagation();   // clicking inside it is not clicking away
 $$('#siteMenu button').forEach(b=>b.onclick=()=>goSite(b.dataset.s));
+/* With no cloud connection every page is empty and the only sign of it is a grey chip in
+   the corner reading "local only" — which looks exactly like an app with nothing in it.
+   Nothing IS lost: it is all in the cloud and this copy simply cannot reach it. So say
+   that, say what to do, and on an iPhone say the thing that stops it happening again. */
+function linkBanner(){
+  if(cfg)return'';
+  const tabOnIOS=isIOS()&&!isStandalone();
+  return `<div class="panel linkWarn">
+    <h2><span class="sw" style="background:var(--warn)"></span>This device is not linked to your cloud</h2>
+    <div class="hint">Nothing is lost — your rows are in the cloud, and this copy of Alfred has no way to reach them yet. Open the setup link from a device that is already linked, or put the connection in by hand.</div>
+    <button class="btn primary" style="margin-top:12px" onclick="document.getElementById('gearBtn').click()">Set up the connection</button>
+    ${tabOnIOS?`<div class="linkTip">On an iPhone, Safari throws a website's stored data away after about a week of not opening it — which is what unlinks this. Add Alfred to your Home Screen (Share → Add to Home Screen) and open it from there: a home-screen app keeps its data instead.</div>`:''}
+  </div>`;
+}
 function markNav(){
   $$('#nav > button').forEach(b=>b.classList.toggle('active',b.dataset.p===activePage));
   $$('.navGroup').forEach(g=>{
@@ -7404,7 +8219,7 @@ function go(p){
 let pendingPage=null;
 let lastDrawn=null;
 function renderActive(){
-  const keepY=SITE==='geo'&&activePage===lastDrawn?scrollY:null;
+  const keepY=activePage===lastDrawn?scrollY:null;
   syncAutoOrders();syncRecurTodos();syncIncomeTransfers();
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
@@ -7431,11 +8246,18 @@ function renderActive(){
     return;
   }
   const sp=SPECIAL[activePage];
-  el.innerHTML=sp?sp.render():genList(activePage);
+  el.innerHTML=linkBanner()+(sp?sp.render():genList(activePage));
   if(sp?.bind)sp.bind(el);
   el.classList.add('active');
-  // In the Geo room, redrawing the tab you are already on — after saving a form, or when a
-  // sync lands — leaves you where you were rather than back at the top.
+  /* Redrawing the tab you are already on — stepping a note count up or down, saving a
+     form, a sync landing — leaves you where you were rather than back at the top. Replacing
+     the page's HTML momentarily empties it, and the browser clamps the scroll position to
+     the height it finds, which is what threw you to the top every time you pressed + or −.
+
+     This was written for the Geo room and left switched on only there, which was never a
+     reason -- every room redraws in place, and a counter you have to scroll back down to
+     after each press is the worst case of it. The guard that matters is the one on the page
+     itself: arriving somewhere new is still a fresh page, from the top. */
   if(keepY!=null)scrollTo(0,keepY);
   lastDrawn=activePage;
   markNav();
@@ -7534,6 +8356,9 @@ $('#gearBtn').onclick=()=>{
   $('#setCount').textContent=cfoAuthed()?`${rows} · ${cRows} ledger`:rows;
   const kb=((localStorage.alfred_state||'').length+(localStorage.alfred_bulk||'').length)/1024;
   $('#setStore').textContent=kb.toFixed(0)+' KB'+(storeErr?' · FULL':'');
+  $('#setKeep').textContent=storePersisted===true?'yes — kept for good'
+    :storePersisted===false?(isIOS()&&!isStandalone()?'no — add to Home Screen':'no — the browser may clear it')
+    :'not known';
   $('#setErr').textContent=storeErr||syncErr||'none';
   $('#setBuild').textContent=BUILD;
   $('#cfgUrl').value=cfg?.url||'';$('#cfgKey').value=cfg?.key||'';$('#cfgSec').value=cfg?.secret||'';
@@ -7614,6 +8439,7 @@ $('#impFile').onchange=e=>{
   const recent=+localStorage.alfred_unlocked||0;
   if(!pinHash())showLock('set');
   else if(Date.now()-recent>GRACE)showLock('enter');
+  keepStorage();                                // before anything can be swept up
   vocabMirror();                                // words saved before this existed still upload
   sync();cfoSync();                             // …and the ledger, if the room is already open
   // Registering it was the whole of this before, which meant a version could go live and
