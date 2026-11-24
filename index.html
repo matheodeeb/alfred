@@ -4755,7 +4755,20 @@ function plaidInvLog(accts){
    totals for every card at once.
 
    The row is created empty and never overwritten here. Balances fill it when they come. */
+/* True once the ledger has actually been read from the cloud. Anything written before
+   that is written blind: a local write is dirty, and the sync skips a dirty row rather
+   than overwrite it, so a placeholder invented here does not merely look wrong for a
+   moment -- it outranks the real figure and is pushed over the top of it. */
+const cfoLoaded=()=>!!SC.lastSyncAt;
 function plaidSeatAccounts(){
+  /* On a cold load the connections can answer before the ledger does. Seating an empty
+     balance then cost the real one: every account read "not reported" and every total
+     $0.00, and it stayed that way until a bank happened to hand its balance over again --
+     a bank that cannot, such as one demanding a one-time code, stayed blank for good.
+     An account with no row yet waits instead: this runs again on every draw, and the draw
+     that follows the first successful read seats it. Skipping it here with nothing to come
+     back would leave a genuinely new account with no row at all, which the tests say. */
+  if(!cfoLoaded())return 0;
   let made=0;
   plaidItems().forEach(it=>(it.d.accts||[]).forEach(a=>{
     const grp=plaidFinGrp(a); if(!grp||!a.id)return;
@@ -4830,7 +4843,9 @@ async function plaidBalSync(){
       if(val==null){
         // Neither figure given. The account still belongs on the page -- it exists and you
         // can type its balance -- but nothing is invented, and a figure already there stands.
-        if(fresh)put('fincash',{grp,cur:a.cur||'USD',src:'Plaid',acct:sid,amt:'',
+        // Not before the ledger has been read, for the reason on cfoLoaded(): an empty row
+        // written blind beats the real balance instead of waiting for it.
+        if(fresh&&cfoLoaded())put('fincash',{grp,cur:a.cur||'USD',src:'Plaid',acct:sid,amt:'',
           name:plaidAcctLabel(it.d.inst,a)},id);
         return;
       }
@@ -8220,7 +8235,7 @@ let pendingPage=null;
 let lastDrawn=null;
 function renderActive(){
   const keepY=activePage===lastDrawn?scrollY:null;
-  syncAutoOrders();syncRecurTodos();syncIncomeTransfers();
+  syncAutoOrders();syncRecurTodos();syncIncomeTransfers();plaidSeatAccounts();
   document.body.classList.toggle('briefReading',activePage==='brief');
   $$('.page').forEach(pg=>pg.classList.remove('active'));
   const el=$('#pg-'+activePage);if(!el)return;
